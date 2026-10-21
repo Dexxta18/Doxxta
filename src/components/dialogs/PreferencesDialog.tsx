@@ -67,7 +67,6 @@ export default function PreferencesDialog({ close }: DialogProps) {
           <Checkbox checked={s.showTextSelectionMenu} onChange={(v) => s.set({ showTextSelectionMenu: v })} label="Show quick actions when text is selected" />
           <div className="row">
             <Button
-              variant="ghost"
               onClick={async () => {
                 await clearRecent();
                 toast("Recent files cleared", "success");

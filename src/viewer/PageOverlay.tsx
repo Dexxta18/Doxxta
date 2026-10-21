@@ -95,7 +95,15 @@ function PageOverlayInner({ docId, pageIndex }: { docId: string; pageIndex: numb
   const smoothInk = useSettings((s) => s.smoothInk);
 
   const stageRef = useRef<HTMLDivElement>(null);
-  const [drag, setDrag] = useState<Drag | null>(null);
+  const [drag, setDragState] = useState<Drag | null>(null);
+  // The latest drag, so pointer handlers can act on it outside React state updaters
+  // (React may run those twice, which would create annotations twice).
+  const dragRef = useRef<Drag | null>(null);
+  const setDrag = useCallback((next: Drag | null | ((d: Drag | null) => Drag | null)) => {
+    const value = typeof next === "function" ? next(dragRef.current) : next;
+    dragRef.current = value;
+    setDragState(value);
+  }, []);
   const [poly, setPoly] = useState<{ tool: ToolId; vertices: Point[]; hover: Point | null } | null>(null);
   const lastClick = useRef<{ t: number; p: Point }>({ t: 0, p: { x: 0, y: 0 } });
 
@@ -183,10 +191,9 @@ function PageOverlayInner({ docId, pageIndex }: { docId: string; pageIndex: numb
       });
     };
     const onUp = (e: PointerEvent) => {
-      setDrag((d) => {
-        if (d) queueMicrotask(() => finishDrag(d, toUser(e), e));
-        return null;
-      });
+      const d = dragRef.current;
+      setDrag(null);
+      if (d) finishDrag(d, toUser(e), e);
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);

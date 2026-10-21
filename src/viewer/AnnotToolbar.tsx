@@ -39,7 +39,9 @@ export function AnnotToolbar({ docId, a, box, scale, count }: { docId: string; a
   };
 
   const left = box.x * scale + (box.w * scale) / 2;
-  let top = box.y * scale - 46;
+  // A distance measurement's label sits above its line: keep it visible.
+  const lift = a.kind === "line" && a.measure ? 16 * scale : 0;
+  let top = box.y * scale - 46 - lift;
   const below = top < 4;
   if (below) top = (box.y + box.h) * scale + 10;
 

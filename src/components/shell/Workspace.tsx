@@ -29,6 +29,9 @@ const MODE_HINTS: Partial<Record<string, string>> = {
   "marquee-zoom": "Drag to zoom into an area, or click to zoom in.",
   snapshot: "Drag over the area to copy it as an image.",
   eraser: "Drag over drawings to erase them.",
+  signature: "Click on the page to place your signature.",
+  initials: "Click on the page to place your initials.",
+  "image-stamp": "Click on the page to place the stamp.",
 };
 
 function ToolHint() {

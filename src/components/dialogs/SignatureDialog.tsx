@@ -182,8 +182,8 @@ export default function SignatureDialog({ props, close }: DialogProps<{ kind?: "
       addAnnotations(p.docId, [createImage(p.pageId, p.at, p.rotation, sig.dataUrl, sig.width, sig.height, kind, kind === "initials" ? 70 : 180)], kind === "initials" ? "Add initials" : "Add signature");
       setTool("select");
     } else {
+      // The tool hint tells where to click, and goes away once the signature is placed.
       setTool(kind);
-      toast(`Click on the page to place your ${kind === "initials" ? "initials" : "signature"}`, "info");
     }
   };
 
@@ -351,7 +351,6 @@ export function CustomStampDialog({ props, close }: DialogProps<{ use?: string }
     useSettings.getState().set({ selectedCustomStampId: id });
     setTool("image-stamp");
     close();
-    toast("Click on the page to place the stamp", "info");
   };
 
   useEffect(() => {

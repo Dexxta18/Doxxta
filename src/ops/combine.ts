@@ -53,7 +53,12 @@ export async function combine(sources: CombineSource[], progress?: (p: number, d
   return out.save();
 }
 
-export type SplitMode = { kind: "every"; pages: number } | { kind: "ranges"; ranges: number[][] } | { kind: "bookmarks"; starts: { index: number; title: string }[] } | { kind: "size"; maxBytes: number };
+export type SplitMode =
+  | { kind: "every"; pages: number }
+  | { kind: "files"; files: number }
+  | { kind: "ranges"; ranges: number[][] }
+  | { kind: "bookmarks"; starts: { index: number; title: string }[] }
+  | { kind: "size"; maxBytes: number };
 
 /** Computes page groups for a split. */
 export function splitGroups(mode: SplitMode, pageCount: number): { pages: number[]; title?: string }[] {
@@ -61,6 +66,17 @@ export function splitGroups(mode: SplitMode, pageCount: number): { pages: number
     case "every": {
       const out: { pages: number[] }[] = [];
       for (let i = 0; i < pageCount; i += Math.max(1, mode.pages)) out.push({ pages: Array.from({ length: Math.min(mode.pages, pageCount - i) }, (_, k) => i + k) });
+      return out;
+    }
+    case "files": {
+      // As even as possible: the first files take one page more when the pages don't divide evenly.
+      const files = Math.min(Math.max(1, Math.round(mode.files)), pageCount);
+      const out: { pages: number[] }[] = [];
+      for (let f = 0, start = 0; f < files; f++) {
+        const size = Math.floor(pageCount / files) + (f < pageCount % files ? 1 : 0);
+        out.push({ pages: Array.from({ length: size }, (_, k) => start + k) });
+        start += size;
+      }
       return out;
     }
     case "ranges":

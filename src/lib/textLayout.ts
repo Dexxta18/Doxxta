@@ -36,11 +36,15 @@ export interface TextLine {
 
 export interface TextBlock {
   lines: TextLine[];
+  /** What joins each line to the next in `text`: " ", "\n" or "" (after a hyphen). */
+  seps: string[];
   rect: PdfRect;
   size: number;
   family: TextRun["family"];
   bold: boolean;
   italic: boolean;
+  /** pdf.js name of the block's main font; once pdf.js has loaded it, also a CSS font family. */
+  fontName: string;
   /** Text with soft line breaks joined by spaces, hard breaks kept as "\n". */
   text: string;
 }
@@ -88,6 +92,8 @@ export function analyzePage(pdf: PDFDocumentProxy, pageIndex: number): Promise<P
 async function computeLayout(pdf: PDFDocumentProxy, pageIndex: number): Promise<PageLayout> {
   const page = await pdf.getPage(pageIndex + 1);
   const { items, styles } = await getPageTextContent(pdf, pageIndex);
+  // Font details arrive with the page's drawing instructions: get them if the page hasn't been drawn yet.
+  if (items.some((it) => it.str.trim() && !page.commonObjs.has(it.fontName))) await page.getOperatorList().catch(() => null);
   const runs: TextRun[] = [];
   items.forEach((it, itemIndex) => {
     if (!it.str || !it.str.trim()) return;
@@ -198,21 +204,55 @@ function makeLine(runs: TextRun[]): TextLine {
   return { runs, text: text.replace(/\s+/g, " ").trim(), rect, baseline: runs[0].y, size, angle: runs[0].angle };
 }
 
+/** A list bullet or dash starting a line. */
+const BULLET = /^\s*([•▪◦‣●○■□➢►✓✔–—*-]|\d{1,2}[.)])\s/;
+
+/** The style most of a line's text is in. */
+function lineStyle(l: TextLine) {
+  const counts = new Map<string, { n: number; run: TextRun }>();
+  for (const r of l.runs) {
+    const key = `${r.family}|${r.bold}|${r.italic}`;
+    const c = counts.get(key) ?? { n: 0, run: r };
+    c.n += r.str.length;
+    counts.set(key, c);
+  }
+  return [...counts.values()].sort((a, b) => b.n - a.n)[0].run;
+}
+
+/**
+ * Groups lines into paragraphs. Lines join a paragraph only when they are in the same style
+ * (family, weight, slant, size), closely and evenly spaced, and aligned on the left (a first
+ * line may be indented, and lines after a bullet may hang). A bullet, a change of style or
+ * extra space before a line starts a new paragraph.
+ */
 export function buildBlocks(lines: TextLine[]): TextBlock[] {
   const sorted = [...lines].sort((a, b) => b.baseline - a.baseline || a.rect[0] - b.rect[0]);
   const blocks: TextLine[][] = [];
   for (const line of sorted) {
     let target: TextLine[] | null = null;
+    const style = lineStyle(line);
     for (let i = blocks.length - 1; i >= Math.max(0, blocks.length - 6); i--) {
       const blk = blocks[i];
       const last = blk[blk.length - 1];
       if (Math.abs(line.angle - last.angle) > 0.02) continue;
-      const sizeOk = Math.abs(line.size - last.size) <= Math.max(last.size, line.size) * 0.18;
+      const ls = lineStyle(last);
+      const size = Math.max(last.size, line.size);
+      const styleOk = ls.family === style.family && ls.bold === style.bold && ls.italic === style.italic && Math.abs(line.size - last.size) <= size * 0.08;
       const spacing = last.baseline - line.baseline;
-      const spacingOk = spacing > 0 && spacing <= Math.max(last.size, line.size) * 1.9;
-      const overlap = Math.min(line.rect[2], last.rect[2]) - Math.max(line.rect[0], last.rect[0]);
-      const colOk = overlap > Math.min(line.rect[2] - line.rect[0], last.rect[2] - last.rect[0]) * 0.3 || Math.abs(line.rect[0] - last.rect[0]) < last.size * 1.5;
-      if (sizeOk && spacingOk && colOk) {
+      let spacingOk = spacing > 0 && spacing <= size * 1.5;
+      if (spacingOk && blk.length > 1) {
+        const usual = (blk[0].baseline - last.baseline) / (blk.length - 1);
+        spacingOk = Math.abs(spacing - usual) <= Math.max(0.6, size * 0.12);
+      }
+      const dx = line.rect[0] - last.rect[0];
+      const indentOk =
+        Math.abs(dx) <= size * 0.8 ||
+        (blk.length === 1 && dx < 0 && -dx <= size * 3) ||
+        (blk.length === 1 && dx > 0 && dx <= size * 3 && BULLET.test(last.text));
+      // A clearly short line ends its paragraph (paragraphs end on one; they don't start with one).
+      const widest = Math.max(line.rect[2] - line.rect[0], ...blk.map((l) => l.rect[2] - l.rect[0]));
+      const ended = last.rect[2] - last.rect[0] < widest * 0.7;
+      if (styleOk && spacingOk && indentOk && !ended && !BULLET.test(line.text)) {
         target = blk;
         break;
       }
@@ -228,15 +268,8 @@ export function buildBlocks(lines: TextLine[]): TextBlock[] {
       Math.max(...ls.map((l) => l.rect[3])),
     ];
     const width = rect[2] - rect[0];
-    let text = "";
-    ls.forEach((l, i) => {
-      text += l.text;
-      if (i < ls.length - 1) {
-        const short = l.rect[2] - l.rect[0] < width * 0.72;
-        const hyphen = /-$/.test(l.text);
-        text += short ? "\n" : hyphen ? "" : " ";
-      }
-    });
+    const seps = ls.slice(0, -1).map((l) => (l.rect[2] - l.rect[0] < width * 0.72 ? "\n" : /-$/.test(l.text) ? "" : " "));
+    const text = ls.map((l, i) => l.text + (seps[i] ?? "")).join("");
     const runs = ls.flatMap((l) => l.runs);
     const major = <T,>(f: (r: TextRun) => T) => {
       const counts = new Map<T, number>();
@@ -245,11 +278,13 @@ export function buildBlocks(lines: TextLine[]): TextBlock[] {
     };
     return {
       lines: ls,
+      seps,
       rect,
       size: ls.reduce((s, l) => s + l.size, 0) / ls.length,
       family: major((r) => r.family),
       bold: major((r) => r.bold),
       italic: major((r) => r.italic),
+      fontName: major((r) => r.fontName),
       text,
     };
   });

@@ -3,12 +3,13 @@ import type { FontFamily, TextEditAnnot } from "../annotations/types";
 import { stageBox, type RenderCtx } from "../annotations/render";
 import { analyzePage, type TextBlock } from "../lib/textLayout";
 import { getRuntime } from "../state/runtime";
-import { getDoc, toast, useApp } from "../state/store";
-import { addAnnotations, deleteAnnotations, updateAnnotation } from "../state/annotActions";
-import { base } from "../annotations/factory";
+import { getDoc, useApp, withBusy } from "../state/store";
+import { deleteAnnotations, updateAnnotation } from "../state/annotActions";
 import { CSS_FONT, stdFontName, wrapText } from "../lib/fontMetrics";
 import { sampleRegionColors } from "../lib/colorSample";
 import { inflateRect, rectsIntersect, type PdfRect } from "../lib/geometry";
+import { applyDocumentChange } from "../core/document";
+import { FontCache, loadPdfLib } from "../lib/pdflib";
 
 const familyOf = (f: TextBlock["family"]): FontFamily => (f === "serif" ? "Times" : f === "monospace" ? "Courier" : "Helvetica");
 
@@ -22,6 +23,11 @@ interface Editing {
   fontSize: number;
   bold: boolean;
   italic: boolean;
+  /** CSS font family: the PDF's own font (as loaded by pdf.js) with a fallback. */
+  cssFont: string;
+  color?: string;
+  /** How far right the text may run: a single line grows up to the next text beside it or the page's text margin. */
+  maxRight: number;
 }
 
 /**
@@ -60,12 +66,26 @@ export function TextEditLayer({ docId, pageIndex, ctx, geo }: { docId: string; p
 
   const startBlock = (b: TextBlock) => {
     const rt = getRuntime(docId);
-    if (rt) colorsFor.current = { block: b, colors: sampleRegionColors(rt.pdf, pageIndex, b.rect).catch(() => ({ background: "#ffffff", foreground: "#000000" })) };
-    setEditing({ annotId: null, block: b, rect: b.rect, text: b.text, fontFamily: familyOf(b.family), fontSize: Math.round(b.size * 10) / 10, bold: b.bold, italic: b.italic });
+    const colors = rt ? sampleRegionColors(rt.pdf, pageIndex, b.rect).catch(() => ({ background: "#ffffff", foreground: "#000000" })) : null;
+    if (colors) colorsFor.current = { block: b, colors };
+    const fontFamily = familyOf(b.family);
+    setEditing({
+      annotId: null,
+      block: b,
+      rect: b.rect,
+      text: b.text,
+      fontFamily,
+      fontSize: Math.round(b.size * 10) / 10,
+      bold: b.bold,
+      italic: b.italic,
+      cssFont: `"${b.fontName}", ${CSS_FONT[fontFamily]}`,
+      maxRight: b.lines.length > 1 ? b.rect[2] : lineLimit(b, blocks ?? []),
+    });
+    void colors?.then((c) => setEditing((e) => (e?.block === b ? { ...e, color: c.foreground } : e)));
   };
 
   const startEdit = (a: TextEditAnnot) => {
-    setEditing({ annotId: a.id, block: null, rect: a.rect, text: a.text, fontFamily: a.fontFamily, fontSize: a.fontSize, bold: a.bold, italic: a.italic });
+    setEditing({ annotId: a.id, block: null, rect: a.rect, text: a.text, fontFamily: a.fontFamily, fontSize: a.fontSize, bold: a.bold, italic: a.italic, cssFont: CSS_FONT[a.fontFamily], color: a.textColor, maxRight: a.rect[2] });
   };
 
   const commit = async () => {
@@ -85,30 +105,29 @@ export function TextEditLayer({ docId, pageIndex, ctx, geo }: { docId: string; p
       updateAnnotation(docId, a.id, { text, rect: fitRect(a.rect, text, a), } as never, "Edit text");
       return;
     }
-    if (!ed.block || text === ed.block.text) return;
+    const b = ed.block;
+    if (!b || text === b.text) return;
     const rt = getRuntime(docId);
-    const doc = getDoc(docId);
-    if (!rt || !doc) return;
-    const pending = colorsFor.current?.block === ed.block ? colorsFor.current.colors : sampleRegionColors(rt.pdf, pageIndex, ed.block.rect);
+    if (!rt || !getDoc(docId)) return;
+    const pending = colorsFor.current?.block === b ? colorsFor.current.colors : sampleRegionColors(rt.pdf, pageIndex, b.rect);
     const colors = await pending.catch(() => ({ background: "#ffffff", foreground: "#000000" }));
-    const lineHeight = ed.block.lines.length > 1 ? Math.min(2, Math.max(1, (ed.block.lines[0].baseline - ed.block.lines[ed.block.lines.length - 1].baseline) / (ed.block.lines.length - 1) / ed.fontSize)) : 1.2;
-    const a: TextEditAnnot = {
-      ...base("textedit", page.id, ed.block.rect, 0),
-      originalRect: inflateRect(ed.block.rect, 0.5),
-      originalText: ed.block.text,
-      text,
-      fontFamily: ed.fontFamily,
-      fontSize: ed.fontSize,
-      bold: ed.bold,
-      italic: ed.italic,
-      textColor: colors.foreground,
-      backgroundColor: colors.background,
-      lineHeight: Math.round(lineHeight * 100) / 100,
-      align: "left",
-      color: colors.foreground,
-    } as TextEditAnnot;
-    addAnnotations(docId, [{ ...a, rect: fitRect(ed.block.rect, text, a) }], "Edit text", false);
-    toast("Text updated — the change is applied to the page when you save.", "success");
+    // The change is made in the page right away (and can be undone), keeping its fonts and layout.
+    const request = {
+      pageIndex,
+      lines: b.lines.map((l, i) => ({ text: l.text, rect: l.rect, baseline: l.baseline, sep: b.seps[i] ?? "" })),
+      before: b.text,
+      after: text,
+      background: colors.background,
+      fallback: { size: ed.fontSize, color: colors.foreground, bold: ed.bold, italic: ed.italic, family: ed.fontFamily },
+    };
+    await withBusy("Updating text…", () =>
+      applyDocumentChange(docId, "Edit text", async ({ bytes, pageIds }) => {
+        const doc = await loadPdfLib(bytes);
+        const { editPageText } = await import("../ops/editText");
+        await editPageText(doc, request, new FontCache(doc));
+        return { bytes: await doc.save(), pageIds };
+      }),
+    ).catch(() => {});
   };
 
   useEffect(() => {
@@ -166,6 +185,14 @@ export function TextEditLayer({ docId, pageIndex, ctx, geo }: { docId: string; p
   );
 }
 
+/** How far right a one-line block may grow: up to the next text on its line, or the right edge of the page's text. */
+function lineLimit(b: TextBlock, blocks: TextBlock[]): number {
+  const [, y0, x1, y1] = b.rect;
+  const beside = blocks.filter((o) => o !== b && o.rect[0] > x1 && o.rect[1] < y1 && o.rect[3] > y0);
+  if (beside.length) return Math.max(x1, Math.min(...beside.map((o) => o.rect[0])) - b.size * 0.8);
+  return Math.max(x1, ...blocks.map((o) => o.rect[2]));
+}
+
 function fitRect(rect: PdfRect, text: string, a: { fontFamily: FontFamily; bold: boolean; italic: boolean; fontSize: number; lineHeight?: number }): PdfRect {
   const width = rect[2] - rect[0];
   const lines = wrapText(text, stdFontName(a.fontFamily, a.bold, a.italic), a.fontSize, width);
@@ -175,6 +202,7 @@ function fitRect(rect: PdfRect, text: string, a: { fontFamily: FontFamily; bold:
 
 function EditorBox({ editing, ctx, editorRef, onCommit, onCancel }: { editing: Editing; ctx: RenderCtx; editorRef: React.RefObject<HTMLDivElement | null>; onCommit: () => void; onCancel: () => void }) {
   const box = stageBox(ctx.m, editing.rect);
+  const room = stageBox(ctx.m, [editing.rect[0], editing.rect[1], Math.max(editing.rect[2], editing.maxRight), editing.rect[3]]);
   return (
     <>
       <div className="quillmark-textedit-cover is-live" style={{ left: box.x - 1, top: box.y - 1, width: box.w + 2, height: box.h + 2 }} />
@@ -187,12 +215,16 @@ function EditorBox({ editing, ctx, editorRef, onCommit, onCancel }: { editing: E
         style={{
           left: box.x - 2,
           top: box.y - 2,
-          width: box.w + 4,
+          width: "max-content",
+          minWidth: box.w + 4,
+          maxWidth: room.w + 4,
           minHeight: box.h + 4,
-          fontFamily: CSS_FONT[editing.fontFamily],
+          fontFamily: editing.cssFont,
           fontSize: editing.fontSize,
           fontWeight: editing.bold ? 700 : 400,
           fontStyle: editing.italic ? "italic" : "normal",
+          fontSynthesis: "none",
+          color: editing.color,
         }}
         onPointerDown={(e) => e.stopPropagation()}
         onKeyDown={(e) => {

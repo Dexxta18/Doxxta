@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createServer } from "vite";
-import { FIXTURES, ROOT, dropFile, launchBrowser, openApp, recorder, shot } from "./harness.mjs";
+import { ROOT, dropFile, fixture, launchBrowser, openApp, recorder, shot } from "./harness.mjs";
 import { ensureFixtures } from "./fixtures.mjs";
 import { startFileServer } from "./server.mjs";
 
@@ -64,7 +64,7 @@ function suiteContext(page, check, suite) {
     /** Opens a fixture (with a password when it is encrypted) and waits until it is shown. */
     async open(name, password) {
       if (password) {
-        const b64 = readFileSync(join(FIXTURES, name)).toString("base64");
+        const b64 = readFileSync(fixture(name)).toString("base64");
         await page.evaluate(
           async ({ b64, name, password }) => {
             const bin = atob(b64);

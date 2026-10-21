@@ -1,4 +1,6 @@
 // Organize pages, insert, combine, split, crop, undo/redo.
+import { readFileSync } from "node:fs";
+
 export const title = "Organize, combine, split, crop";
 
 export default async function run({ page, check, st, open, idle, shot, build, readPdf }) {
@@ -87,4 +89,30 @@ export default async function run({ page, check, st, open, idle, shot, build, re
   const saved = await readPdf(await build());
   check(saved.text.map((t) => t.trim()).join() === ",Page 1,Page 3,Page 4,Page 4", `inserting, duplicating and deleting pages work on it (${saved.text.map((t) => t.trim() || "blank").join(", ")})`);
   check(saved.sizes.slice(2).every(([w, h]) => w === 400 && h === 400), "pages keep the size they inherited from the damaged tree");
+
+  // A file whose page tree counts fewer pages than it has: all of them show, and Split can make a file of each.
+  await open("hidden-pages.pdf");
+  check((await doc()).pages === 20, "all 20 pages of a file whose page list counts only 13 are shown");
+  await page.evaluate(() => window.__quillmark.runCommand("tool.split"));
+  await page.waitForSelector(".dialog-title:has-text('Split')");
+  await page.click(".dialog label.radio:has-text('Number of files')");
+  await page.locator(".dialog input[type=number]").first().fill("20");
+  check(/\b20 files\b/.test(await page.locator(".dialog-footer").innerText()), "Split can make as many files as there are pages");
+  await page.locator(".dialog input[type=number]").first().fill("50");
+  check(/\b20 files\b/.test(await page.locator(".dialog-footer").innerText()), "asking for more files than pages makes one file per page");
+  await page.locator(".dialog input[type=number]").first().fill("6");
+  await page.click(".dialog label.radio:has-text('Download as a ZIP')");
+  const [zip] = await Promise.all([page.waitForEvent("download", { timeout: 30000 }).catch(() => null), page.click(".dialog-footer .btn-primary")]);
+  const entries = zip ? zipEntries(readFileSync(await zip.path())) : [];
+  check(entries.length === 6, `splitting 20 pages into 6 files makes 6 files (${entries.length})`);
+}
+
+/** Names of the files in a zip archive (from its central directory). */
+function zipEntries(buf) {
+  const names = [];
+  for (let i = buf.indexOf("PK\x01\x02"); i >= 0; i = buf.indexOf("PK\x01\x02", i + 4)) {
+    const len = buf.readUInt16LE(i + 28);
+    names.push(buf.subarray(i + 46, i + 46 + len).toString("utf8"));
+  }
+  return names;
 }

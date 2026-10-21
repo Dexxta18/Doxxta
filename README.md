@@ -73,14 +73,15 @@ Signing removes the first-launch warnings. It needs a code-signing certificate f
 - Signatures and initials: type (six script fonts), draw, or upload an image; saved on the device for reuse
 
 **Edit PDF**
-- Edit existing text in place (the original glyphs are removed from the page where possible, not just covered)
+- Edit existing text in place, keeping its formatting: text you don't change stays exactly as it was, and changed words are written in the document's own font at the same size, color, spacing and alignment (left, right, centered or justified). When the font embedded in the file lacks a letter, the word is written in a font with the same widths (Carlito for Calibri, Liberation for Arial, Times New Roman and Courier New). The old glyphs are removed from the page, not covered, and the new text is placed where the old was in the page's text order, so copying, search and CV-screening software read it in sequence
 - Add text and images, add/edit/remove links
 - Watermark (text, image or PDF page), header & footer, page numbers, Bates numbering, background (color, image or PDF page); each can be replaced or removed later
 - Crop pages
 
 **Organize pages**
 - Drag to reorder, rotate, delete, duplicate, insert blank pages or pages from other files, extract
-- Split by number of pages, file size, top-level bookmarks or page ranges (as a zip, separate files, or new tabs)
+- Split by pages per file, number of files (up to one per page), file size, top-level bookmarks or page ranges (as a zip, separate files, or new tabs)
+- Files whose page list is damaged (counting fewer pages than they have, which hides pages in many viewers) are repaired when opened
 - Combine files; create PDFs from images, text files, the clipboard or the camera
 - Undo/redo
 
@@ -150,8 +151,8 @@ The browser tests drive the app in headless Chromium with Playwright, then read 
 
 ```bash
 npx playwright install chromium   # once
-npm run test:e2e                  # 6 suites against the dev server (52 checks)
-npm run test:e2e -- security      # one suite: organize, forms, editing, signing, security, redaction
+npm run test:e2e                  # 7 suites against the dev server (71 checks)
+npm run test:e2e -- security      # one suite: organize, forms, editing, signing, security, redaction, openurl
 npm run test:smoke                # builds, then tests the production build through the UI (incl. OCR)
 ```
 
@@ -161,7 +162,7 @@ npm run test:desktop              # desktop app: Open with, saving to disk, dial
 
 The desktop tests replace the system dialogs with answers chosen by the test. They need a display (on a Linux server, run them under `xvfb-run`); set `QUILLMARK_APP` to a packaged app (e.g. `release/linux-unpacked/quillmark`) to test an installer's build.
 
-Test PDFs are generated into `test-fixtures/` on the first run; screenshots go to `test-output/shots/`. To use a Chromium you already have, set `CHROMIUM_PATH`.
+Test PDFs are generated into `test-fixtures/` on the first run, except `tests/assets/cv.pdf`, a résumé made in an office suite for the Edit text checks (`node tests/assets/make-cv.mjs` rebuilds it with LibreOffice); screenshots go to `test-output/shots/`. To use a Chromium you already have, set `CHROMIUM_PATH`.
 
 ## AI features (next)
 
@@ -172,7 +173,7 @@ A note on the API key: a key used directly from the browser can be read by anyon
 ## Known limitations
 
 - **Digital IDs:** signatures are visual (typed, drawn or image). Certificate-based digital signatures and signature validation are not implemented yet.
-- **Edit text** re-types an edited paragraph in the closest standard family (sans-serif, serif or monospace) at the original size and color, not in the document's embedded font.
+- **Edit text** works one paragraph at a time, like Acrobat: a paragraph that grows flows onto new lines below it without moving the paragraphs after it, and one that shrinks leaves its space empty.
 - **Export to Office** recreates text, tables and images with their positions; complex layouts will need touch-ups, as with any PDF converter.
 - **Read Out Loud** uses the voices installed on the device; some systems have none.
 - Not included: PDF/A and preflight, accessibility tagging, batch actions, cloud storage, and sending documents to others for e-signature (those need a server).
@@ -181,4 +182,4 @@ A note on the API key: a key used directly from the browser can be read by anyon
 
 ## License
 
-Quillmark's own code has no license file yet; add one of your choice before sharing it. The app bundles open-source libraries under their own licenses: pdf.js, tesseract.js and idb-keyval (Apache-2.0); pdf-lib, fontkit, React, Zustand, docx, PptxGenJS, fflate and html-entities (MIT); jsdiff (BSD-3-Clause); Lucide icons (ISC); the Inter and signature fonts from Fontsource (SIL Open Font License 1.1, except Homemade Apple, Apache-2.0).
+Quillmark's own code has no license file yet; add one of your choice before sharing it. The app bundles open-source libraries under their own licenses: pdf.js, tesseract.js and idb-keyval (Apache-2.0); pdf-lib, fontkit, React, Zustand, docx, PptxGenJS, fflate and html-entities (MIT); jsdiff (BSD-3-Clause); Lucide icons (ISC); the Inter and signature fonts from Fontsource (SIL Open Font License 1.1, except Homemade Apple, Apache-2.0); and the Carlito, Caladea and Liberation fonts used by Edit text (SIL Open Font License 1.1, license files in `public/fonts`).

@@ -11,6 +11,7 @@ import {
   nameOf,
   num,
   numbers,
+  pageTreeWasRepaired,
   type PDFDocument,
   type PDFObject,
   type PDFPage,
@@ -49,7 +50,8 @@ export async function importAnnotations(bytes: Uint8Array, password?: string): P
   const out: { pageIndex: number; annot: Annotation }[] = [];
   const refToModel = new Map<string, Annotation>();
   let skipped = 0;
-  let changed = password !== undefined;
+  // A repaired page tree is kept too: viewers trust a damaged one's page count and may hide pages.
+  let changed = password !== undefined || pageTreeWasRepaired(doc);
 
   for (let pi = 0; pi < pages.length; pi++) {
     const page = pages[pi];

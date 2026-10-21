@@ -285,8 +285,18 @@ async function brokenTree() {
   writeFileSync(join(out, "broken-tree.pdf"), await doc.save({ useObjectStreams: false }));
 }
 
+/** 20 pages, but the page tree's /Count says 13: viewers that trust it show only 13. */
+async function hiddenPages() {
+  const doc = await PDFDocument.create();
+  const helv = await doc.embedFont(StandardFonts.HelveticaBold);
+  for (let i = 1; i <= 20; i++) doc.addPage([612, 792]).drawText(`Page ${i}`, { x: 60, y: 692, size: 40, font: helv });
+  doc.catalog.Pages().set(PDFName.of("Count"), PDFNumber.of(13));
+  writeFileSync(join(out, "hidden-pages.pdf"), await doc.save({ useObjectStreams: false }));
+}
+
 await sample();
 await brokenTree();
+await hiddenPages();
 await form();
 await annotated();
 await encrypted();

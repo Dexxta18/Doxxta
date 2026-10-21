@@ -46,9 +46,28 @@ export async function loadPdfLib(bytes: Uint8Array, password?: string): Promise<
   } as never);
   // pdf-lib inserts and removes pages by following the page tree's /Count and /Parent entries,
   // which some PDFs get wrong; it also overlooks pages without /Type.
-  if (!pageTreeIsSound(doc)) repairPageTree(doc);
+  if (!pageTreeIsSound(doc)) {
+    repairPageTree(doc);
+    repaired.add(doc);
+  }
   collectGarbage(doc);
   return doc;
+}
+
+const repaired = new WeakSet<PDFDocument>();
+
+/** Whether loadPdfLib had to repair the document's page tree. */
+export function pageTreeWasRepaired(doc: PDFDocument): boolean {
+  return repaired.has(doc);
+}
+
+/**
+ * The file with its page tree repaired, or null when the tree is sound. Viewers trust the page
+ * count the tree states, so a tree that counts too few pages hides the rest of them.
+ */
+export async function withRepairedPageTree(bytes: Uint8Array): Promise<Uint8Array | null> {
+  const doc = await loadPdfLib(bytes);
+  return pageTreeWasRepaired(doc) ? doc.save() : null;
 }
 
 const KIDS = PDFName.of("Kids");
@@ -306,24 +325,48 @@ const STD: Record<FontKey, StandardFonts> = {
   "Courier-BoldOblique": StandardFonts.CourierBoldOblique,
 };
 
-let unicodeFontBytes: Promise<{ regular: Uint8Array; bold: Uint8Array }> | null = null;
+const fontFiles = new Map<string, Promise<Uint8Array>>();
 
-/** Liberation Sans (metric-compatible with Helvetica) for text outside WinAnsi. */
-function loadUnicodeFonts() {
-  if (!unicodeFontBytes) {
-    const base = new URL(`${import.meta.env.BASE_URL}vendor/pdfjs/standard_fonts/`, document.baseURI).href;
-    unicodeFontBytes = Promise.all([
-      fetch(base + "LiberationSans-Regular.ttf").then((r) => r.arrayBuffer()),
-      fetch(base + "LiberationSans-Bold.ttf").then((r) => r.arrayBuffer()),
-    ]).then(([a, b]) => ({ regular: new Uint8Array(a), bold: new Uint8Array(b) }));
+/** A bundled font file: Liberation Sans comes with pdf.js, the other fonts are in public/fonts. */
+function fontFile(name: string): Promise<Uint8Array> {
+  let bytes = fontFiles.get(name);
+  if (!bytes) {
+    const dir = name.startsWith("LiberationSans-") ? "vendor/pdfjs/standard_fonts/" : "fonts/";
+    const url = new URL(`${import.meta.env.BASE_URL}${dir}${name}.ttf`, document.baseURI).href;
+    bytes = fetch(url).then(async (r) => {
+      if (!r.ok) throw new Error(`The font ${name} couldn't be loaded.`);
+      return new Uint8Array(await r.arrayBuffer());
+    });
+    bytes.catch(() => fontFiles.delete(name));
+    fontFiles.set(name, bytes);
   }
-  return unicodeFontBytes;
+  return bytes;
 }
 
-/** Per-document font cache: standard 14 fonts plus an embedded Unicode fallback. */
+/** Open fonts with the same character widths as fonts documents often use. */
+const LOOKALIKES: [RegExp, string][] = [
+  [/calibri|carlito/i, "Carlito"],
+  [/cambria|caladea/i, "Caladea"],
+  [/arial|helvetica|arimo|liberation ?sans|nimbus ?sans/i, "LiberationSans"],
+  [/times|tinos|liberation ?serif|nimbus ?rom/i, "LiberationSerif"],
+  [/courier|cousine|liberation ?mono|nimbus ?mono/i, "LiberationMono"],
+];
+
+/** A document font, as far as it matters for finding one like it. */
+export interface FontLook {
+  /** PostScript name, e.g. "Calibri-Bold". */
+  name: string;
+  family: "serif" | "sans-serif" | "monospace";
+  bold: boolean;
+  italic: boolean;
+}
+
+const variant = (bold: boolean, italic: boolean) => (bold && italic ? "BoldItalic" : bold ? "Bold" : italic ? "Italic" : "Regular");
+
+/** Per-document font cache: standard 14 fonts, plus embedded fonts for other text. */
 export class FontCache {
   private std = new Map<string, PDFFont>();
-  private uni = new Map<string, PDFFont>();
+  private embedded = new Map<string, Promise<PDFFont>>();
   constructor(private doc: PDFDocument) {}
 
   get(name: FontKey): PDFFont {
@@ -339,17 +382,39 @@ export class FontCache {
   async forText(name: FontKey, text: string): Promise<PDFFont> {
     const std = this.get(name);
     if (canEncode(std, text)) return std;
-    const bold = /Bold/.test(name);
-    const key = bold ? "bold" : "regular";
-    let f = this.uni.get(key);
-    if (!f) {
-      const fontkit = (await import("@cantoo/fontkit")).default;
-      this.doc.registerFontkit(fontkit as never);
-      const bytes = await loadUnicodeFonts();
-      f = await this.doc.embedFont(bold ? bytes.bold : bytes.regular, { subset: true });
-      this.uni.set(key, f);
+    return this.embed(`LiberationSans-${variant(/Bold/.test(name), /Italic|Oblique/.test(name))}`);
+  }
+
+  /**
+   * A font that looks like a document's font and can show `text`: one with the same widths
+   * when there is one (Carlito for Calibri, Liberation Sans for Arial…), otherwise one of
+   * the same kind (serif, sans-serif or monospace), in the same weight and slant.
+   */
+  async like(look: FontLook, text: string): Promise<PDFFont> {
+    const base = LOOKALIKES.find(([re]) => re.test(look.name))?.[1] ?? (look.family === "serif" ? "LiberationSerif" : look.family === "monospace" ? "LiberationMono" : "LiberationSans");
+    const std = fontKeyFor(base === "LiberationSerif" || base === "Caladea" ? "Times" : base === "LiberationMono" ? "Courier" : "Helvetica", look.bold, look.italic);
+    try {
+      const font = await this.embed(`${base}-${variant(look.bold, look.italic)}`);
+      const chars = new Set(font.getCharacterSet());
+      if ([...text].every((ch) => /\s/.test(ch) || chars.has(ch.codePointAt(0)!))) return font;
+    } catch {
+      // The font file couldn't be loaded: use a standard font.
     }
-    return f;
+    return this.forText(std, text);
+  }
+
+  private embed(file: string): Promise<PDFFont> {
+    let font = this.embedded.get(file);
+    if (!font) {
+      font = (async () => {
+        const fontkit = (await import("@cantoo/fontkit")).default;
+        this.doc.registerFontkit(fontkit as never);
+        return this.doc.embedFont(await fontFile(file), { subset: true });
+      })();
+      font.catch(() => this.embedded.delete(file));
+      this.embedded.set(file, font);
+    }
+    return font;
   }
 }
 

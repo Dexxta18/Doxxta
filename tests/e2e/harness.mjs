@@ -37,10 +37,13 @@ export async function openApp(browser, url) {
   return { context, page, errors };
 }
 
+/** A test PDF: generated ones are in test-fixtures, the ones kept with the tests in tests/assets. */
 export function fixture(name) {
-  const path = join(FIXTURES, name);
-  if (!existsSync(path)) throw new Error(`Missing fixture ${name}`);
-  return path;
+  for (const dir of [FIXTURES, join(ROOT, "tests", "assets")]) {
+    const path = join(dir, name);
+    if (existsSync(path)) return path;
+  }
+  throw new Error(`Missing fixture ${name}`);
 }
 
 /** Opens a fixture through the app's drag & drop handler. */

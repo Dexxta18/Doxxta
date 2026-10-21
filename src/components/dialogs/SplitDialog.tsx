@@ -12,12 +12,13 @@ import { openGenerated } from "../../core/document";
 import { baseName, downloadBlob, downloadBytes } from "../../lib/util";
 import { parsePageRanges } from "../../lib/pageRanges";
 
-type Kind = "every" | "ranges" | "bookmarks" | "size";
+type Kind = "every" | "files" | "ranges" | "bookmarks" | "size";
 
 export default function SplitDialog({ props, close }: DialogProps<{ docId?: string }>) {
   const doc = getDoc(props.docId) ?? getActiveDoc();
   const [kind, setKind] = useState<Kind>("every");
   const [every, setEvery] = useState(1);
+  const [files, setFiles] = useState(2);
   const [ranges, setRanges] = useState("");
   const [mb, setMb] = useState(5);
   const [output, setOutput] = useState<"tabs" | "zip" | "files">("zip");
@@ -40,6 +41,7 @@ export default function SplitDialog({ props, close }: DialogProps<{ docId?: stri
   const groupsPreview = (): { pages: number[]; title?: string }[] | null => {
     try {
       if (kind === "every") return splitGroups({ kind: "every", pages: every }, count);
+      if (kind === "files") return splitGroups({ kind: "files", files }, count);
       if (kind === "bookmarks") return bookmarks ? splitGroups({ kind: "bookmarks", starts: bookmarks }, count) : null;
       if (kind === "ranges") {
         const parts = ranges.split(/;|\n/).map((s) => s.trim()).filter(Boolean);
@@ -71,6 +73,7 @@ export default function SplitDialog({ props, close }: DialogProps<{ docId?: stri
       }
       mode = { kind: "bookmarks", starts: bookmarks };
     } else if (kind === "size") mode = { kind: "size", maxBytes: mb * 1024 * 1024 };
+    else if (kind === "files") mode = { kind: "files", files };
     else mode = { kind: "every", pages: every };
     close();
     await withBusy("Splitting…", async (progress) => {
@@ -107,10 +110,16 @@ export default function SplitDialog({ props, close }: DialogProps<{ docId?: stri
     >
       <div className="dialog-section">
         <div className="dialog-section-title">Split by</div>
-        <Radio value="every" current={kind} onChange={setKind} label="Number of pages" />
+        <Radio value="every" current={kind} onChange={setKind} label="Pages per file" />
         {kind === "every" && (
-          <Field hint={`Creates ${Math.ceil(count / Math.max(1, every))} files`}>
-            <NumberInput value={every} min={1} max={count} onChange={(v) => setEvery(Math.max(1, Math.round(v)))} suffix="pages each" />
+          <Field hint={`Creates ${plural(Math.ceil(count / every), "file")}`}>
+            <NumberInput value={every} min={1} max={count} onChange={(v) => setEvery(clamp(Math.round(v), 1, count))} suffix="pages each" />
+          </Field>
+        )}
+        <Radio value="files" current={kind} onChange={setKind} label="Number of files" />
+        {kind === "files" && (
+          <Field hint={`Up to ${plural(count, "file")}, one per page · ${filesHint(count, files)}`}>
+            <NumberInput value={files} min={1} max={count} onChange={(v) => setFiles(clamp(Math.round(v), 1, count))} suffix="files" />
           </Field>
         )}
         <Radio value="bookmarks" current={kind} onChange={setKind} label="Top-level bookmarks" hint={bookmarks === null ? "Loading…" : `${bookmarks.length} bookmarks found`} disabled={!bookmarks?.length} />
@@ -136,4 +145,13 @@ export default function SplitDialog({ props, close }: DialogProps<{ docId?: stri
       {error && kind !== "ranges" && <div className="callout callout-danger">{error}</div>}
     </Dialog>
   );
+}
+
+const clamp = (v: number, lo: number, hi: number) => (Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : lo);
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+/** "5 pages each", or "3 or 4 pages each" when they don't divide evenly. */
+function filesHint(pages: number, files: number): string {
+  const small = Math.floor(pages / files);
+  return pages % files ? `${small} or ${small + 1} pages each` : `${plural(small, "page")} each`;
 }

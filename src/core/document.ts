@@ -9,6 +9,9 @@ import { addRecentFile } from "../lib/recent";
 import { desktopHandleFor } from "../lib/desktop";
 import type { Annotation } from "../annotations/types";
 
+/** Files up to this size are checked for a damaged page tree when opened (reading them takes a moment). */
+const TREE_CHECK_LIMIT = 50 * 1024 * 1024;
+
 /** Annotation subtypes that are lifted out of the file into the editable model. */
 export const IMPORTABLE_PDFJS_TYPES = [
   pdfjs.AnnotationType.TEXT,
@@ -153,6 +156,7 @@ export async function openBytes(bytes: Uint8Array, name: string, opts: OpenOptio
     const { pdf: firstPdf, password } = await openPdf(bytes, { password: opts.password, onPassword: promptPassword(name) });
     let pdf = firstPdf;
     let workBytes = bytes;
+    const statedPages = firstPdf.numPages;
     let annotations: Annotation[] = [];
     let lockedAnnotationCount = 0;
 
@@ -187,6 +191,18 @@ export async function openBytes(bytes: Uint8Array, name: string, opts: OpenOptio
       } catch (e) {
         console.warn("Annotation import failed; existing annotations stay read-only.", e);
         lockedAnnotationCount = -1;
+      }
+    } else if (bytes.length <= TREE_CHECK_LIMIT) {
+      // pdf.js shows as many pages as the page tree says there are: repair a tree that counts too few.
+      const { withRepairedPageTree } = await import("../lib/pdflib");
+      const repaired = await withRepairedPageTree(bytes).catch(() => null);
+      if (repaired) {
+        const fixed = (await openPdf(repaired)).pdf;
+        if (fixed.numPages !== pdf.numPages) {
+          await pdf.loadingTask.destroy();
+          pdf = fixed;
+          workBytes = repaired;
+        } else await fixed.loadingTask.destroy();
       }
     }
 
@@ -225,6 +241,9 @@ export async function openBytes(bytes: Uint8Array, name: string, opts: OpenOptio
     }));
     if (!opts.transient) {
       addRecentFile({ name, bytes, fileHandle: opts.fileHandle ?? null, pageCount: pages.length, pdf }).catch((e) => console.warn("recent", e));
+    }
+    if (pages.length > statedPages) {
+      toast(`“${name}” has ${pages.length} pages, but its page list was damaged and counted only ${statedPages} (other apps may show only those). Quillmark repaired it: save the file to keep the repair.`, "info", { timeout: 12000 });
     }
     return id;
   } catch (e) {

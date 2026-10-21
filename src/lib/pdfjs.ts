@@ -47,6 +47,8 @@ export async function openPdf(data: Uint8Array, opts: { password?: string; onPas
     wasmUrl: PDFJS_ASSETS.wasmUrl,
     iccUrl: PDFJS_ASSETS.iccUrl,
     enableXfa: true,
+    // Keeps font names on the main thread: Edit text and the exports tell bold and italic apart by them.
+    fontExtraProperties: true,
   });
   let cancelled = false;
   task.onPassword = (update: (pw: string) => void, reason: number) => {

@@ -27,6 +27,12 @@ export interface RedactOptions {
   removeInvisible?: boolean;
   /** Receives every glyph with its exact position (text extraction). */
   collect?: (g: PageGlyph) => void;
+  /**
+   * Content to add to the page in drawing order, in default user space: right after the text
+   * object that draws the glyph at `after`, so text extraction reads it in place. Page-level
+   * content only; `inserted` in the result tells whether it was added.
+   */
+  insert?: { after: Point; ops: Op[] };
 }
 
 /** A glyph as drawn: its text and its box in user space (p0–p1 baseline side, p3–p2 top side). */
@@ -37,6 +43,40 @@ export interface PageGlyph {
   end: Point;
   /** Font size in user space units. */
   size: number;
+  /** How it was drawn (when extracted for editing). */
+  style?: GlyphStyle;
+}
+
+/** What a font looks like, from its name and descriptor. */
+export interface FontStyle {
+  /** BaseFont without the subset prefix, e.g. "Calibri-Bold". */
+  name: string;
+  bold: boolean;
+  italic: boolean;
+  family: "serif" | "sans-serif" | "monospace";
+}
+
+/** How a glyph was drawn: enough to draw more text the same way. */
+export interface GlyphStyle {
+  font: FontStyle;
+  /** The font as listed in the resources (usually a reference), to draw more text in it. */
+  fontObj: PDFObject | undefined;
+  /** For fonts that aren't embedded (standard fonts): the code for any character of their encoding. */
+  encode?: (ch: string) => number | undefined;
+  /** The glyph's character code bytes. */
+  bytes: Uint8Array;
+  /** Advance width of the code in 1/1000 em, before character spacing. */
+  width: number;
+  /** Advance width of any code of the font, in 1/1000 em. */
+  codeWidth: (code: number) => number;
+  /** Fill color (#rrggbb). */
+  fill: string;
+  /** Text render mode (3 = invisible). */
+  mode: number;
+  /** Character and word spacing in user space units, and horizontal scaling (1 = 100%). */
+  tc: number;
+  tw: number;
+  th: number;
 }
 
 export interface RedactPageResult {
@@ -48,6 +88,8 @@ export interface RedactPageResult {
   clippedPaths: number;
   /** Why the page should be rasterized instead (empty when fully handled). */
   unsupported: string[];
+  /** Whether `insert` content was added. */
+  inserted?: boolean;
 }
 
 // ---------------- Geometry ----------------
@@ -163,9 +205,31 @@ interface FontInfo {
   singleByte: boolean;
   /** Text a character code stands for ("" when unknown). */
   unicode(code: number): string;
+  style?: FontStyle;
+  /** Non-embedded standard fonts only: the code for a character. */
+  encode?: (ch: string) => number | undefined;
 }
 
 const UNSUPPORTED_FONT: FontInfo = { ok: false, vertical: false, codes: () => [], width: () => 0, ascent: 800, descent: -200, singleByte: true, unicode: () => "" };
+
+/** Bold, italic and family from the font's name and descriptor. */
+function fontStyleOf(c: Ctx, f: PDFDict): FontStyle {
+  const base = (nameOf(c.lookup(f.get(PDFName.of("BaseFont")))) ?? "").replace(/^[A-Z]{6}\+/, "");
+  let desc = c.lookup(f.get(PDFName.of("FontDescriptor")));
+  if (!(desc instanceof PDFDict)) {
+    const kids = c.lookup(f.get(PDFName.of("DescendantFonts")));
+    const kid = kids instanceof PDFArray ? c.lookup(kids.get(0)) : undefined;
+    desc = kid instanceof PDFDict ? c.lookup(kid.get(PDFName.of("FontDescriptor"))) : undefined;
+  }
+  const flags = desc instanceof PDFDict ? numOf(c.lookup(desc.get(PDFName.of("Flags")))) : 0;
+  const weight = desc instanceof PDFDict ? numOf(c.lookup(desc.get(PDFName.of("FontWeight")))) : 0;
+  const angle = desc instanceof PDFDict ? numOf(c.lookup(desc.get(PDFName.of("ItalicAngle")))) : 0;
+  const n = base.toLowerCase();
+  const bold = /bold|black|heavy|semibold|demi|extrab/.test(n) || weight >= 600 || (flags & 262144) !== 0;
+  const italic = /italic|oblique/.test(n) || angle !== 0 || (flags & 64) !== 0;
+  const family = /courier|mono|consol|menlo|typewriter/.test(n) || (flags & 1) !== 0 ? "monospace" : !/sans|arial|helvet|calibri|verdana|tahoma/.test(n) && (/times|roman|serif|georgia|garamond|cambria|book|minion|palatino|caslon/.test(n) || (flags & 2) !== 0) ? "serif" : "sans-serif";
+  return { name: base, bold, italic, family };
+}
 
 /** Parses a ToUnicode CMap (bfchar / bfrange). */
 function parseToUnicode(data: Uint8Array): Map<number, string> {
@@ -236,6 +300,15 @@ function encodingNames(c: Ctx, f: PDFDict, builtIn: "WinAnsi" | "Symbol" | "Zapf
 type Ctx = { doc: PDFDocument; lookup: (o: PDFObject | undefined) => PDFObject | undefined };
 
 const numOf = (o: PDFObject | undefined, fallback = 0) => (o instanceof PDFNumber ? o.asNumber() : fallback);
+
+/** #rrggbb from gray, RGB or CMYK components (null for other color spaces). */
+function fillColor(v: number[]): string | null {
+  const hex = (r: number, g: number, b: number) => "#" + [r, g, b].map((c) => Math.round(Math.max(0, Math.min(1, c)) * 255).toString(16).padStart(2, "0")).join("");
+  if (v.length === 1) return hex(v[0], v[0], v[0]);
+  if (v.length === 3) return hex(v[0], v[1], v[2]);
+  if (v.length === 4) return hex((1 - v[0]) * (1 - v[3]), (1 - v[1]) * (1 - v[3]), (1 - v[2]) * (1 - v[3]));
+  return null;
+}
 const nameOf = (o: PDFObject | undefined) => (o instanceof PDFName ? o.decodeText() : undefined);
 
 function descriptorMetrics(c: Ctx, desc: PDFObject | undefined): { ascent: number; descent: number; missing: number } {
@@ -296,7 +369,17 @@ function simpleFont(c: Ctx, f: PDFDict): FontInfo {
   }
   // No /Widths: a non-embedded standard font.
   if (!std) return UNSUPPORTED_FONT;
-  return { ok: true, vertical: false, codes: oneByteCodes, width: (code) => stdGlyphWidth(std, names.get(code) ?? "") ?? 0, ascent: m.ascent, descent: m.descent, singleByte: true, unicode };
+  return { ok: true, vertical: false, codes: oneByteCodes, width: (code) => stdGlyphWidth(std, names.get(code) ?? "") ?? 0, ascent: m.ascent, descent: m.descent, singleByte: true, unicode, encode: standardEncoder(names) };
+}
+
+/** Character → code for a font the viewer supplies (any character its encoding has). */
+function standardEncoder(names: Map<number, string>): (ch: string) => number | undefined {
+  const codes = new Map<string, number>();
+  for (const [code, name] of names) {
+    const u = glyphUnicode(name);
+    if (u && !codes.has(u)) codes.set(u, code);
+  }
+  return (ch) => codes.get(ch);
 }
 
 interface Codespace {
@@ -423,6 +506,14 @@ function compositeFont(c: Ctx, f: PDFDict): FontInfo {
   return { ok: true, vertical: false, codes, width: (code) => widths.get(cid(code)) ?? dw, ascent: m.ascent, descent: m.descent, singleByte: false, unicode: (code) => tu?.get(code) ?? "" };
 }
 
+/** A standard 14 font the PDF doesn't embed: viewers supply it with every character of its encoding. */
+function isStandardUnembedded(c: Ctx, f: PDFDict): boolean {
+  if (nameOf(c.lookup(f.get(PDFName.of("Subtype")))) !== "Type1") return false;
+  const desc = c.lookup(f.get(PDFName.of("FontDescriptor")));
+  if (desc instanceof PDFDict && ["FontFile", "FontFile2", "FontFile3"].some((k) => desc.has(PDFName.of(k)))) return false;
+  return !!standardFontName((nameOf(c.lookup(f.get(PDFName.of("BaseFont")))) ?? "").replace(/^[A-Z]{6}\+/, ""));
+}
+
 function loadFont(c: Ctx, cache: Map<PDFObject, FontInfo>, obj: PDFObject | undefined): FontInfo {
   if (!obj) return UNSUPPORTED_FONT;
   const hit = cache.get(obj);
@@ -432,6 +523,11 @@ function loadFont(c: Ctx, cache: Map<PDFObject, FontInfo>, obj: PDFObject | unde
   if (f instanceof PDFDict) {
     try {
       info = nameOf(c.lookup(f.get(PDFName.of("Subtype")))) === "Type0" ? compositeFont(c, f) : simpleFont(c, f);
+      info = { ...info, style: fontStyleOf(c, f) };
+      if (!info.encode && isStandardUnembedded(c, f)) {
+        const std = standardFontName(info.style!.name) ?? "Helvetica";
+        info.encode = standardEncoder(encodingNames(c, f, std === "Symbol" || std === "ZapfDingbats" ? std : "WinAnsi"));
+      }
     } catch (e) {
       console.warn("font metrics", e);
     }
@@ -445,6 +541,10 @@ function loadFont(c: Ctx, cache: Map<PDFObject, FontInfo>, obj: PDFObject | unde
 interface GState {
   ctm: Matrix;
   font: FontInfo | null;
+  /** The font as listed in the resources. */
+  fontObj?: PDFObject;
+  /** Fill color (#rrggbb). */
+  fill: string;
   /** Text render mode. */
   tr: number;
   size: number;
@@ -460,6 +560,9 @@ const PAINT_OPS = new Set(["S", "s", "f", "F", "f*", "B", "B*", "b", "b*", "n"])
 
 class Redactor {
   readonly result: RedactPageResult = { changed: false, removedGlyphs: 0, changedImages: 0, removedImages: 0, removedPaths: 0, clippedPaths: 0, unsupported: [] };
+  /** The `insert` anchor glyph was just drawn; and the transform of the text object to insert after. */
+  private anchorHit = false;
+  private insertCtm: Matrix | null = null;
   private readonly fonts = new Map<PDFObject, FontInfo>();
   private readonly c: Ctx;
   private readonly boxes: number[][];
@@ -541,7 +644,7 @@ class Redactor {
   async process(ops: Op[], resources: PDFDict | undefined, ctm0: Matrix, depth = 0): Promise<{ ops: Op[]; changed: boolean }> {
     const out: Op[] = [];
     let changed = false;
-    let gs: GState = { ctm: ctm0, font: null, tr: 0, size: 0, tc: 0, tw: 0, th: 1, tl: 0, rise: 0 };
+    let gs: GState = { ctm: ctm0, font: null, fill: "#000000", tr: 0, size: 0, tc: 0, tw: 0, th: 1, tl: 0, rise: 0 };
     const stack: GState[] = [];
     let tm: Matrix = IDENTITY;
     let tlm: Matrix = IDENTITY;
@@ -641,7 +744,18 @@ class Redactor {
           break;
         case "Tf": {
           const name = a[0] instanceof PName ? a[0].name : "";
-          gs = { ...gs, font: loadFont(this.c, this.fonts, this.resource(resources, "Font", name)), size: n(1) };
+          const fontObj = this.resource(resources, "Font", name);
+          gs = { ...gs, font: loadFont(this.c, this.fonts, fontObj), fontObj, size: n(1) };
+          break;
+        }
+        case "g":
+        case "rg":
+        case "k":
+        case "sc":
+        case "scn":
+        case "cs": {
+          const fill = o.op === "cs" ? "#000000" : fillColor(a.filter((v): v is number => typeof v === "number"));
+          if (fill) gs = { ...gs, fill };
           break;
         }
         case "Tc":
@@ -678,7 +792,7 @@ class Redactor {
         case "gs": {
           const egs = this.c.lookup(this.resource(resources, "ExtGState", a[0] instanceof PName ? a[0].name : ""));
           const font = egs instanceof PDFDict ? this.c.lookup(egs.get(PDFName.of("Font"))) : undefined;
-          if (font instanceof PDFArray) gs = { ...gs, font: loadFont(this.c, this.fonts, font.get(0)), size: numOf(this.c.lookup(font.get(1))) };
+          if (font instanceof PDFArray) gs = { ...gs, font: loadFont(this.c, this.fonts, font.get(0)), fontObj: font.get(0), size: numOf(this.c.lookup(font.get(1))) };
           break;
         }
       }
@@ -697,6 +811,11 @@ class Redactor {
           continue;
         }
         if (shown) tm = multiply(tm, [1, 0, 0, 1, shown.advance, 0]);
+        if (this.anchorHit) {
+          // Insert after this text object, if it's in the page's own content.
+          this.anchorHit = false;
+          if (depth === 0 && !this.result.inserted) this.insertCtm = gs.ctm;
+        }
         if (shown?.changed) {
           changed = true;
           if (o.op === "'") out.push({ op: "T*", args: [] });
@@ -737,9 +856,24 @@ class Redactor {
         }
       }
       out.push(o);
+      if (o.op === "ET" && depth === 0 && this.insertCtm) {
+        this.insertAt(out);
+        changed = true;
+      }
     }
     out.push(...path);
+    if (depth === 0 && this.insertCtm) {
+      // No end to the text object: add it at the end.
+      this.insertAt(out);
+      changed = true;
+    }
     return { ops: out, changed };
+  }
+
+  private insertAt(out: Op[]) {
+    out.push({ op: "q", args: [] }, { op: "cm", args: invert(this.insertCtm!) }, ...this.opts.insert!.ops, { op: "Q", args: [] });
+    this.insertCtm = null;
+    this.result.inserted = true;
   }
 
   /** Removes covered glyphs from a text-showing operation. */
@@ -790,10 +924,37 @@ class Redactor {
         const advance = (w0 * size + gs.tc + (space ? gs.tw : 0)) * th;
         const glyphW = w0 * size * th;
         const poly = quad(m, x, y0, x + (glyphW || 0), y1);
+        const at = this.opts.insert?.after;
+        if (at && !this.result.inserted && !this.insertCtm) {
+          const o = apply(m, x, gs.rise);
+          if (Math.abs(o.x - at.x) < 0.01 && Math.abs(o.y - at.y) < 0.01) this.anchorHit = true;
+        }
         if (this.opts.collect) {
           const o = apply(m, x, gs.rise);
           const up = apply(m, x, gs.rise + size);
-          this.opts.collect({ text: font.unicode(g.code), quad: poly, origin: o, end: apply(m, x + advance, gs.rise), size: Math.hypot(up.x - o.x, up.y - o.y) });
+          const userSize = Math.hypot(up.x - o.x, up.y - o.y);
+          // Text space → user space, for the spacing values.
+          const k = size ? userSize / Math.abs(size) : 1;
+          this.opts.collect({
+            text: font.unicode(g.code),
+            quad: poly,
+            origin: o,
+            end: apply(m, x + advance, gs.rise),
+            size: userSize,
+            style: font.style && {
+              font: font.style,
+              fontObj: gs.fontObj,
+              encode: font.encode,
+              bytes: item.bytes.slice(g.start, g.end),
+              width: font.width(g.code),
+              codeWidth: font.width,
+              fill: gs.fill,
+              mode: gs.tr,
+              tc: gs.tc * k,
+              tw: gs.tw * k,
+              th,
+            },
+          });
         }
         if (invisible || this.coverage(poly) >= 0.25) {
           removedAdvance += advance;
@@ -929,7 +1090,9 @@ export function pageContent(doc: PDFDocument, page: PDFPage): Uint8Array | null 
   for (const s of streams) {
     if (!s) continue;
     if (!(s instanceof PDFRawStream)) {
-      if (s instanceof PDFStream) parts.push(s.getContents());
+      // Streams made in this session (e.g. the q/Q pdf-lib wraps page content in) are compressed when read with getContents().
+      const made = s as PDFStream & { getUnencodedContents?: () => Uint8Array };
+      if (s instanceof PDFStream) parts.push(made.getUnencodedContents ? made.getUnencodedContents() : made.getContents());
       continue;
     }
     const d = decodeStreamData(doc, s);
@@ -951,7 +1114,7 @@ export function pageContent(doc: PDFDocument, page: PDFPage): Uint8Array | null 
 /** Removes content under `regions` from one page. */
 export async function redactPage(doc: PDFDocument, page: PDFPage, regions: Region[], opts: RedactOptions): Promise<RedactPageResult> {
   const r = new Redactor(doc, regions, opts);
-  if (!regions.length && !opts.removeInvisible) return r.result;
+  if (!regions.length && !opts.removeInvisible && !opts.insert) return r.result;
   const data = pageContent(doc, page);
   if (!data) {
     r.result.unsupported.push("content");
@@ -960,7 +1123,7 @@ export async function redactPage(doc: PDFDocument, page: PDFPage, regions: Regio
   page.node.normalize();
   const resources = page.node.Resources();
   const res = await r.process(parseContent(data), resources, IDENTITY);
-  if (!res.changed || (opts.onlyIfComplete && r.result.unsupported.length)) return r.result;
+  if (!res.changed || (opts.onlyIfComplete && r.result.unsupported.length)) return { ...r.result, inserted: false };
   const ctx = doc.context;
   setPageContent(doc, page, ctx.register(ctx.flateStream(serializeContent(res.ops))));
   r.result.changed = true;

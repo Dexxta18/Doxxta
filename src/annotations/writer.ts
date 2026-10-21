@@ -54,8 +54,8 @@ import { isoToPdfDate } from "../lib/pdfjs";
 import { dataUrlToBytes } from "../lib/util";
 import { wrapText } from "../lib/fontMetrics";
 
-/** Key under which the full Folio model is stored, so annotations round-trip exactly. */
-export const FOLIO_KEY = "FolioData";
+/** Key under which the full Quillmark model is stored, so annotations round-trip exactly. */
+export const QUILLMARK_KEY = "QuillmarkData";
 
 const SUBTYPE: Partial<Record<Annotation["kind"], string>> = {
   highlight: "Highlight",
@@ -437,8 +437,8 @@ function appearanceStream(ctx: Ctx, ap: Appearance, bbox: PdfRect): PDFRef {
   return ctx.doc.context.register(stream);
 }
 
-/** Folio-only fields are stored as JSON so the annotation can be restored exactly. */
-function folioData(a: Annotation): string {
+/** Quillmark-only fields are stored as JSON so the annotation can be restored exactly. */
+function quillmarkData(a: Annotation): string {
   const { ...copy } = a as Annotation & { src?: string };
   if (a.kind === "image") delete (copy as { src?: string }).src; // image lives in the appearance stream
   return JSON.stringify({ v: 1, ...copy });
@@ -575,7 +575,7 @@ export interface WriteOptions {
 }
 
 /**
- * Writes Folio annotations into the document. `pageIds[i]` is the id of the
+ * Writes Quillmark annotations into the document. `pageIds[i]` is the id of the
  * i-th page. Text edits, redactions marks and form fields are handled by
  * their own writers.
  */
@@ -604,7 +604,7 @@ export async function writeAnnotations(doc: PDFDocument, annots: Annotation[], p
     const apRef = appearanceStream(ctx, ap, rect);
     const dict = toPdfObjects(doc, { ...commonEntries(a, ctx.pageRefs.get(a.pageId)), ...specificEntries(a) });
     dict.set(PDFName.of("AP"), doc.context.obj({ N: apRef }));
-    dict.set(PDFName.of(FOLIO_KEY), pdfText(folioData(a)));
+    dict.set(PDFName.of(QUILLMARK_KEY), pdfText(quillmarkData(a)));
     const ref = doc.context.register(dict);
     refs.set(a.id, ref);
     addAnnotRef(page, ref);
@@ -619,7 +619,7 @@ function flattenAppearance(doc: PDFDocument, page: PDFPage, ap: Appearance, bbox
   const form = ctx.register(
     ctx.flateStream(ap.ops, { Type: "XObject", Subtype: "Form", BBox: bbox, Resources: ap.resources } as never),
   );
-  const name = addPageResource(page, "XObject", "FolioFl", form);
+  const name = addPageResource(page, "XObject", "QuillmarkFl", form);
   addPageContent(doc, page, `q /${name} Do Q`);
 }
 
@@ -722,7 +722,7 @@ function writeLink(doc: PDFDocument, a: LinkAnnot, ctx: Ctx): PDFRef {
     }
   }
   const dict = doc.context.obj(entries as never) as unknown as PDFDict;
-  dict.set(PDFName.of(FOLIO_KEY), pdfText(folioData(a)));
+  dict.set(PDFName.of(QUILLMARK_KEY), pdfText(quillmarkData(a)));
   return doc.context.register(dict);
 }
 

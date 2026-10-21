@@ -2,7 +2,7 @@
 export const title = "Forms, fill & sign, prepare form";
 
 export default async function run({ page, check, st, open, shot, build }) {
-  const values = () => st(async () => (await import("/src/ops/forms.ts")).getFormValues(window.__folio.useApp.getState().activeId));
+  const values = () => st(async () => (await import("/src/ops/forms.ts")).getFormValues(window.__quillmark.useApp.getState().activeId));
 
   await open("form.pdf");
   await page.waitForSelector(".annotationLayer input", { timeout: 15000 });
@@ -17,9 +17,9 @@ export default async function run({ page, check, st, open, shot, build }) {
   await shot("form-filled");
 
   // Fill & Sign: a text box and a signature image.
-  await page.evaluate(() => window.__folio.runCommand("mode.fillsign"));
+  await page.evaluate(() => window.__quillmark.runCommand("mode.fillsign"));
   await st(async () => {
-    const s = window.__folio.useApp.getState();
+    const s = window.__quillmark.useApp.getState();
     const d = s.docs[s.activeId];
     const { createFreeText, createImage } = await import("/src/annotations/factory.ts");
     const { addAnnotations } = await import("/src/state/annotActions.ts");
@@ -35,9 +35,9 @@ export default async function run({ page, check, st, open, shot, build }) {
   });
 
   // Prepare Form: add a text field.
-  await page.evaluate(() => window.__folio.runCommand("mode.forms"));
+  await page.evaluate(() => window.__quillmark.runCommand("mode.forms"));
   await st(async () => {
-    const s = window.__folio.useApp.getState();
+    const s = window.__quillmark.useApp.getState();
     const d = s.docs[s.activeId];
     const { createField } = await import("/src/annotations/factory.ts");
     const { addAnnotations } = await import("/src/state/annotActions.ts");
@@ -66,10 +66,10 @@ export default async function run({ page, check, st, open, shot, build }) {
   check(saved.fields.includes("reference.number"), "field added in Prepare Form is saved");
 
   // Reset, then import data.
-  await st(async () => (await import("/src/ops/forms.ts")).resetForm(window.__folio.useApp.getState().activeId));
+  await st(async () => (await import("/src/ops/forms.ts")).resetForm(window.__quillmark.useApp.getState().activeId));
   await page.waitForTimeout(800);
   check(!(await values())["applicant.name"], "reset form clears the text field");
-  await st(async () => (await import("/src/ops/forms.ts")).importFormData(window.__folio.useApp.getState().activeId, { "applicant.name": "Grace Hopper" }));
+  await st(async () => (await import("/src/ops/forms.ts")).importFormData(window.__quillmark.useApp.getState().activeId, { "applicant.name": "Grace Hopper" }));
   await page.waitForTimeout(800);
   check((await values())["applicant.name"] === "Grace Hopper", "importing form data sets the field");
 }

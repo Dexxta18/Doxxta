@@ -81,7 +81,7 @@ export async function toDocx(pages: PageStructure[], meta: { title: string; auth
       children: children.length ? children : [new Paragraph({ children: [] })],
     };
   });
-  const doc = new Document({ title: meta.title, creator: meta.author || "Folio", numbering: { config: numberingConfig }, sections });
+  const doc = new Document({ title: meta.title, creator: meta.author || "Quillmark", numbering: { config: numberingConfig }, sections });
   return new Uint8Array(await (await Packer.toBlob(doc)).arrayBuffer());
 }
 

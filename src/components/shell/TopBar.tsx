@@ -11,9 +11,11 @@ import { IconButton } from "../ui/Button";
 export function Logo() {
   return (
     <svg width="22" height="22" viewBox="0 0 64 64" aria-hidden>
-      <rect x="6" y="4" width="44" height="56" rx="7" fill="var(--accent)" />
-      <path d="M38 4v12a6 6 0 0 0 6 6h12" fill="#9fb4ff" />
-      <path d="M18 22h14M18 32h22M18 42h18" stroke="#fff" strokeWidth="4.5" strokeLinecap="round" />
+      <rect x="5" y="5" width="54" height="54" rx="14" fill="var(--accent)" />
+      <path d="M47.5 13.5C33 15.5 22.5 25.5 18.6 40.6l-1.7 6.6 6.4-2.4C37.4 39.4 45.6 28.3 47.5 13.5z" fill="#fff" />
+      <path d="M44 18L20.2 44.6" stroke="var(--accent)" strokeWidth="2.4" strokeLinecap="round" />
+      <path d="M16.6 48.6l-3 3.9" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
+      <path d="M27 51.5h21" stroke="#9fb4ff" strokeWidth="3.6" strokeLinecap="round" />
     </svg>
   );
 }
@@ -111,7 +113,7 @@ export function TopBar() {
     <header className="topbar">
       <div className="topbar-brand">
         <Logo />
-        <span>Folio</span>
+        <span>Quillmark</span>
       </div>
       <MenuBar />
       <Tabs />

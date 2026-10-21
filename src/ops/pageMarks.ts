@@ -9,7 +9,7 @@ import { dataUrlToBytes } from "../lib/util";
 import { formatDatePattern } from "../lib/dates";
 import type { FontFamily } from "../annotations/types";
 
-/** Marks are written as separate content streams tagged with /FolioMark so they can be removed later. */
+/** Marks are written as separate content streams tagged with /QuillmarkPageMark so they can be removed later. */
 export type MarkKind = "watermark" | "header" | "footer" | "background" | "bates" | "pagenumber";
 
 export interface TextStyle {
@@ -27,14 +27,14 @@ export type Anchor = "tl" | "tc" | "tr" | "ml" | "mc" | "mr" | "bl" | "bc" | "br
 const cm = (m: Matrix) => `${m.map(fmt).join(" ")} cm`;
 
 function tagStream(doc: PDFDocument, page: PDFPage, ops: string, kind: MarkKind, behind: boolean) {
-  const ref = doc.context.register(doc.context.flateStream(ops, { FolioMark: PDFName.of(kind) } as never));
+  const ref = doc.context.register(doc.context.flateStream(ops, { QuillmarkPageMark: PDFName.of(kind) } as never));
   addContentStream(doc, page, ref, behind);
 }
 
 function gs(page: PDFPage, opacity: number): string {
   if (opacity >= 1) return "";
   const ref = page.doc.context.register(page.doc.context.obj({ Type: "ExtGState", ca: opacity, CA: opacity }));
-  return `/${addPageResource(page, "ExtGState", "FolioGS", ref)} gs`;
+  return `/${addPageResource(page, "ExtGState", "QuillmarkGS", ref)} gs`;
 }
 
 /** Removes previously added marks of the given kinds from pages. Returns the number removed. */
@@ -49,7 +49,7 @@ export function removeMarks(doc: PDFDocument, kinds: MarkKind[] | "all", pages?:
     for (let k = contents.size() - 1; k >= 0; k--) {
       const s = doc.context.lookup(contents.get(k));
       if (!(s instanceof PDFStream)) continue;
-      const mark = s.dict.get(PDFName.of("FolioMark"));
+      const mark = s.dict.get(PDFName.of("QuillmarkPageMark"));
       if (mark instanceof PDFName && (kinds === "all" || kinds.includes(mark.decodeText() as MarkKind))) {
         contents.remove(k);
         removed++;
@@ -66,7 +66,7 @@ export function countMarks(doc: PDFDocument, kinds: MarkKind[]): number {
     if (!(contents instanceof PDFArray)) continue;
     for (let k = 0; k < contents.size(); k++) {
       const s = doc.context.lookup(contents.get(k));
-      const mark = s instanceof PDFStream ? s.dict.get(PDFName.of("FolioMark")) : undefined;
+      const mark = s instanceof PDFStream ? s.dict.get(PDFName.of("QuillmarkPageMark")) : undefined;
       if (mark instanceof PDFName && kinds.includes(mark.decodeText() as MarkKind)) n++;
     }
   }
@@ -76,7 +76,7 @@ export function countMarks(doc: PDFDocument, kinds: MarkKind[]): number {
 async function textOps(page: PDFPage, fonts: FontCache, text: string, style: TextStyle, x: number, y: number, align: "left" | "center" | "right"): Promise<{ ops: string; width: number }> {
   const key = fontKeyFor(style.family, style.bold, style.italic);
   const font: PDFFont = await fonts.forText(key, text);
-  const name = addPageResource(page, "Font", "FolioMk", font.ref as PDFRef);
+  const name = addPageResource(page, "Font", "QuillmarkMk", font.ref as PDFRef);
   const width = font.widthOfTextAtSize(text, style.size);
   const tx = align === "center" ? x - width / 2 : align === "right" ? x - width : x;
   const [r, g, b] = hexToPdf(style.color);
@@ -277,7 +277,7 @@ export async function applyWatermarkToDoc(doc: PDFDocument, spec: WatermarkSpec)
         if (spec.kind === "text") {
           const key = fontKeyFor(spec.style.family, spec.style.bold, spec.style.italic);
           const font = await fonts.forText(key, spec.text);
-          const name = addPageResource(page, "Font", "FolioMk", font.ref as PDFRef);
+          const name = addPageResource(page, "Font", "QuillmarkMk", font.ref as PDFRef);
           const tw = font.widthOfTextAtSize(spec.text, spec.style.size);
           const [r, g, b] = hexToPdf(spec.style.color);
           // Center the text on the anchor (vertically on its cap height).
@@ -289,7 +289,7 @@ export async function applyWatermarkToDoc(doc: PDFDocument, spec: WatermarkSpec)
           const ih = (iw * graphic.height) / graphic.width;
           const ox = spec.anchor[1] === "l" && !spec.tile ? 0 : spec.anchor[1] === "r" && !spec.tile ? -iw : -iw / 2;
           const oy = spec.anchor[0] === "b" && !spec.tile ? 0 : spec.anchor[0] === "t" && !spec.tile ? -ih : -ih / 2;
-          ops.push(`q ${fmt(c)} ${fmt(s)} ${fmt(-s)} ${fmt(c)} ${fmt(px)} ${fmt(py)} cm ${graphicOps(page, graphic, "FolioWm", ox, oy, iw, ih)} Q`);
+          ops.push(`q ${fmt(c)} ${fmt(s)} ${fmt(-s)} ${fmt(c)} ${fmt(px)} ${fmt(py)} cm ${graphicOps(page, graphic, "QuillmarkWm", ox, oy, iw, ih)} Q`);
         }
       }
       ops.push("Q");
@@ -336,7 +336,7 @@ export async function applyBackgroundToDoc(doc: PDFDocument, spec: BackgroundSpe
       } else if (graphic) {
         const iw = w * spec.scale;
         const ih = (iw * graphic.height) / graphic.width;
-        ops.push(graphicOps(page, graphic, "FolioBg", (w - iw) / 2, (h - ih) / 2, iw, ih));
+        ops.push(graphicOps(page, graphic, "QuillmarkBg", (w - iw) / 2, (h - ih) / 2, iw, ih));
       }
       ops.push("Q");
       tagStream(doc, page, ops.filter(Boolean).join("\n"), "background", true);

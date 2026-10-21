@@ -1,4 +1,4 @@
-# Folio PDF
+# Quillmark
 
 A full PDF reader and editor that runs in the browser — the Acrobat Reader experience plus the tools Acrobat keeps behind its Pro subscription: editing text, organizing pages, redaction, passwords, OCR, compression, export to Office formats, compare, forms, and more.
 
@@ -78,7 +78,7 @@ npm run preview    # serve the build at http://localhost:4173
 
 ## Privacy
 
-Folio is a static web app. PDFs are read and written in the browser; nothing is sent to a server. The only network requests after the app has loaded are ones you start:
+Quillmark is a static web app. PDFs are read and written in the browser; nothing is sent to a server. The only network requests after the app has loaded are ones you start:
 
 - **OCR in languages other than English** downloads that language's data the first time (English is bundled).
 - **Open from URL** fetches the address you enter.
@@ -142,4 +142,4 @@ A note on the API key: a key used directly from the browser can be read by anyon
 
 ## License
 
-Folio's own code has no license file yet; add one of your choice before sharing it. The app bundles open-source libraries under their own licenses: pdf.js, tesseract.js and idb-keyval (Apache-2.0); pdf-lib, fontkit, React, Zustand, docx, PptxGenJS, fflate and html-entities (MIT); jsdiff (BSD-3-Clause); Lucide icons (ISC); the Inter and signature fonts from Fontsource (SIL Open Font License 1.1, except Homemade Apple, Apache-2.0).
+Quillmark's own code has no license file yet; add one of your choice before sharing it. The app bundles open-source libraries under their own licenses: pdf.js, tesseract.js and idb-keyval (Apache-2.0); pdf-lib, fontkit, React, Zustand, docx, PptxGenJS, fflate and html-entities (MIT); jsdiff (BSD-3-Clause); Lucide icons (ISC); the Inter and signature fonts from Fontsource (SIL Open Font License 1.1, except Homemade Apple, Apache-2.0).

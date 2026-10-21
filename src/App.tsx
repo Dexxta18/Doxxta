@@ -79,7 +79,7 @@ function useFileDrop() {
 function useLaunchFiles() {
   useEffect(() => {
     loadRecent();
-    // Installed PWA: files opened with Folio from the OS.
+    // Installed PWA: files opened with Quillmark from the OS.
     const lq = (window as unknown as { launchQueue?: { setConsumer(cb: (p: { files: FileSystemFileHandle[] }) => void): void } }).launchQueue;
     lq?.setConsumer(async (params) => {
       for (const h of params.files ?? []) await openFile(await h.getFile(), { fileHandle: h });

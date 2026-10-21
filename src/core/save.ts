@@ -13,7 +13,7 @@ export interface BuildOptions {
   flattenAnnotations?: boolean;
   /** Draw form fields into the page content. */
   flattenForms?: boolean;
-  /** Leave Folio annotations out entirely (e.g. "print document only"). */
+  /** Leave Quillmark annotations out entirely (e.g. "print document only"). */
   omitAnnotations?: boolean;
   /** Keep only these pages (0-based, in this order). */
   pageIndices?: number[];
@@ -90,7 +90,7 @@ export async function buildPdf(docId: string, opts: BuildOptions = {}): Promise<
     reorderPages(pdfDoc, opts.pageIndices.filter((i, n, arr) => arr.indexOf(i) === n));
   }
   pdfDoc.setModificationDate(new Date());
-  if (!pdfDoc.getProducer()) pdfDoc.setProducer("Folio PDF");
+  if (!pdfDoc.getProducer()) pdfDoc.setProducer("Quillmark");
 
   await applySecurity(pdfDoc, docId, doc.security, opts.security ?? "keep");
   return savePdf(pdfDoc);

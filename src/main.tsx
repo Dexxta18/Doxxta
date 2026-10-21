@@ -17,7 +17,7 @@ import { runCommand } from "./core/commands";
 
 if (import.meta.env.DEV) {
   // Debug handle for automated browser tests.
-  (window as unknown as { __folio: unknown }).__folio = { useApp, useSettings, runtimes, runCommand };
+  (window as unknown as { __quillmark: unknown }).__quillmark = { useApp, useSettings, runtimes, runCommand };
 }
 
 createRoot(document.getElementById("root")!).render(

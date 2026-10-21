@@ -140,7 +140,7 @@ export const useSettings = create<SettingsState>()(
         set((s) => ({ toolStyles: { ...s.toolStyles, [tool]: { ...s.toolStyles[tool], ...patch } } })),
     }),
     {
-      name: "folio-settings",
+      name: "quillmark-settings",
       version: 1,
       partialize: (s) => {
         const { set: _set, setToolStyle: _sts, ...rest } = s;

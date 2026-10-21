@@ -21,7 +21,7 @@ export async function printDocument(docId: string, opts: PrintOptions, progress:
   const bytes = await buildPdf(docId, { omitAnnotations: opts.content !== "all", pageIndices: opts.pages, security: "none" });
   const { pdf } = await openPdf(bytes);
   const root = document.createElement("div");
-  root.id = "folio-print-root";
+  root.id = "quillmark-print-root";
   const style = document.createElement("style");
   let landscape = 0;
   try {
@@ -64,12 +64,12 @@ export async function printDocument(docId: string, opts: PrintOptions, progress:
   }
   const orient = opts.orientation === "auto" ? (landscape > pdf.numPages / 2 ? "landscape" : "portrait") : opts.orientation;
   style.textContent = `
-    #folio-print-root { display: none; }
+    #quillmark-print-root { display: none; }
     @media print {
       @page { size: ${orient}; margin: 0; }
       html, body { overflow: visible !important; height: auto !important; background: #fff !important; }
-      body > *:not(#folio-print-root) { display: none !important; }
-      #folio-print-root { display: block; }
+      body > *:not(#quillmark-print-root) { display: none !important; }
+      #quillmark-print-root { display: block; }
       .print-sheet { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; page-break-after: always; break-after: page; overflow: hidden; }
       .print-sheet:last-child { page-break-after: auto; break-after: auto; }
       .print-sheet img { ${opts.sizing === "fit" ? "max-width: 100%; max-height: 100%; width: auto; height: auto;" : ""} ${opts.grayscale ? "filter: grayscale(1);" : ""} }

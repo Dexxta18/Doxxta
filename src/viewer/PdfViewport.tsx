@@ -243,7 +243,7 @@ export function PdfViewport({ docId }: { docId: string }) {
         let host = hosts.current.get(i);
         if (!host) {
           host = document.createElement("div");
-          host.className = "folio-overlay-host";
+          host.className = "quillmark-overlay-host";
           hosts.current.set(i, host);
         }
         if (host.parentNode !== div) div.appendChild(host);

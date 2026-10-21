@@ -1,5 +1,5 @@
 // Browser tests against the dev server: npm run test:e2e [-- suite …]
-// Suites drive the real UI and use the dev-only `window.__folio` handle to check app state.
+// Suites drive the real UI and use the dev-only `window.__quillmark` handle to check app state.
 import { existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -55,7 +55,7 @@ function suiteContext(page, check, suite) {
     check,
     st: (fn, arg) => page.evaluate(fn, arg),
     shot: (name) => shot(page, `${suite}-${name}`),
-    idle: () => page.waitForFunction(() => !window.__folio.useApp.getState().busy, null, { timeout: 60000 }),
+    idle: () => page.waitForFunction(() => !window.__quillmark.useApp.getState().busy, null, { timeout: 60000 }),
     /** Opens a fixture (with a password when it is encrypted) and waits until it is shown. */
     async open(name, password) {
       if (password) {
@@ -71,12 +71,12 @@ function suiteContext(page, check, suite) {
           { b64, name, password },
         );
       } else await dropFile(page, name);
-      await page.waitForFunction((name) => { const s = window.__folio.useApp.getState(); const d = s.docs[s.activeId]; return d?.name === name && d.status === "ready"; }, name, { timeout: 20000 });
+      await page.waitForFunction((name) => { const s = window.__quillmark.useApp.getState(); const d = s.docs[s.activeId]; return d?.name === name && d.status === "ready"; }, name, { timeout: 20000 });
       await page.waitForSelector('.pdfViewer .page[data-loaded="true"]', { timeout: 20000 });
       await page.waitForTimeout(600);
     },
     /** The bytes Save would write for the active document. */
-    build: () => page.evaluate(async () => Array.from(await (await import("/src/core/save.ts")).buildPdf(window.__folio.useApp.getState().activeId, {}))),
+    build: () => page.evaluate(async () => Array.from(await (await import("/src/core/save.ts")).buildPdf(window.__quillmark.useApp.getState().activeId, {}))),
     /** Reads a PDF back with pdf.js: text, annotations, bookmarks, title, permissions. */
     readPdf: (bytes, password) => page.evaluate(readPdfInPage, { bytes, password }),
   };

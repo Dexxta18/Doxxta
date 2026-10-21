@@ -21,7 +21,7 @@ import { pdfDateToIso } from "../lib/pdfjs";
 import { invert, normRect, stageTransform, type PdfRect, type Point, type Quad } from "../lib/geometry";
 import { nowIso, uid } from "../lib/util";
 import { computeRect } from "./geometry";
-import { FOLIO_KEY } from "./writer";
+import { QUILLMARK_KEY } from "./writer";
 
 export interface ImportResult {
   bytes: Uint8Array;
@@ -39,7 +39,7 @@ const get = (d: PDFDict, k: string) => d.get(PDFName.of(k));
 const lookup = (doc: PDFDocument, o: PDFObject | undefined) => (o instanceof PDFRef ? doc.context.lookup(o) : o);
 
 /**
- * Lifts editable annotations out of a PDF into the Folio model and returns
+ * Lifts editable annotations out of a PDF into the Quillmark model and returns
  * the document without them (so pdf.js doesn't draw them a second time).
  * Decrypts the document when a password is given.
  */
@@ -109,7 +109,7 @@ export async function importAnnotations(bytes: Uint8Array, password?: string): P
         parent.status = state;
       } else if (stateModel !== "Marked") {
         const replyId = decodeText(get(e.dict, "NM")) || uid("r");
-        // Folio-written parents already carry their thread in the private data.
+        // Quillmark-written parents already carry their thread in the private data.
         if (parent.replies.some((r) => r.id === replyId)) {
           removed.add(e.ref);
           continue;
@@ -256,8 +256,8 @@ function pointsOf(arr: number[]): Point[] {
 }
 
 function convert(doc: PDFDocument, d: PDFDict, subtype: string, pageRotation: number, view: number[]): Annotation | null {
-  const folio = readFolioData(doc, d);
-  if (folio) return folio;
+  const stored = readQuillmarkData(doc, d);
+  if (stored) return stored;
 
   const now = nowIso();
   const rect = rectOf(d);
@@ -421,9 +421,9 @@ function convert(doc: PDFDocument, d: PDFDict, subtype: string, pageRotation: nu
   }
 }
 
-/** Restores an annotation written by Folio when it hasn't been changed by another app. */
-export function readFolioData(doc: PDFDocument, d: PDFDict): Annotation | null {
-  const raw = decodeText(get(d, FOLIO_KEY));
+/** Restores an annotation written by Quillmark when it hasn't been changed by another app. */
+export function readQuillmarkData(doc: PDFDocument, d: PDFDict): Annotation | null {
+  const raw = decodeText(get(d, QUILLMARK_KEY));
   if (!raw) return null;
   let data: Annotation & { v?: number };
   try {

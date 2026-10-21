@@ -97,7 +97,7 @@ function MeasureLabel({ at, text, color, angleDeg = 0 }: { at: Point; text: stri
   const size = 9;
   const w = text.length * size * 0.56 + 8;
   return (
-    <g transform={`translate(${at.x} ${at.y}) rotate(${angleDeg})`} className="folio-measure-label">
+    <g transform={`translate(${at.x} ${at.y}) rotate(${angleDeg})`} className="quillmark-measure-label">
       <rect x={-w / 2} y={-size - 6} width={w} height={size + 6} rx={3} fill="#ffffff" fillOpacity={0.92} stroke={color} strokeWidth={0.6} />
       <text x={0} y={-5.5} textAnchor="middle" fontSize={size} fontFamily={CSS_FONT.Helvetica} fill={color} fontWeight={600}>
         {text}
@@ -150,7 +150,7 @@ export function NoteIcon({ x, y, size, color }: { x: number; y: number; size: nu
 }
 
 function svgKindProps(a: Annotation) {
-  return { "data-annot-id": a.id, className: `folio-annot folio-annot-${a.kind}` };
+  return { "data-annot-id": a.id, className: `quillmark-annot quillmark-annot-${a.kind}` };
 }
 
 /** Vector annotations rendered in the page's SVG layer. */
@@ -174,7 +174,7 @@ export const AnnotSvg = memo(function AnnotSvg({ a, ctx }: { a: Annotation; ctx:
             return <path key={i} d={toSvg(path, m)} stroke={a.color} strokeWidth={width} fill="none" />;
           })}
           {a.quads.map((q, i) => (
-            <path key={`h${i}`} className="folio-hit" d={toSvg(polylinePath([{ x: q[0], y: q[1] }, { x: q[2], y: q[3] }, { x: q[6], y: q[7] }, { x: q[4], y: q[5] }], true), m)} />
+            <path key={`h${i}`} className="quillmark-hit" d={toSvg(polylinePath([{ x: q[0], y: q[1] }, { x: q[2], y: q[3] }, { x: q[6], y: q[7] }, { x: q[4], y: q[5] }], true), m)} />
           ))}
         </g>
       );
@@ -185,7 +185,7 @@ export const AnnotSvg = memo(function AnnotSvg({ a, ctx }: { a: Annotation; ctx:
             <path key={i} d={toSvg(squigglyPath(q), m)} stroke={a.color} strokeWidth={0.9} fill="none" strokeLinejoin="round" />
           ))}
           {a.quads.map((q, i) => (
-            <path key={`h${i}`} className="folio-hit" d={toSvg(polylinePath([{ x: q[0], y: q[1] }, { x: q[2], y: q[3] }, { x: q[6], y: q[7] }, { x: q[4], y: q[5] }], true), m)} />
+            <path key={`h${i}`} className="quillmark-hit" d={toSvg(polylinePath([{ x: q[0], y: q[1] }, { x: q[2], y: q[3] }, { x: q[6], y: q[7] }, { x: q[4], y: q[5] }], true), m)} />
           ))}
         </g>
       );
@@ -196,7 +196,7 @@ export const AnnotSvg = memo(function AnnotSvg({ a, ctx }: { a: Annotation; ctx:
             const d = toSvg(smoothPath(p), m);
             return (
               <g key={i}>
-                <path className="folio-hit" d={d} strokeWidth={Math.max(a.strokeWidth, 8 / ctx.scale)} />
+                <path className="quillmark-hit" d={d} strokeWidth={Math.max(a.strokeWidth, 8 / ctx.scale)} />
                 <path d={d} stroke={a.color} strokeWidth={a.strokeWidth} fill="none" strokeLinecap="round" strokeLinejoin="round" />
               </g>
             );
@@ -215,7 +215,7 @@ export const AnnotSvg = memo(function AnnotSvg({ a, ctx }: { a: Annotation; ctx:
             : toSvg(ellipseInRect(r), m);
       return (
         <g {...svgKindProps(a)} opacity={a.opacity}>
-          <path d={d} className={a.fillColor ? undefined : "folio-hit-stroke"} fill={a.fillColor ?? "none"} stroke={a.strokeWidth > 0 ? a.color : "none"} strokeWidth={a.strokeWidth} strokeDasharray={dash(a.borderStyle, a.strokeWidth)} strokeLinejoin="round" />
+          <path d={d} className={a.fillColor ? undefined : "quillmark-hit-stroke"} fill={a.fillColor ?? "none"} stroke={a.strokeWidth > 0 ? a.color : "none"} strokeWidth={a.strokeWidth} strokeDasharray={dash(a.borderStyle, a.strokeWidth)} strokeLinejoin="round" />
         </g>
       );
     }
@@ -233,7 +233,7 @@ export const AnnotSvg = memo(function AnnotSvg({ a, ctx }: { a: Annotation; ctx:
       if (angle < -90) angle += 180;
       return (
         <g {...svgKindProps(a)} opacity={a.opacity}>
-          <path className="folio-hit" d={toSvg(polylinePath([p0, p1]), m)} strokeWidth={Math.max(a.strokeWidth, 8 / ctx.scale)} />
+          <path className="quillmark-hit" d={toSvg(polylinePath([p0, p1]), m)} strokeWidth={Math.max(a.strokeWidth, 8 / ctx.scale)} />
           <path d={toSvg(polylinePath([s0, s1]), m)} stroke={a.color} strokeWidth={a.strokeWidth} strokeDasharray={dash(a.borderStyle, a.strokeWidth)} strokeLinecap="butt" fill="none" />
           {[e0, e1].map(
             (e, i) =>
@@ -267,7 +267,7 @@ export const AnnotSvg = memo(function AnnotSvg({ a, ctx }: { a: Annotation; ctx:
       const labelAt = closed ? centroid(stagePts) : stagePts[stagePts.length - 1];
       return (
         <g {...svgKindProps(a)} opacity={a.opacity}>
-          <path className="folio-hit" d={toSvg(polylinePath(a.vertices, closed), m)} strokeWidth={Math.max(a.strokeWidth, 8 / ctx.scale)} />
+          <path className="quillmark-hit" d={toSvg(polylinePath(a.vertices, closed), m)} strokeWidth={Math.max(a.strokeWidth, 8 / ctx.scale)} />
           <path
             d={d}
             fill={closed && a.fillColor ? a.fillColor : "none"}
@@ -333,7 +333,7 @@ export const AnnotSvg = memo(function AnnotSvg({ a, ctx }: { a: Annotation; ctx:
       return (
         <g {...svgKindProps(a)} opacity={a.opacity}>
           <image href={a.src} transform={f.svgTransform} width={f.w} height={f.h} preserveAspectRatio="none" />
-          <rect className="folio-hit" x={box.x} y={box.y} width={box.w} height={box.h} />
+          <rect className="quillmark-hit" x={box.x} y={box.y} width={box.w} height={box.h} />
         </g>
       );
     }
@@ -348,7 +348,7 @@ export const AnnotSvg = memo(function AnnotSvg({ a, ctx }: { a: Annotation; ctx:
               <path key={i} d={p.d} fill={p.fill ? a.color : "none"} stroke={p.fill ? "none" : a.color} strokeWidth={a.strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
             ))}
           </g>
-          <rect className="folio-hit" x={box.x} y={box.y} width={box.w} height={box.h} />
+          <rect className="quillmark-hit" x={box.x} y={box.y} width={box.w} height={box.h} />
         </g>
       );
     }
@@ -358,7 +358,7 @@ export const AnnotSvg = memo(function AnnotSvg({ a, ctx }: { a: Annotation; ctx:
       return (
         <g {...svgKindProps(a)} opacity={a.opacity}>
           <NoteIcon x={box.x} y={box.y} size={size} color={a.color} />
-          <rect className="folio-hit" x={box.x} y={box.y} width={size} height={size} />
+          <rect className="quillmark-hit" x={box.x} y={box.y} width={size} height={size} />
         </g>
       );
     }
@@ -369,7 +369,7 @@ export const AnnotSvg = memo(function AnnotSvg({ a, ctx }: { a: Annotation; ctx:
       return (
         <g {...svgKindProps(a)}>
           {shapes.map((d, i) => (
-            <path key={i} d={d} className="folio-redact-mark" fill={a.fillColor} stroke="#e5383b" strokeWidth={1.2 / ctx.scale} vectorEffect="non-scaling-stroke" />
+            <path key={i} d={d} className="quillmark-redact-mark" fill={a.fillColor} stroke="#e5383b" strokeWidth={1.2 / ctx.scale} vectorEffect="non-scaling-stroke" />
           ))}
         </g>
       );
@@ -397,7 +397,7 @@ export const AnnotSvg = memo(function AnnotSvg({ a, ctx }: { a: Annotation; ctx:
             y={box.y}
             width={box.w}
             height={box.h}
-            className={`folio-link-box${ctx.mode === "edit" ? " is-editing" : ""}`}
+            className={`quillmark-link-box${ctx.mode === "edit" ? " is-editing" : ""}`}
             fill="rgba(47,91,234,0.06)"
             stroke="#2f5bea"
             strokeWidth={1}
@@ -431,7 +431,7 @@ function FieldPlaceholder({ a, box }: { a: Extract<Annotation, { kind: "field" }
   const fs = Math.min(box.h * 0.6, 11);
   return (
     <g {...svgKindProps(a)}>
-      <rect x={box.x} y={box.y} width={box.w} height={box.h} className="folio-field-box" fill={a.fillColor ?? "rgba(47,91,234,0.08)"} stroke={a.borderColor ?? "#2f5bea"} strokeWidth={1} vectorEffect="non-scaling-stroke" rx={a.fieldType === "radio" ? Math.min(box.w, box.h) / 2 : 1.5} />
+      <rect x={box.x} y={box.y} width={box.w} height={box.h} className="quillmark-field-box" fill={a.fillColor ?? "rgba(47,91,234,0.08)"} stroke={a.borderColor ?? "#2f5bea"} strokeWidth={1} vectorEffect="non-scaling-stroke" rx={a.fieldType === "radio" ? Math.min(box.w, box.h) / 2 : 1.5} />
       <text x={box.x + (a.fieldType === "checkbox" || a.fieldType === "radio" ? box.w / 2 : 3)} y={box.y + box.h / 2 + fs * 0.35} fontSize={fs} fill="#2f5bea" textAnchor={a.fieldType === "checkbox" || a.fieldType === "radio" ? "middle" : "start"} fontFamily={CSS_FONT.Helvetica} style={{ pointerEvents: "none" }}>
         {label}
       </text>
@@ -467,12 +467,12 @@ export function FreeTextView({ a, ctx, editing, onCommit, onCancel }: { a: FreeT
     opacity: a.opacity,
   };
   return (
-    <div data-annot-id={a.id} className={`folio-annot folio-freetext${a.plain ? " is-plain" : ""}${editing ? " is-editing" : ""}`} style={style}>
+    <div data-annot-id={a.id} className={`quillmark-annot quillmark-freetext${a.plain ? " is-plain" : ""}${editing ? " is-editing" : ""}`} style={style}>
       {editing ? (
         <FreeTextEditor a={a} onCommit={onCommit!} onCancel={onCancel!} />
       ) : (
         lines!.map((l, i) => (
-          <div key={i} className="folio-freetext-line">
+          <div key={i} className="quillmark-freetext-line">
             {l || " "}
           </div>
         ))
@@ -514,7 +514,7 @@ function FreeTextEditor({ a, onCommit, onCancel }: { a: FreeTextAnnot; onCommit:
   };
   return (
     <div
-      className="folio-freetext-editor"
+      className="quillmark-freetext-editor"
       contentEditable="plaintext-only"
       suppressContentEditableWarning
       spellCheck
@@ -563,10 +563,10 @@ export function TextEditView({ a, ctx }: { a: TextEditAnnot; ctx: RenderCtx }) {
   const lines = wrapText(a.text, fontName, a.fontSize, f.w);
   return (
     <>
-      <div className="folio-textedit-cover" style={{ position: "absolute", left: cover.x - 0.5, top: cover.y - 0.5, width: cover.w + 1, height: cover.h + 1, background: a.backgroundColor }} />
+      <div className="quillmark-textedit-cover" style={{ position: "absolute", left: cover.x - 0.5, top: cover.y - 0.5, width: cover.w + 1, height: cover.h + 1, background: a.backgroundColor }} />
       <div
         data-annot-id={a.id}
-        className="folio-annot folio-textedit"
+        className="quillmark-annot quillmark-textedit"
         style={{
           position: "absolute",
           left: f.left,

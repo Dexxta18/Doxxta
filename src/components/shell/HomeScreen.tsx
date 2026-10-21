@@ -89,7 +89,7 @@ export function HomeScreen() {
           <div className="home-hero-text">
             <div className="home-brand">
               <Logo />
-              <span>Folio PDF</span>
+              <span>Quillmark</span>
             </div>
             <h1>Everything you need to work with PDFs.</h1>
             <p className="muted">Read, comment, sign, edit, organize, convert and protect — privately, right in your browser. Your files never leave this device.</p>

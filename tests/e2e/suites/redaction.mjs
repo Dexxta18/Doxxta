@@ -3,7 +3,7 @@ export const title = "Redaction";
 
 export default async function run({ page, check, st, open, shot, idle, build, readPdf }) {
   await open("sample.pdf");
-  await page.evaluate(() => window.__folio.runCommand("mode.redact"));
+  await page.evaluate(() => window.__quillmark.runCommand("mode.redact"));
   await st(() => import("/src/state/store.ts").then((m) => m.openDialog("search-redact")));
   await page.waitForSelector(".dialog-title:has-text('Find text to redact')");
   await page.click('.dialog .segmented button:has-text("Patterns")');
@@ -28,7 +28,7 @@ export default async function run({ page, check, st, open, shot, idle, build, re
   // Area redaction over a scanned image removes the pixels.
   await open("scanned.pdf");
   const summary = await st(async () => {
-    const s = window.__folio.useApp.getState();
+    const s = window.__quillmark.useApp.getState();
     const d = s.docs[s.activeId];
     const { createRedaction } = await import("/src/annotations/factory.ts");
     const { addAnnotations } = await import("/src/state/annotActions.ts");

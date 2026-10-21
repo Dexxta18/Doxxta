@@ -23,7 +23,7 @@ export interface RecentEntry {
 
 const MAX_BYTES = 40 * 1024 * 1024;
 const MAX_ENTRIES = 30;
-const store = typeof indexedDB !== "undefined" ? createStore("folio", "recent") : undefined;
+const store = typeof indexedDB !== "undefined" ? createStore("quillmark", "recent") : undefined;
 
 export const useRecent = create<{ entries: RecentEntry[]; loaded: boolean }>(() => ({ entries: [], loaded: false }));
 

@@ -9,8 +9,8 @@ import type { Point, Quad } from "../lib/geometry";
 
 /**
  * XFDF (XML Forms Data Format) is how Acrobat exchanges comments between
- * reviewers. We write the standard elements plus a `folio-data` attribute
- * carrying the full model for lossless round trips between Folio users.
+ * reviewers. We write the standard elements plus a `quillmark-data` attribute
+ * carrying the full model for lossless round trips between Quillmark users.
  */
 
 const TAG: Partial<Record<Annotation["kind"], string>> = {
@@ -125,7 +125,7 @@ export function annotationsToXfdf(annots: Annotation[], pageIndex: Map<string, n
         break;
     }
     const data = { v: 1, ...a } as Record<string, unknown>;
-    attrs["folio-data"] = JSON.stringify(data);
+    attrs["quillmark-data"] = JSON.stringify(data);
     const contents = a.kind === "freetext" ? a.text : a.contents;
     const attrStr = Object.entries(attrs)
       .map(([k, v]) => `${k}="${escapeXml(v)}"`)
@@ -211,7 +211,7 @@ function elementToAnnotation(el: Element, pageIds: string[]): Annotation | null 
   const page = Number(el.getAttribute("page") ?? 0);
   const pageId = pageIds[page];
   if (!pageId) return null;
-  const data = el.getAttribute("folio-data");
+  const data = el.getAttribute("quillmark-data");
   if (data) {
     try {
       const parsed = JSON.parse(data);

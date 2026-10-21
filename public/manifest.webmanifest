@@ -1,6 +1,6 @@
 {
-  "name": "Folio PDF",
-  "short_name": "Folio",
+  "name": "Quillmark",
+  "short_name": "Quillmark",
   "description": "Read, annotate, sign, organize, convert and protect PDFs in your browser.",
   "start_url": "./",
   "display": "standalone",

@@ -25,6 +25,7 @@ if (!["sample.pdf", "simple.pdf", "scanned.pdf"].every((f) => existsSync(join(FI
 const dir = mkdtempSync(join(tmpdir(), "quillmark-desktop-"));
 const userData = mkdtempSync(join(tmpdir(), "quillmark-profile-"));
 for (const f of ["sample.pdf", "simple.pdf", "scanned.pdf"]) copyFileSync(join(FIXTURES, f), join(dir, f));
+copyFileSync(join(ROOT, "tests", "assets", "cv.pdf"), join(dir, "cv.pdf"));
 const file = (name) => join(dir, name);
 
 const { results, check } = recorder("desktop");
@@ -133,6 +134,35 @@ try {
   await loaded();
   await site.close();
 
+  // Edit text: a word the file's font subset lacks is written in a font like it, loaded from inside the app.
+  await main(({ app }, path) => {
+    app.emit("second-instance", {}, [process.execPath, ".", path]);
+  }, file("cv.pdf"));
+  await waitTitle(/^cv\.pdf — Quillmark$/);
+  await loaded();
+  // The text layer nests spans: the one that holds the text has a width.
+  const spans = win.locator('.pdfViewer .page[data-page-number="1"] .textLayer span', { hasText: "PROFESSIONAL EXPERIENCE" });
+  let heading = null;
+  for (let i = 0; i < (await spans.count()) && !heading; i++) {
+    const b = await spans.nth(i).boundingBox();
+    if (b && b.width > 2) heading = b;
+  }
+  await win.click('button.tools-item:has-text("Edit PDF")');
+  await win.click('.context-toolbar button[aria-label="Edit text"]').catch(() => {});
+  await win.waitForSelector(".quillmark-text-block", { timeout: 15000 });
+  await win.mouse.click(heading.x + 4, heading.y + heading.height / 2);
+  await win.waitForSelector(".quillmark-textedit-editor");
+  await win.keyboard.press("End");
+  await win.keyboard.type(" & SKILLS");
+  await win.keyboard.press("Control+Enter");
+  await waitTitle(/^• cv\.pdf/);
+  await win.keyboard.press("Control+s");
+  await waitTitle(/^cv\.pdf — Quillmark$/);
+  const cv = await PDFDocument.load(readFileSync(file("cv.pdf")));
+  const fonts = cv.getPage(0).node.Resources().lookup(PDFName.of("Font"), PDFDict);
+  const baseFonts = fonts.keys().map((k) => cv.context.lookup(fonts.get(k), PDFDict).get(PDFName.of("BaseFont"))?.toString() ?? "");
+  check(baseFonts.some((n) => /^\/Carlito-Bold-\d+$/.test(n)), `edited text uses a font like the heading's (${baseFonts.join(" ")})`);
+
   // Links open in the default browser, never inside the app.
   await main(({ shell }) => {
     globalThis.__opened = [];
@@ -180,6 +210,10 @@ try {
 }
 for (const message of errors) check(false, `page error: ${message}`);
 check(cspViolations.length === 0, `no security policy violations${cspViolations.length ? `: ${cspViolations.slice(0, 3).join(" | ")}` : ""}`);
+// If the tests stopped early, unsaved documents would ask before closing.
+await main(({ dialog }) => {
+  dialog.showMessageBoxSync = () => 0;
+}).catch(() => {});
 await app.close().catch(() => {});
 
 const failed = results.filter((r) => !r.ok);

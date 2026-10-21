@@ -1,78 +1,185 @@
 import { zipSync, strToU8 } from "fflate";
-import type { Element, PageStructure, StyledText } from "./structure";
+import type { Element, PageStructure, StyledText, TextGeometry } from "./structure";
 import { escapeHtml, escapeXml } from "../../lib/util";
 
 // ---------------- Word ----------------
 
+/** Line height of a one-line paragraph, as a share of its font size (single spacing). */
+const SINGLE = 1.17;
+/** How far text reaches below its baseline, as a share of the font size. */
+const DESCENT = 0.21;
+
 export async function toDocx(pages: PageStructure[], meta: { title: string; author?: string }): Promise<Uint8Array> {
   const d = await import("docx");
-  const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun, Table, TableRow, TableCell, WidthType, LevelFormat, BorderStyle } = d;
+  const { Document, Packer, Paragraph, TextRun, Tab, HeadingLevel, AlignmentType, ImageRun, Table, TableRow, TableCell, WidthType, LevelFormat, BorderStyle, LineRuleType, TabStopType, HeightRule, VerticalAlign } = d;
   const twip = (pt: number) => Math.round(pt * 20);
-  const runs = (spans: StyledText[], scale = 1) =>
-    spans.flatMap((s) =>
-      s.text.split("\n").map(
-        (part, i) =>
-          new TextRun({
-            text: part,
-            break: i > 0 ? 1 : undefined,
-            bold: s.bold || undefined,
-            italics: s.italic || undefined,
-            size: Math.max(2, Math.round(s.size * 2 * scale)),
-            font: s.font,
-          }),
-      ),
-    );
+  /** Runs for styled text; headings get black text unless it has a color, instead of the heading style's. */
+  const runs = (spans: StyledText[], heading = false) =>
+    spans.flatMap((s) => {
+      const style = {
+        bold: s.bold || undefined,
+        italics: s.italic || undefined,
+        size: Math.max(2, Math.round(s.size * 2)),
+        font: s.font,
+        color: s.color ? s.color.slice(1).toUpperCase() : heading ? "000000" : undefined,
+      };
+      return s.text
+        .split(/(\n|\t)/)
+        .filter(Boolean)
+        .map((part) => (part === "\n" ? new TextRun({ ...style, break: 1 }) : part === "\t" ? new TextRun({ ...style, children: [new Tab()] }) : new TextRun({ ...style, text: part })));
+    });
   const align = { left: AlignmentType.LEFT, center: AlignmentType.CENTER, right: AlignmentType.RIGHT, justify: AlignmentType.JUSTIFIED } as const;
   const heading = { 1: HeadingLevel.HEADING_1, 2: HeadingLevel.HEADING_2, 3: HeadingLevel.HEADING_3 } as const;
-  let listId = 0;
-  const numberingConfig: { reference: string; levels: { level: number; format: (typeof LevelFormat)[keyof typeof LevelFormat]; text: string; alignment: (typeof AlignmentType)[keyof typeof AlignmentType]; style: { paragraph: { indent: { left: number; hanging: number } } } }[] }[] = [];
+  type Level = { level: number; format: (typeof LevelFormat)[keyof typeof LevelFormat]; text: string; start: number; alignment: (typeof AlignmentType)[keyof typeof AlignmentType]; style: { paragraph: { indent: { left: number; hanging: number } } } };
+  const numberingConfig: { reference: string; levels: Level[] }[] = [];
   const sections = pages.map((p) => {
     const content = p.elements.filter((e) => e.kind !== "image" || e.rect[2] - e.rect[0] < p.width * 0.98 || e.rect[3] - e.rect[1] < p.height * 0.98 || p.elements.length === 1);
     const xs = content.flatMap((e) => [e.rect[0], e.rect[2]]);
     const ys = content.flatMap((e) => [e.rect[1], e.rect[3]]);
     const clamp = (v: number) => Math.min(72, Math.max(18, v));
+    // The longest line just fits (rounding to twips mustn't push its last word to the next line).
     const margin = xs.length
-      ? { left: clamp(Math.min(...xs) - p.view[0]), right: clamp(p.view[2] - Math.max(...xs)), top: clamp(p.view[3] - Math.max(...ys)), bottom: clamp(Math.min(...ys) - p.view[1]) }
+      ? { left: clamp(Math.min(...xs) - p.view[0]), right: clamp(p.view[2] - Math.max(...xs) - 0.5), top: clamp(p.view[3] - Math.max(...ys)), bottom: clamp(Math.min(...ys) - p.view[1]) }
       : { left: 72, right: 72, top: 72, bottom: 72 };
+    // The first line's baseline where it is on the page: Word puts the top of its line at the margin.
+    const lead = content[0];
+    if (lead && (lead.kind === "heading" || lead.kind === "paragraph" || lead.kind === "list")) {
+      const geo = lead.kind === "list" ? lead.geos[0] : lead.geo;
+      margin.top = clamp(p.view[3] - geo.first - ((geo.pitch || geo.size * SINGLE) - DESCENT * geo.size));
+    }
     const usable = p.width - margin.left - margin.right;
+    /** Left edge of the text area, in PDF user space. */
+    const x0 = p.view[0] + margin.left;
+
+    // Paragraphs are placed one below the other with the space between them on the page:
+    // lines have the page's exact line height, and the rest goes before each paragraph.
+    const plan: { before: number; height: number }[] = [];
+    let above: { baseline: number; size: number } | { bottom: number } | null = null;
+    const gapTo = (top: number) => (!above ? 0 : Math.max(0, "baseline" in above ? above.baseline - DESCENT * above.size - top : above.bottom - top));
+    const planText = (geo: TextGeometry) => {
+      const line = geo.pitch || geo.size * SINGLE;
+      const lines = geo.pitch ? Math.round((geo.first - geo.last) / geo.pitch) + 1 : 1;
+      plan.push({ before: gapTo(geo.first + line - DESCENT * geo.size), height: lines * line });
+      above = { baseline: geo.last, size: geo.lastSize };
+    };
+    const imageSize = (e: Element & { kind: "image" }) => {
+      const w = e.rect[2] - e.rect[0],
+        h = e.rect[3] - e.rect[1];
+      return w > usable ? { w: usable, h: (h * usable) / w } : { w, h };
+    };
+    for (const e of content) {
+      if (e.kind === "heading" || e.kind === "paragraph") planText(e.geo);
+      else if (e.kind === "list") e.geos.forEach(planText);
+      else {
+        if (e.kind === "image") plan.push({ before: gapTo(e.rect[3]), height: imageSize(e).h });
+        // Tables: the space before is a paragraph of its own, and rows are as far apart as on the page.
+        else plan.push({ before: gapTo(e.rect[3] + 2), height: e.rows.length * Math.max(e.rowPitch, (e.font?.size ?? 10) * SINGLE + 2) + 1 });
+        above = { bottom: e.rect[1] - 2 };
+      }
+    }
+    // What doesn't fit moves to a new page in Word: if the page is full, shrink the spaces.
+    const room = p.height - margin.top - margin.bottom - 6;
+    const used = plan.reduce((sum, x) => sum + x.height, 0);
+    const spaces = plan.reduce((sum, x) => sum + x.before, 0);
+    const shrink = spaces > 0 && used + spaces > room ? Math.max(0, (room - used) / spaces) : 1;
+    let slot = 0;
+    const before = () => twip(Math.min(400, (plan[slot++]?.before ?? 0) * shrink));
+    const spacing = (geo: TextGeometry) => ({ before: before(), after: 0, line: twip(geo.pitch || geo.size * SINGLE), lineRule: LineRuleType.EXACT });
+    const indent = (geo: TextGeometry, a: keyof typeof align) => {
+      if (a === "center" || a === "right") return undefined;
+      const left = Math.max(0, geo.left - x0);
+      const first = geo.firstLeft - geo.left;
+      return { left: twip(left), ...(first > 0.5 ? { firstLine: twip(first) } : first < -0.5 ? { hanging: twip(Math.min(-first, left)) } : {}) };
+    };
+    let lastList: { key: string; reference: string } | null = null;
+
     const children = content.flatMap((e: Element) => {
+      if (e.kind !== "list") lastList = null;
       switch (e.kind) {
         case "heading":
-          return [new Paragraph({ heading: heading[e.level], children: runs(e.spans) })];
+          return [new Paragraph({ heading: heading[e.level], alignment: align[e.align], spacing: spacing(e.geo), indent: indent(e.geo, e.align), keepNext: true, children: runs(e.spans, true) })];
         case "paragraph":
-          return [new Paragraph({ alignment: align[e.align], spacing: { after: 120 }, children: runs(e.spans) })];
+          return [
+            new Paragraph({
+              alignment: align[e.align],
+              spacing: spacing(e.geo),
+              indent: indent(e.geo, e.align),
+              tabStops: e.tabs?.map((t) => ({ type: t.align === "right" ? TabStopType.RIGHT : TabStopType.LEFT, position: twip(Math.max(0, t.x - x0)) })),
+              children: runs(e.spans),
+            }),
+          ];
         case "list": {
-          if (e.ordered) {
-            const reference = `num${listId++}`;
-            numberingConfig.push({ reference, levels: [{ level: 0, format: LevelFormat.DECIMAL, text: "%1.", alignment: AlignmentType.START, style: { paragraph: { indent: { left: 720, hanging: 360 } } } }] });
-            return e.items.map((it) => new Paragraph({ numbering: { reference, level: 0 }, children: runs(it) }));
+          // One numbering per kind of list and indent; numbered items carry on from the list just before.
+          const textLeft = Math.max(0, e.geos[0].firstLeft - x0);
+          const hanging = Math.max(0, e.geos[0].firstLeft - e.marker.x);
+          const key = `${e.ordered}|${e.marker.text}|${Math.round(textLeft)}|${Math.round(hanging)}`;
+          let reference: string;
+          if (lastList?.key === key && e.ordered) reference = lastList.reference;
+          else {
+            reference = `list${numberingConfig.length}`;
+            numberingConfig.push({
+              reference,
+              levels: [
+                {
+                  level: 0,
+                  format: e.ordered ? LevelFormat.DECIMAL : LevelFormat.BULLET,
+                  text: e.marker.text,
+                  start: e.marker.start,
+                  alignment: AlignmentType.LEFT,
+                  style: { paragraph: { indent: { left: twip(textLeft), hanging: twip(hanging) } } },
+                },
+              ],
+            });
           }
-          return e.items.map((it) => new Paragraph({ bullet: { level: 0 }, children: runs(it) }));
+          lastList = { key, reference };
+          return e.items.map((it, i) => new Paragraph({ numbering: { reference, level: 0 }, spacing: spacing(e.geos[i]), children: runs(it) }));
         }
         case "table": {
           const cols = Math.max(...e.rows.map((r) => r.length));
-          const border = { style: BorderStyle.SINGLE, size: 4, color: "BFBFBF" };
+          const border = e.ruled ? { style: BorderStyle.SINGLE, size: 4, color: "808080" } : { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
+          const gap = before();
+          // Columns where they are on the page; cells with a small margin, so text starts where it did.
+          const pad = 2;
+          const edges = [...e.columns.slice(0, cols), e.rect[2] + pad * 2 + 6];
+          const widths = Array.from({ length: cols }, (_, c) => twip(Math.max(24, (edges[c + 1] ?? edges[c] + 60) - edges[c])));
+          const scale = Math.min(1, twip(usable) / widths.reduce((a, b) => a + b, 0));
           return [
+            ...(gap > 20 ? [new Paragraph({ spacing: { before: 0, after: 0, line: gap, lineRule: LineRuleType.EXACT }, children: [] })] : []),
             new Table({
-              width: { size: 100, type: WidthType.PERCENTAGE },
+              width: { size: Math.round(widths.reduce((a, b) => a + b, 0) * scale), type: WidthType.DXA },
+              columnWidths: widths.map((w) => Math.round(w * scale)),
+              indent: { size: twip(Math.max(0, e.rect[0] - pad - x0)), type: WidthType.DXA },
+              margins: { left: twip(pad), right: twip(pad), top: twip(1), bottom: twip(1) },
               rows: e.rows.map(
                 (r, ri) =>
                   new TableRow({
-                    children: Array.from({ length: cols }, (_, c) => new TableCell({ borders: { top: border, bottom: border, left: border, right: border }, children: [new Paragraph({ children: [new TextRun({ text: r[c] ?? "", bold: ri === 0 || undefined })] })] })),
+                    height: { value: twip(e.rowPitch), rule: HeightRule.ATLEAST },
+                    children: Array.from(
+                      { length: cols },
+                      (_, c) =>
+                        new TableCell({
+                          width: { size: Math.round(widths[c] * scale), type: WidthType.DXA },
+                          borders: { top: border, bottom: border, left: border, right: border },
+                          verticalAlign: VerticalAlign.BOTTOM,
+                          children: [new Paragraph({ spacing: { before: 0, after: 0 }, children: runs([{ text: r[c] ?? "", bold: e.bold[ri]?.[c] ?? false, italic: false, size: 10, font: "Arial", family: "sans-serif", ...e.font }]) })],
+                        }),
+                    ),
                   }),
               ),
             }),
-            new Paragraph({ children: [] }),
+            // Keeps the next table apart from this one.
+            new Paragraph({ spacing: { before: 0, after: 0, line: 20, lineRule: LineRuleType.EXACT }, children: [] }),
           ];
         }
         case "image": {
-          let w = e.rect[2] - e.rect[0],
-            h = e.rect[3] - e.rect[1];
-          if (w > usable) {
-            h *= usable / w;
-            w = usable;
-          }
-          return [new Paragraph({ children: [new ImageRun({ type: "png", data: e.png, transformation: { width: Math.round((w * 96) / 72), height: Math.round((h * 96) / 72) } })] })];
+          const { w, h } = imageSize(e);
+          return [
+            new Paragraph({
+              spacing: { before: before(), after: 0 },
+              indent: { left: twip(Math.max(0, Math.min(usable - w, e.rect[0] - x0))) },
+              children: [new ImageRun({ type: "png", data: e.png, transformation: { width: Math.round((w * 96) / 72), height: Math.round((h * 96) / 72) } })],
+            }),
+          ];
         }
       }
     });
@@ -221,7 +328,7 @@ export async function toPptx(
         );
       } else {
         const spans = e.kind === "list" ? e.items.flatMap((it, i) => it.map((sp, k) => ({ ...sp, text: (k === 0 ? (e.ordered ? `${i + 1}. ` : "• ") : "") + sp.text + (k === it.length - 1 && i < e.items.length - 1 ? "\n" : "") }))) : e.spans;
-        const textRuns = spans.map((sp) => ({ text: sp.text, options: { bold: sp.bold, italic: sp.italic, fontSize: Math.max(6, sp.size * scale * 72), fontFace: sp.font } }));
+        const textRuns = spans.map((sp) => ({ text: sp.text, options: { bold: sp.bold, italic: sp.italic, fontSize: Math.max(6, sp.size * scale * 72), fontFace: sp.font, color: sp.color?.slice(1) } }));
         const box = pos(e.rect);
         slide.addText(textRuns, { ...box, w: box.w * 1.06, h: box.h * 1.15, margin: 0, valign: "top", align: e.kind === "paragraph" ? (e.align === "justify" ? "justify" : e.align) : "left" });
       }
@@ -246,6 +353,7 @@ function htmlSpans(spans: StyledText[]): string {
       let t = escapeHtml(s.text).replace(/\n/g, "<br>");
       if (s.bold) t = `<strong>${t}</strong>`;
       if (s.italic) t = `<em>${t}</em>`;
+      if (s.color && s.color !== "#000000") t = `<span style="color:${s.color}">${t}</span>`;
       return t;
     })
     .join("");

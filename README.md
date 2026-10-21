@@ -98,7 +98,7 @@ Signing removes the first-launch warnings. It needs a code-signing certificate f
 **Optimize & convert**
 - Reduce file size (three presets plus custom image resolution/quality)
 - Recognize text (OCR) in 20 languages, making scans searchable and selectable
-- Export to Word (.docx), Excel (.xlsx), PowerPoint (.pptx), images (PNG, JPEG, WebP), HTML, Markdown and plain text
+- Export to Word (.docx), Excel (.xlsx), PowerPoint (.pptx), images (PNG, JPEG, WebP), HTML, Markdown and plain text. Word documents keep the page's fonts (open stand-ins such as Liberation Sans become Arial), sizes, bold, italics and colors, line and paragraph spacing, indents, alignment, right-aligned text such as dates (as tab stops), bulleted and numbered lists, and tables (with lines only where the page has them)
 
 **Review tools**
 - Compare files: text differences and visual (pixel) differences side by side
@@ -151,8 +151,8 @@ The browser tests drive the app in headless Chromium with Playwright, then read 
 
 ```bash
 npx playwright install chromium   # once
-npm run test:e2e                  # 7 suites against the dev server (71 checks)
-npm run test:e2e -- security      # one suite: organize, forms, editing, signing, security, redaction, openurl
+npm run test:e2e                  # 8 suites against the dev server (86 checks)
+npm run test:e2e -- security      # one suite: organize, forms, editing, export, signing, security, redaction, openurl
 npm run test:smoke                # builds, then tests the production build through the UI (incl. OCR)
 ```
 
@@ -174,7 +174,7 @@ A note on the API key: a key used directly from the browser can be read by anyon
 
 - **Digital IDs:** signatures are visual (typed, drawn or image). Certificate-based digital signatures and signature validation are not implemented yet.
 - **Edit text** works one paragraph at a time, like Acrobat: a paragraph that grows flows onto new lines below it without moving the paragraphs after it, and one that shrinks leaves its space empty.
-- **Export to Office** recreates text, tables and images with their positions; complex layouts will need touch-ups, as with any PDF converter.
+- **Export to Office** recreates text, tables and images in reading order; multi-column layouts, text boxes and drawings will need touch-ups, as with any PDF converter.
 - **Read Out Loud** uses the voices installed on the device; some systems have none.
 - Not included: PDF/A and preflight, accessibility tagging, batch actions, cloud storage, and sending documents to others for e-signature (those need a server).
 - Very large files are limited by memory.

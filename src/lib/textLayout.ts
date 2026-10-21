@@ -204,8 +204,8 @@ function makeLine(runs: TextRun[]): TextLine {
   return { runs, text: text.replace(/\s+/g, " ").trim(), rect, baseline: runs[0].y, size, angle: runs[0].angle };
 }
 
-/** A list bullet or dash starting a line. */
-const BULLET = /^\s*([•▪◦‣●○■□➢►✓✔–—*-]|\d{1,2}[.)])\s/;
+/** A list bullet or dash starting a line (with the Symbol and Wingdings bullets Word uses, which are private-use characters). */
+const BULLET = /^\s*([•▪◦‣●○■□➢►✓✔–—*\uf000-\uf0ff-]|\d{1,2}[.)])\s/;
 
 /** The style most of a line's text is in. */
 function lineStyle(l: TextLine) {

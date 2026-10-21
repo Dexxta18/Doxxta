@@ -3,7 +3,7 @@ import { getDoc } from "../../state/store";
 import { openPdf, pdfjs, renderPageToCanvas } from "../../lib/pdfjs";
 import { baseName, canvasToBlob } from "../../lib/util";
 import { zipFiles } from "../combine";
-import { pageStructure, type PageStructure } from "./structure";
+import { pageStructure, type PageStructure, type RunColor } from "./structure";
 import { layoutTextOf, pageRows, toDocx, toHtml, toMarkdown, toPptx, toXlsx } from "./writers";
 
 export type ExportFormat = "docx" | "xlsx" | "pptx" | "image" | "txt" | "html" | "md";
@@ -54,13 +54,15 @@ export async function exportDocument(docId: string, format: ExportFormat, opts: 
   const pages = opts.pages.length ? opts.pages : doc.pages.map((_, i) => i);
   onProgress?.(0, pages.length, "Preparing…");
   // The exported content includes edits, form values and comments, without password protection.
-  const { pdf } = await openPdf(await buildPdf(docId, { security: "none" }));
+  const bytes = await buildPdf(docId, { security: "none" });
+  const { pdf } = await openPdf(bytes.slice());
   try {
+    const colors = format === "docx" || format === "html" || (format === "pptx" && opts.pptxMode === "editable") ? await textColors(bytes) : null;
     const structures = async (images: boolean) => {
       const out: PageStructure[] = [];
       for (let k = 0; k < pages.length; k++) {
         onProgress?.(k, pages.length, `Reading page ${pages[k] + 1}…`);
-        out.push(await pageStructure(pdf, pages[k], { images }));
+        out.push(await pageStructure(pdf, pages[k], { images, color: await colors?.(pages[k]) }));
       }
       return out;
     };
@@ -94,7 +96,7 @@ export async function exportDocument(docId: string, format: ExportFormat, opts: 
         for (let k = 0; k < pages.length; k++) {
           const i = pages[k];
           onProgress?.(k, pages.length, `Preparing slide ${k + 1}…`);
-          const structure = await pageStructure(pdf, i, { images: opts.pptxMode === "editable" });
+          const structure = await pageStructure(pdf, i, { images: opts.pptxMode === "editable", color: await colors?.(i) });
           let image: string | null = null;
           if (opts.pptxMode === "images") {
             const r = await render(i, 2, "image/jpeg", 0.88);
@@ -138,6 +140,29 @@ export async function exportDocument(docId: string, format: ExportFormat, opts: 
   } finally {
     await pdf.loadingTask.destroy();
   }
+}
+
+/** For each page, the colors its text is drawn in (read from the page content); null when they can't be read. */
+async function textColors(bytes: Uint8Array): Promise<((pageIndex: number) => Promise<RunColor | undefined>) | null> {
+  const [{ loadPdfLib }, { extractGlyphs }] = await Promise.all([import("../../lib/pdflib"), import("../contentRedact")]);
+  const doc = await loadPdfLib(bytes).catch(() => null);
+  if (!doc) return null;
+  return async (pageIndex) => {
+    const page = doc.getPages()[pageIndex];
+    const glyphs = page && (await extractGlyphs(doc, page).catch(() => null));
+    if (!glyphs) return undefined;
+    const drawn = glyphs.filter((g) => g.style && g.style.mode !== 3 && g.text.trim()).sort((a, b) => a.origin.y - b.origin.y);
+    return (run) => {
+      // Glyphs on the run's baseline within its width; the color most of them have.
+      const counts = new Map<string, number>();
+      for (const g of drawn) {
+        if (g.origin.y < run.y - run.size * 0.35) continue;
+        if (g.origin.y > run.y + run.size * 0.35) break;
+        if (g.origin.x >= run.x - 0.5 && g.origin.x <= run.x + run.width + 0.5) counts.set(g.style!.fill, (counts.get(g.style!.fill) ?? 0) + 1);
+      }
+      return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+    };
+  };
 }
 
 function blobToDataUrl(blob: Blob): Promise<string> {

@@ -9,7 +9,7 @@ import { ROOT, dropFile, fixture, launchBrowser, openApp, recorder, shot } from 
 import { ensureFixtures } from "./fixtures.mjs";
 import { startFileServer } from "./server.mjs";
 
-const ALL = ["organize", "forms", "editing", "signing", "security", "redaction", "openurl"];
+const ALL = ["organize", "forms", "editing", "export", "signing", "security", "redaction", "openurl"];
 const picked = process.argv.slice(2);
 const unknown = picked.filter((s) => !ALL.includes(s));
 if (unknown.length) {

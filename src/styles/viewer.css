@@ -397,6 +397,10 @@ g.folio-annot:hover {
     background-position: -200% 0;
   }
 }
+.thumb-annots,
+.thumb-annots * {
+  pointer-events: none !important;
+}
 .thumb-annots {
   position: absolute;
   inset: 0;

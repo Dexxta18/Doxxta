@@ -1,4 +1,4 @@
-import { memo, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useRef, type ReactNode } from "react";
 import type { Annotation, FreeTextAnnot, LineAnnot, MeasureInfo, PolyAnnot, SymbolAnnot, TextEditAnnot } from "./types";
 import {
   apply,
@@ -468,6 +468,36 @@ export function FreeTextView({ a, ctx, editing, onCommit, onCancel }: { a: FreeT
 }
 
 function FreeTextEditor({ a, onCommit, onCancel }: { a: FreeTextAnnot; onCommit: (text: string, height: number) => void; onCancel: () => void }) {
+  const elRef = useRef<HTMLDivElement | null>(null);
+  const latest = useRef({ text: a.text, height: 0 });
+  const done = useRef(false);
+  const finish = useCallback(() => {
+    if (done.current) return;
+    done.current = true;
+    const { text, height } = latest.current;
+    if (text === a.text && height <= 0) onCancel();
+    else onCommit(text, height);
+  }, [a.text, onCommit, onCancel]);
+  // The editor can be unmounted without a blur (e.g. clicking elsewhere clears
+  // the editing state first), so commit on unmount too.
+  const finishRef = useRef(finish);
+  finishRef.current = finish;
+  useEffect(
+    () => () => {
+      // StrictMode re-runs effects without removing the element; only commit
+      // when the editor has really left the DOM.
+      setTimeout(() => {
+        if (!elRef.current?.isConnected) finishRef.current();
+      }, 0);
+    },
+    [],
+  );
+  const capture = () => {
+    const el = elRef.current;
+    if (!el) return;
+    const grow = el.scrollHeight > el.clientHeight + 1;
+    latest.current = { text: el.innerText.replace(/\n$/, ""), height: grow ? el.scrollHeight : 0 };
+  };
   return (
     <div
       className="folio-freetext-editor"
@@ -475,34 +505,35 @@ function FreeTextEditor({ a, onCommit, onCancel }: { a: FreeTextAnnot; onCommit:
       suppressContentEditableWarning
       spellCheck
       ref={(el) => {
+        if (el) elRef.current = el;
         if (el && !el.dataset.init) {
           el.dataset.init = "1";
           el.innerText = a.text;
           requestAnimationFrame(() => {
+            if (!el.isConnected) return;
             el.focus();
-            const sel = window.getSelection();
-            sel?.selectAllChildren(el);
-            sel?.collapseToEnd();
+            try {
+              const sel = window.getSelection();
+              sel?.selectAllChildren(el);
+              sel?.collapseToEnd();
+            } catch {
+              /* caret placement is best-effort */
+            }
           });
         }
       }}
+      onInput={capture}
       onPointerDown={(e) => e.stopPropagation()}
       onKeyDown={(e) => {
         e.stopPropagation();
-        if (e.key === "Escape") {
-          e.preventDefault();
-          (e.currentTarget as HTMLElement).blur();
-        }
-        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        if (e.key === "Escape" || (e.key === "Enter" && (e.metaKey || e.ctrlKey))) {
           e.preventDefault();
           (e.currentTarget as HTMLElement).blur();
         }
       }}
-      onBlur={(e) => {
-        const el = e.currentTarget as HTMLElement;
-        const text = el.innerText.replace(/\n$/, "");
-        if (text === a.text && el.scrollHeight <= el.clientHeight + 1) onCancel();
-        else onCommit(text, el.scrollHeight);
+      onBlur={() => {
+        capture();
+        finish();
       }}
     />
   );

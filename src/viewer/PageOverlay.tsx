@@ -42,6 +42,7 @@ import { loadImageFile } from "../lib/images";
 import { snapshotRegion } from "./snapshot";
 import { polylinePath, toSvg } from "../annotations/paths";
 import { formatToday } from "../lib/dates";
+import { stdFontName, wrapText } from "../lib/fontMetrics";
 
 const PDF_TO_CSS = 96 / 72;
 
@@ -242,8 +243,8 @@ function PageOverlayInner({ docId, pageIndex }: { docId: string; pageIndex: numb
         const knee = { x: attach.x - Math.min(20, Math.abs(attach.x - tip.x) / 2), y: attach.y };
         const a = { ...createFreeText("callout", page.id, rect, rotation), callout: [tip, knee, attach] } as FreeTextAnnot;
         addAnnotations(docId, [{ ...a, rect }], "Add callout");
-        useApp.setState({ editingId: a.id });
         finishTool();
+        useApp.setState({ editingId: a.id });
         break;
       }
       case "move": {
@@ -345,8 +346,8 @@ function PageOverlayInner({ docId, pageIndex }: { docId: string; pageIndex: numb
       case "note": {
         const a = createNote(page.id, p, rotation);
         addAnnotations(docId, [a], "Add note");
-        useApp.setState({ editingId: a.id });
         finishTool();
+        useApp.setState({ editingId: a.id });
         return;
       }
       case "freetext":
@@ -357,8 +358,8 @@ function PageOverlayInner({ docId, pageIndex }: { docId: string; pageIndex: numb
         const w = t === "fs-text" || t === "add-text" ? 160 : 180;
         const a = createFreeText(t, page.id, [p.x, p.y - h + s.fontSize * 0.35, p.x + w, p.y + s.fontSize * 0.35], rotation);
         addAnnotations(docId, [a], "Add text");
-        useApp.setState({ editingId: a.id });
         if (t === "freetext") finishTool();
+        useApp.setState({ editingId: a.id });
         return;
       }
       case "fs-date": {
@@ -594,15 +595,26 @@ function PageOverlayInner({ docId, pageIndex }: { docId: string; pageIndex: numb
   );
 }
 
-function commitFreeText(docId: string, a: FreeTextAnnot, text: string, contentHeight: number) {
+function commitFreeText(docId: string, a: FreeTextAnnot, text: string, _contentHeight: number) {
   useApp.setState({ editingId: null });
   if (!text.trim()) {
     deleteAnnotations(docId, [a.id], "Remove empty text");
     return;
   }
-  // Grow the box to fit the text (in the direction of the text's "down").
-  const height = Math.max(a.rect[3] - a.rect[1], contentHeight);
-  const rect: PdfRect = a.rotation % 180 === 0 ? [a.rect[0], a.rect[3] - height, a.rect[2], a.rect[3]] : a.rect;
+  // Size the box to the wrapped text using the same metrics as the renderer.
+  const swap = a.rotation % 180 !== 0;
+  const boxW = swap ? a.rect[3] - a.rect[1] : a.rect[2] - a.rect[0];
+  const pad = 2 + a.borderWidth;
+  const lines = wrapText(text, stdFontName(a.fontFamily, a.bold, a.italic), a.fontSize, boxW - pad * 2);
+  const needed = lines.length * a.fontSize * 1.2 + pad * 2;
+  let rect = a.rect;
+  if (!swap) {
+    const h = Math.max(needed, a.rect[3] - a.rect[1]);
+    rect = [a.rect[0], a.rect[3] - h, a.rect[2], a.rect[3]];
+  } else {
+    const w = Math.max(needed, a.rect[2] - a.rect[0]);
+    rect = a.rotation === 90 ? [a.rect[2] - w, a.rect[1], a.rect[2], a.rect[3]] : [a.rect[0], a.rect[1], a.rect[0] + w, a.rect[3]];
+  }
   updateAnnotation(docId, a.id, { text, rect, contents: a.plain ? "" : text } as never, "Edit text");
 }
 

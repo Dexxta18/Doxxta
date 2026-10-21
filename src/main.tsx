@@ -9,6 +9,14 @@ import "./styles/viewer.css";
 import "./styles/panels.css";
 import "./styles/dialogs.css";
 import App from "./App";
+import { useApp } from "./state/store";
+import { useSettings } from "./state/settings";
+import { runtimes } from "./state/runtime";
+
+if (import.meta.env.DEV) {
+  // Debug handle for automated browser tests.
+  (window as unknown as { __folio: unknown }).__folio = { useApp, useSettings, runtimes };
+}
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

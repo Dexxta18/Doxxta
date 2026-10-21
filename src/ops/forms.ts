@@ -32,8 +32,10 @@ export async function getFormValues(docId: string): Promise<Record<string, FormV
   const objs = (await rt.pdf.getFieldObjects()) as Map<string, FieldObject[]> | null;
   const storage = rt.pdf.annotationStorage as unknown as { getValue(id: string, def: object): Record<string, unknown> };
   const out: Record<string, FormValue> = {};
-  for (const [name, widgets] of objs ?? []) {
-    const w0 = widgets.find((w) => w.id) ?? widgets[0];
+  for (const [name, all] of objs ?? []) {
+    // Field nodes without a type are parents or non-widget entries; values live on the widgets.
+    const widgets = all.filter((w) => w.type && w.id);
+    const w0 = widgets[0];
     if (!w0) continue;
     switch (w0.type) {
       case "checkbox": {
@@ -57,7 +59,14 @@ export async function getFormValues(docId: string): Promise<Record<string, FormV
       case "signature":
         break;
       default: {
-        const v = storage.getValue(w0.id, { value: w0.value }).value;
+        let v: unknown = w0.value;
+        for (const w of widgets) {
+          const stored = storage.getValue(w.id, {}).value;
+          if (stored !== undefined) {
+            v = stored;
+            break;
+          }
+        }
         out[name] = Array.isArray(v) ? (v as string[]) : v === undefined || v === null ? "" : String(v);
       }
     }

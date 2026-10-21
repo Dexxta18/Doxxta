@@ -129,17 +129,27 @@ export function nameOf(o: PDFObject | undefined | null): string | undefined {
  * can't leak into ours.
  */
 export function addPageContent(doc: PDFDocument, page: PDFPage, ops: string, opts: { behind?: boolean } = {}) {
-  const ctx = doc.context;
+  const ref = doc.context.register(doc.context.flateStream(ops));
+  addContentStream(doc, page, ref, opts.behind);
+}
+
+/** Adds a content stream before or after a page's existing content, whatever form /Contents has. */
+export function addContentStream(doc: PDFDocument, page: PDFPage, ref: PDFRef, behind = false) {
   page.node.normalize();
-  const stream = ctx.flateStream(ops);
-  const ref = ctx.register(stream);
   const contents = page.node.Contents();
   if (contents instanceof PDFArray) {
-    if (opts.behind) contents.insert(0, ref);
+    if (behind) contents.insert(0, ref);
     else contents.push(ref);
-  } else {
-    page.node.set(PDFName.of("Contents"), ctx.obj(opts.behind ? [ref] : [ref]));
+    return;
   }
+  const existing = page.node.get(PDFName.of("Contents"));
+  const list = existing ? (behind ? [ref, existing] : [existing, ref]) : [ref];
+  page.node.set(PDFName.of("Contents"), doc.context.obj(list));
+}
+
+/** Replaces a page's content with one stream (kept as an array so later additions append). */
+export function setPageContent(doc: PDFDocument, page: PDFPage, ref: PDFRef) {
+  page.node.set(PDFName.of("Contents"), doc.context.obj([ref]));
 }
 
 /** Adds a named resource (Font/XObject/ExtGState) to a page and returns its name. */

@@ -1,4 +1,4 @@
-import { PDFArray, PDFDict, PDFName, PDFRawStream, PDFRef, PDFStream, FontCache, addPageResource, loadPdfLib, type PDFDocument, type PDFObject } from "../lib/pdflib";
+import { PDFArray, PDFDict, PDFName, PDFRawStream, PDFRef, PDFStream, FontCache, addContentStream, addPageResource, loadPdfLib, setPageContent, type PDFDocument, type PDFObject } from "../lib/pdflib";
 import { PName, parseContent, serializeContent, type Op } from "../lib/contentStream";
 import { applyDocumentChange, readMetadata } from "../core/document";
 import { getDoc, updateDoc } from "../state/store";
@@ -82,7 +82,7 @@ function removeHiddenLayerContent(doc: PDFDocument, off: Set<string>): number {
     if (!data) continue;
     const before = removed;
     const ops = strip(parseContent(data), page.node.Resources());
-    if (removed !== before) page.node.set(PDFName.of("Contents"), doc.context.register(doc.context.flateStream(serializeContent(ops))));
+    if (removed !== before) setPageContent(doc, page, doc.context.register(doc.context.flateStream(serializeContent(ops))));
   }
   return removed;
 }
@@ -288,12 +288,7 @@ function flattenFileAnnotations(doc: PDFDocument, pageIndexes: number[] | null) 
         ops.push(`q ${sx} 0 0 ${sy} ${Math.min(x0, x1) - bx0 * sx} ${Math.min(y0, y1) - by0 * sy} cm /${name} Do Q`);
       }
     }
-    if (ops.length) {
-      page.node.normalize();
-      const contents = page.node.Contents();
-      const stream = ctx.register(ctx.flateStream(`q\n${ops.join("\n")}\nQ`));
-      if (contents instanceof PDFArray) contents.push(stream);
-    }
+    if (ops.length) addContentStream(doc, page, ctx.register(ctx.flateStream(`q\n${ops.join("\n")}\nQ`)));
     if (keep.length) page.node.set(PDFName.of("Annots"), ctx.obj(keep));
     else page.node.delete(PDFName.of("Annots"));
   });

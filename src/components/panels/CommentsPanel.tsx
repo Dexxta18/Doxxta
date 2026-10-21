@@ -204,10 +204,12 @@ function toggle<T>(set: Set<T>, v: T): Set<T> {
 }
 
 function CommentCard({ docId, a, pageIndex, selected }: { docId: string; a: Annotation; pageIndex: number; selected: boolean }) {
-  const [text, setText] = useState(a.contents);
+  // A text box's comment is the text it shows, edited in one place.
+  const body = a.kind === "freetext" ? a.text : a.contents;
+  const [text, setText] = useState(body);
   const [reply, setReply] = useState("");
   const [editingReply, setEditingReply] = useState<string | null>(null);
-  useEffect(() => setText(a.contents), [a.contents]);
+  useEffect(() => setText(body), [body]);
   const marked = "markedText" in a ? a.markedText : undefined;
   const color = a.kind === "freetext" ? a.textColor : a.color;
 
@@ -249,10 +251,9 @@ function CommentCard({ docId, a, pageIndex, selected }: { docId: string; a: Anno
         </button>
       </div>
       {marked && <blockquote className="comment-quote">{marked}</blockquote>}
-      {a.kind === "freetext" && <div className="comment-quote">{a.text}</div>}
       <textarea
         className="comment-text"
-        placeholder={a.kind === "freetext" ? "Add a comment…" : "Add a comment…"}
+        placeholder={a.kind === "freetext" ? "Text" : "Add a comment…"}
         value={text}
         rows={Math.min(8, Math.max(1, text.split("\n").length))}
         onClick={(e) => e.stopPropagation()}
@@ -261,7 +262,11 @@ function CommentCard({ docId, a, pageIndex, selected }: { docId: string; a: Anno
           e.stopPropagation();
           if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) (e.target as HTMLTextAreaElement).blur();
         }}
-        onBlur={() => text !== a.contents && updateAnnotation(docId, a.id, { contents: text }, "Edit comment")}
+        onBlur={() => {
+          if (text === body) return;
+          if (a.kind === "freetext") updateAnnotation(docId, a.id, { text, contents: a.plain ? "" : text }, "Edit text");
+          else updateAnnotation(docId, a.id, { contents: text }, "Edit comment");
+        }}
       />
       {a.replies.length > 0 && (
         <div className="comment-replies">

@@ -1,7 +1,7 @@
 import { PDFArray, PDFDict, PDFName, PDFNumber, PDFRef, decodeText, loadPdfLib, nameOf, numbers, type PDFDocument, type PDFObject } from "../lib/pdflib";
 import { pdfjs } from "../lib/pdfjs";
 import { getRuntime, getViewer } from "../state/runtime";
-import { getDoc, toast } from "../state/store";
+import { getDoc, toast, updateDoc } from "../state/store";
 import { commitForms, reloadDocument } from "../core/document";
 import type { DocState } from "../state/types";
 import type { LinkAnnot, LinkHighlight, LinkTarget } from "../annotations/types";
@@ -186,7 +186,9 @@ async function doLift(docId: string): Promise<number> {
   const current = getDoc(docId);
   // The document changed while we worked: try again next time.
   if (!current || rt.bytes !== bytes || current.pages.map((p) => p.id).join() !== pageIds.join()) return 0;
-  await reloadDocument(docId, out, pageIds, { annotations: [...current.annotations, ...links] });
+  await reloadDocument(docId, out, pageIds);
+  // Merge into the latest annotations: the user may have added some while the document reloaded.
+  updateDoc(docId, (d) => ({ annotations: [...d.annotations, ...links] }));
   return links.length;
 }
 

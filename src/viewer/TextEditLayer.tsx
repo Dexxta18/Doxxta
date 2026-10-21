@@ -55,7 +55,12 @@ export function TextEditLayer({ docId, pageIndex, ctx, geo }: { docId: string; p
     [blocks, edits],
   );
 
+  // Colors are sampled while the user types, so committing is instant.
+  const colorsFor = useRef<{ block: TextBlock; colors: Promise<{ background: string; foreground: string }> } | null>(null);
+
   const startBlock = (b: TextBlock) => {
+    const rt = getRuntime(docId);
+    if (rt) colorsFor.current = { block: b, colors: sampleRegionColors(rt.pdf, pageIndex, b.rect).catch(() => ({ background: "#ffffff", foreground: "#000000" })) };
     setEditing({ annotId: null, block: b, rect: b.rect, text: b.text, fontFamily: familyOf(b.family), fontSize: Math.round(b.size * 10) / 10, bold: b.bold, italic: b.italic });
   };
 
@@ -84,12 +89,8 @@ export function TextEditLayer({ docId, pageIndex, ctx, geo }: { docId: string; p
     const rt = getRuntime(docId);
     const doc = getDoc(docId);
     if (!rt || !doc) return;
-    let colors = { background: "#ffffff", foreground: "#000000" };
-    try {
-      colors = await sampleRegionColors(rt.pdf, pageIndex, ed.block.rect);
-    } catch (e) {
-      console.warn("color sampling failed", e);
-    }
+    const pending = colorsFor.current?.block === ed.block ? colorsFor.current.colors : sampleRegionColors(rt.pdf, pageIndex, ed.block.rect);
+    const colors = await pending.catch(() => ({ background: "#ffffff", foreground: "#000000" }));
     const lineHeight = ed.block.lines.length > 1 ? Math.min(2, Math.max(1, (ed.block.lines[0].baseline - ed.block.lines[ed.block.lines.length - 1].baseline) / (ed.block.lines.length - 1) / ed.fontSize)) : 1.2;
     const a: TextEditAnnot = {
       ...base("textedit", page.id, ed.block.rect, 0),

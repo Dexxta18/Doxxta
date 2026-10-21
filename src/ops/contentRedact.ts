@@ -1,4 +1,4 @@
-import { PDFArray, PDFDict, PDFName, PDFNumber, PDFRawStream, PDFRef, PDFStream, addPageResource, displayFrame, fontKeyFor, type FontCache, type PDFDocument, type PDFFont, type PDFObject, type PDFPage } from "../lib/pdflib";
+import { PDFArray, PDFDict, PDFName, PDFNumber, PDFRawStream, PDFRef, PDFStream, addContentStream, addPageResource, displayFrame, fontKeyFor, setPageContent, type FontCache, type PDFDocument, type PDFFont, type PDFObject, type PDFPage } from "../lib/pdflib";
 import { PName, PString, parseContent, serializeContent, type Op, type Operand } from "../lib/contentStream";
 import { decodeImage, decodeStencil, decodeStreamData, encodeImage, encodeStencil, isImageMask } from "../lib/pdfImages";
 import { IDENTITY, apply, invert, multiply, type Matrix, type Point } from "../lib/geometry";
@@ -962,7 +962,7 @@ export async function redactPage(doc: PDFDocument, page: PDFPage, regions: Regio
   const res = await r.process(parseContent(data), resources, IDENTITY);
   if (!res.changed || (opts.onlyIfComplete && r.result.unsupported.length)) return r.result;
   const ctx = doc.context;
-  page.node.set(PDFName.of("Contents"), ctx.register(ctx.flateStream(serializeContent(res.ops))));
+  setPageContent(doc, page, ctx.register(ctx.flateStream(serializeContent(res.ops))));
   r.result.changed = true;
   return r.result;
 }
@@ -1074,7 +1074,7 @@ export async function rasterizePage(doc: PDFDocument, page: PDFPage, render: (sc
   const ctx = doc.context;
   page.node.set(PDFName.of("Resources"), ctx.obj({ XObject: { FRast: img.ref } }));
   const ops = `q ${m.map(fmt).join(" ")} cm ${fmt(w)} 0 0 ${fmt(h)} 0 0 cm /FRast Do Q`;
-  page.node.set(PDFName.of("Contents"), ctx.register(ctx.flateStream(ops)));
+  setPageContent(doc, page, ctx.register(ctx.flateStream(ops)));
 }
 
 /** Removes annotations and form widgets left in the file that overlap the areas. Returns the count. */
@@ -1142,12 +1142,7 @@ export async function drawRedactionMarks(doc: PDFDocument, page: PDFPage, marks:
     }
   }
   if (!ops.length) return;
-  const ctx = doc.context;
-  page.node.normalize();
-  const contents = page.node.Contents();
-  const ref = ctx.register(ctx.flateStream(`q\n${ops.join("\n")}\nQ`));
-  if (contents instanceof PDFArray) contents.push(ref);
-  else page.node.set(PDFName.of("Contents"), ctx.obj(contents ? [page.node.get(PDFName.of("Contents"))!, ref] : [ref]));
+  addContentStream(doc, page, doc.context.register(doc.context.flateStream(`q\n${ops.join("\n")}\nQ`)));
 }
 
 

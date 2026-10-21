@@ -1,4 +1,4 @@
-import { PDFArray, PDFName, PDFStream, addPageResource, displayFrame, fontKeyFor, loadPdfLib, FontCache, type PDFDocument, type PDFPage, type PDFRef, type PDFFont } from "../lib/pdflib";
+import { PDFArray, PDFName, PDFStream, addContentStream, addPageResource, displayFrame, fontKeyFor, loadPdfLib, FontCache, type PDFDocument, type PDFPage, type PDFRef, type PDFFont } from "../lib/pdflib";
 
 export { displayFrame };
 import { applyDocumentChange } from "../core/document";
@@ -27,15 +27,8 @@ export type Anchor = "tl" | "tc" | "tr" | "ml" | "mc" | "mr" | "bl" | "bc" | "br
 const cm = (m: Matrix) => `${m.map(fmt).join(" ")} cm`;
 
 function tagStream(doc: PDFDocument, page: PDFPage, ops: string, kind: MarkKind, behind: boolean) {
-  const ctx = doc.context;
-  page.node.normalize();
-  const stream = ctx.flateStream(ops, { FolioMark: PDFName.of(kind) } as never);
-  const ref = ctx.register(stream);
-  const contents = page.node.Contents();
-  if (contents instanceof PDFArray) {
-    if (behind) contents.insert(0, ref);
-    else contents.push(ref);
-  }
+  const ref = doc.context.register(doc.context.flateStream(ops, { FolioMark: PDFName.of(kind) } as never));
+  addContentStream(doc, page, ref, behind);
 }
 
 function gs(page: PDFPage, opacity: number): string {

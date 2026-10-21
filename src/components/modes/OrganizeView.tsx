@@ -16,7 +16,10 @@ import {
   ChevronDown,
   Crop,
   Maximize,
+  Redo2,
+  Undo2,
 } from "lucide-react";
+import { runCommand } from "../../core/commands";
 import { useApp, openDialog, setMode, toast, withBusy } from "../../state/store";
 import { getViewer } from "../../state/runtime";
 import { PageThumb } from "../panels/PageThumb";
@@ -37,6 +40,8 @@ import { formatPageRanges } from "../../lib/pageRanges";
 
 export default function OrganizeView({ docId, onClose }: { docId: string; onClose: () => void }) {
   const pages = useApp((s) => s.docs[docId].pages);
+  const canUndo = useApp((s) => s.docs[docId].canUndo);
+  const canRedo = useApp((s) => s.docs[docId].canRedo);
   const current = useApp((s) => s.docs[docId].view.page);
   const [selected, setSelected] = useState<Set<number>>(new Set([current - 1]));
   const [anchor, setAnchor] = useState(current - 1);
@@ -151,6 +156,9 @@ export default function OrganizeView({ docId, onClose }: { docId: string; onClos
         <IconButton icon={<Crop size={17} />} label="Crop pages" disabled={!hasSel} onClick={() => openDialog("crop", { docId, pages: sel })} />
         <IconButton icon={<ArrowLeftRight size={17} />} label="Reverse page order" onClick={() => busy("Reordering…", () => reversePages(docId))} />
         <span className="spacer" />
+        <IconButton icon={<Undo2 size={17} />} label="Undo" shortcut="Mod+Z" disabled={!canUndo} onClick={() => runCommand("edit.undo")} />
+        <IconButton icon={<Redo2 size={17} />} label="Redo" shortcut="Mod+Shift+Z" disabled={!canRedo} onClick={() => runCommand("edit.redo")} />
+        <span className="toolbar-sep" />
         <IconButton icon={<ZoomOut size={17} />} label="Smaller" onClick={() => setSize((s) => Math.max(90, s - 30))} />
         <IconButton icon={<ZoomIn size={17} />} label="Larger" onClick={() => setSize((s) => Math.min(320, s + 30))} />
       </div>

@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
 import { AlertTriangle, FileWarning, Info, X } from "lucide-react";
-import { useApp, setMode, updateDoc } from "../../state/store";
+import { useApp, setMode, setTool, updateDoc } from "../../state/store";
 import { useSettings } from "../../state/settings";
 import { PdfViewport } from "../../viewer/PdfViewport";
 import { ToolsPanel } from "./ToolsPanel";
@@ -76,6 +76,11 @@ export function Workspace({ docId }: { docId: string }) {
     if (status === "ready") consumePendingCommand();
   }, [status]);
 
+  // The tool belongs to the tab being worked on: start fresh when switching tabs.
+  useEffect(() => {
+    setTool("select");
+  }, [docId]);
+
   // Existing links become editable when the user starts working with links.
   const tool = useApp((s) => s.tool);
   useEffect(() => {
@@ -86,7 +91,7 @@ export function Workspace({ docId }: { docId: string }) {
     <div className={`workspace${readMode ? " is-read-mode" : ""}`}>
       {!readMode && <ToolsPanel />}
       <div className="center">
-        {!readMode && status === "ready" && <ContextToolbar docId={docId} />}
+        {!readMode && status === "ready" && mode !== "organize" && <ContextToolbar docId={docId} />}
         <div className="viewer-area">
           {status === "loading" && (
             <div className="center-fill col" style={{ gap: 12 }}>

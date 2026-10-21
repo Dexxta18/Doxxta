@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld("quillmarkDesktop", {
   saveDialog: (suggestedName) => ipcRenderer.invoke("quillmark:save-dialog", suggestedName),
   readFile: (path) => ipcRenderer.invoke("quillmark:read-file", path),
   writeFile: (path, data) => ipcRenderer.invoke("quillmark:write-file", path, data),
+  /** Downloads a web address in the app itself (no CORS); resolves with { ok, data, url, disposition } or { ok: false, status | reason }. */
+  downloadUrl: (address) => ipcRenderer.invoke("quillmark:download", address),
   /** Where a dropped file lives on disk, so Save can write back to it. */
   pathForFile: (file) => {
     try {

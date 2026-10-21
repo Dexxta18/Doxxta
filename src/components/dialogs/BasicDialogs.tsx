@@ -5,8 +5,10 @@ import { Button } from "../ui/Button";
 import { Field, TextInput } from "../ui/Fields";
 import type { DialogProps } from "./DialogHost";
 import { shortcutList } from "../../core/shortcuts";
-import { shortcutLabel } from "../../lib/util";
-import { getDoc, toast, withBusy } from "../../state/store";
+import { errorMessage, shortcutLabel } from "../../lib/util";
+import { downloadPdf } from "../../lib/download";
+import { desktop } from "../../lib/desktop";
+import { getDoc, toast } from "../../state/store";
 import { getViewer } from "../../state/runtime";
 import { openBytes } from "../../core/document";
 import { Logo } from "../shell/TopBar";
@@ -111,22 +113,20 @@ export function ConfirmDialog({ props, close }: DialogProps<{ title: string; mes
 export function OpenUrlDialog({ close }: DialogProps) {
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  // Download first, so a problem shows here and the address can be corrected.
   const go = async () => {
-    let u: URL;
+    if (downloading || !url.trim()) return;
+    setDownloading(true);
+    setError(null);
     try {
-      u = new URL(url.trim());
-    } catch {
-      setError("Enter a full URL, e.g. https://example.com/file.pdf");
-      return;
+      const file = await downloadPdf(url);
+      close();
+      await openBytes(file.bytes, file.name);
+    } catch (e) {
+      setError(errorMessage(e));
+      setDownloading(false);
     }
-    close();
-    await withBusy("Downloading…", async () => {
-      const res = await fetch(u.href);
-      if (!res.ok) throw new Error(`Download failed (${res.status} ${res.statusText})`);
-      const bytes = new Uint8Array(await res.arrayBuffer());
-      const name = decodeURIComponent(u.pathname.split("/").pop() || "document.pdf");
-      await openBytes(bytes, /\.pdf$/i.test(name) ? name : `${name}.pdf`, { transient: false });
-    }).catch(() => {});
   };
   return (
     <Dialog
@@ -137,8 +137,8 @@ export function OpenUrlDialog({ close }: DialogProps) {
       footer={
         <>
           <Button onClick={close}>Cancel</Button>
-          <Button variant="primary" onClick={go} disabled={!url.trim()}>
-            Open
+          <Button variant="primary" onClick={go} disabled={!url.trim()} loading={downloading}>
+            {downloading ? "Downloading…" : "Open"}
           </Button>
         </>
       }
@@ -149,7 +149,11 @@ export function OpenUrlDialog({ close }: DialogProps) {
           go();
         }}
       >
-        <Field label="PDF address" error={error} hint="The server must allow cross-origin downloads (CORS).">
+        <Field
+          label="PDF address"
+          error={error}
+          hint={desktop ? undefined : "Some websites don't let other sites download their files. If so, download the PDF in your browser and open it here."}
+        >
           <TextInput autoFocus placeholder="https://…/document.pdf" value={url} onChange={(e) => (setUrl(e.target.value), setError(null))} />
         </Field>
       </form>
@@ -231,11 +235,11 @@ export function AboutDialog({ close }: DialogProps) {
         <Logo />
         <div className="col" style={{ gap: 2 }}>
           <strong>Quillmark</strong>
-          <span className="muted">Version 0.1.0</span>
+          <span className="muted">Version {__APP_VERSION__}</span>
         </div>
       </div>
       <p className="muted" style={{ margin: 0 }}>
-        A full-featured PDF reader and editor that runs entirely in your browser. Documents are processed locally and never uploaded.
+        A full-featured PDF reader and editor that runs entirely {desktop ? "on your computer" : "in your browser"}. Documents are processed locally and never uploaded.
       </p>
       <div className="callout">
         <ExternalLink size={15} />

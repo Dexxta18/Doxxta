@@ -7,8 +7,9 @@ import { join } from "node:path";
 import { createServer } from "vite";
 import { FIXTURES, ROOT, dropFile, launchBrowser, openApp, recorder, shot } from "./harness.mjs";
 import { ensureFixtures } from "./fixtures.mjs";
+import { startFileServer } from "./server.mjs";
 
-const ALL = ["organize", "forms", "editing", "signing", "security", "redaction"];
+const ALL = ["organize", "forms", "editing", "signing", "security", "redaction", "openurl"];
 const picked = process.argv.slice(2);
 const unknown = picked.filter((s) => !ALL.includes(s));
 if (unknown.length) {
@@ -23,6 +24,7 @@ await ensureFixtures(browser);
 const server = await createServer({ root: ROOT, logLevel: "error", server: { host: "127.0.0.1", port: 5199 } });
 await server.listen();
 const url = server.resolvedUrls.local[0];
+const fileServer = await startFileServer();
 
 const results = [];
 for (const name of suites) {
@@ -42,6 +44,7 @@ for (const name of suites) {
 }
 await browser.close();
 await server.close();
+await fileServer.close();
 
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length} passed, ${failed.length} failed`);
@@ -53,6 +56,8 @@ function suiteContext(page, check, suite) {
   return {
     page,
     check,
+    /** Address of the local test website (see server.mjs). */
+    files: fileServer.url,
     st: (fn, arg) => page.evaluate(fn, arg),
     shot: (name) => shot(page, `${suite}-${name}`),
     idle: () => page.waitForFunction(() => !window.__quillmark.useApp.getState().busy, null, { timeout: 60000 }),
@@ -97,6 +102,7 @@ async function readPdfInPage({ bytes, password }) {
     const p = await pdf.getPage(i);
     const content = await p.getTextContent();
     out.text.push(content.items.map((it) => (it.str ?? "") + (it.hasEOL ? "\n" : "")).join("").replace(/[ \t]+/g, " "));
+    out.sizes = [...(out.sizes ?? []), [Math.round(p.view[2] - p.view[0]), Math.round(p.view[3] - p.view[1])]];
     const annots = await p.getAnnotations();
     out.annots.push(annots.map((a) => a.subtype));
     for (const a of annots) if (a.contentsObj?.str) out.notes.push(a.contentsObj.str);

@@ -1,4 +1,4 @@
-import { PDFArray, PDFDict, PDFDocument, PDFName, PDFNumber, degrees, loadPdfLib, type PDFPage } from "../lib/pdflib";
+import { PDFArray, PDFDict, PDFDocument, PDFName, PDFNumber, PDFPage, degrees, loadPdfLib, setPageOrder } from "../lib/pdflib";
 import { applyDocumentChange, openGenerated } from "../core/document";
 import { getDoc, openDialog, toast, withBusy } from "../state/store";
 import type { Annotation } from "../annotations/types";
@@ -31,8 +31,8 @@ export async function deletePages(docId: string, indices: number[]) {
   }
   await applyDocumentChange(docId, indices.length > 1 ? `Delete ${indices.length} pages` : "Delete page", async ({ bytes, pageIds }) => {
     const doc = await loadPdfLib(bytes);
-    for (const i of sortDesc(indices)) doc.removePage(i);
     const gone = new Set(indices);
+    setPageOrder(doc, doc.getPages().filter((_, i) => !gone.has(i)));
     return { bytes: await doc.save(), pageIds: pageIds.filter((_, i) => !gone.has(i)) };
   });
 }
@@ -40,8 +40,7 @@ export async function deletePages(docId: string, indices: number[]) {
 /** Rebuilds the page order. `order[k]` is the old index of the page that ends up at position k. */
 function applyOrder(doc: PDFDocument, order: number[]) {
   const pages = doc.getPages();
-  for (let i = pages.length - 1; i >= 0; i--) doc.removePage(i);
-  for (const i of order) doc.addPage(pages[i]);
+  setPageOrder(doc, order.map((i) => pages[i]));
 }
 
 /** Moves the given pages so they start at `target` (an index in the current order). */
@@ -83,11 +82,15 @@ export async function insertBlankPages(docId: string, at: number, count = 1, siz
   await applyDocumentChange(docId, count > 1 ? `Insert ${count} blank pages` : "Insert blank page", async ({ bytes, pageIds }) => {
     const doc = await loadPdfLib(bytes);
     const sz = size ?? pageSizeOf(doc, at > 0 ? at - 1 : 0);
+    const pages = doc.getPages();
     const ids = [...pageIds];
     for (let k = 0; k < count; k++) {
-      doc.insertPage(at + k, sz);
+      const blank = PDFPage.create(doc);
+      blank.setSize(sz[0], sz[1]);
+      pages.splice(at + k, 0, blank);
       ids.splice(at + k, 0, uid("p"));
     }
+    setPageOrder(doc, pages);
     return { bytes: await doc.save(), pageIds: ids };
   });
 }
@@ -103,15 +106,17 @@ export async function duplicatePages(docId: string, indices: number[]) {
   if (!indices.length) return;
   await applyDocumentChange(docId, indices.length > 1 ? `Duplicate ${indices.length} pages` : "Duplicate page", async ({ bytes, pageIds, annotations }) => {
     const doc = await loadPdfLib(bytes);
+    const pages = doc.getPages();
     const ids = [...pageIds];
     const extra: Annotation[] = [];
     for (const i of sortDesc(indices)) {
       const [copy] = await doc.copyPages(doc, [i]);
-      doc.insertPage(i + 1, copy);
+      pages.splice(i + 1, 0, copy);
       const newId = uid("p");
       ids.splice(i + 1, 0, newId);
       extra.push(...cloneAnnotsForPage(annotations, pageIds[i], newId));
     }
+    setPageOrder(doc, pages);
     return { bytes: await doc.save(), pageIds: ids, annotations: [...annotations, ...extra] };
   });
 }
@@ -167,6 +172,7 @@ export async function insertFromFiles(docId: string, at: number, sources: { name
   if (!loaded.length) return;
   await applyDocumentChange(docId, "Insert pages", async ({ bytes, pageIds, annotations }) => {
     const doc = await loadPdfLib(bytes);
+    const pages = doc.getPages();
     const ids = [...pageIds];
     const extra: Annotation[] = [];
     let pos = at;
@@ -175,13 +181,14 @@ export async function insertFromFiles(docId: string, at: number, sources: { name
       const indices = src.pages ?? srcDoc.getPageIndices();
       const copies = await doc.copyPages(srcDoc, indices);
       copies.forEach((p: PDFPage, k: number) => {
-        doc.insertPage(pos, p);
+        pages.splice(pos, 0, p);
         const newId = uid("p");
         ids.splice(pos, 0, newId);
         pos++;
         for (const a of src.annotations.filter((x) => x.pageIndex === indices[k])) extra.push({ ...a.annot, id: uid("a"), pageId: newId });
       });
     }
+    setPageOrder(doc, pages);
     return { bytes: await doc.save(), pageIds: ids, annotations: [...annotations, ...extra] };
   });
 }
@@ -195,16 +202,17 @@ export async function replacePages(docId: string, targets: number[], source: { n
     const doc = await loadPdfLib(bytes);
     const srcDoc = await loadPdfLib(src.bytes);
     const copies = await doc.copyPages(srcDoc, source.pages.slice(0, n));
+    const pages = doc.getPages();
     const ids = [...pageIds];
     const extra: Annotation[] = [];
     for (let k = 0; k < n; k++) {
       const i = targets[k];
-      doc.removePage(i);
-      doc.insertPage(i, copies[k]);
+      pages[i] = copies[k];
       const newId = uid("p");
       ids[i] = newId;
       for (const a of src.annotations.filter((x) => x.pageIndex === source.pages[k])) extra.push({ ...a.annot, id: uid("a"), pageId: newId });
     }
+    setPageOrder(doc, pages);
     return { bytes: await doc.save(), pageIds: ids, annotations: [...annotations, ...extra] };
   });
 }

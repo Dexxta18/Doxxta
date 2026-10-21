@@ -10,6 +10,7 @@ import { _electron as electron } from "playwright";
 import { PDFArray, PDFDict, PDFDocument, PDFName } from "@cantoo/pdf-lib";
 import { FIXTURES, ROOT, launchBrowser, recorder } from "../e2e/harness.mjs";
 import { ensureFixtures } from "../e2e/fixtures.mjs";
+import { startFileServer } from "../e2e/server.mjs";
 
 const require = createRequire(import.meta.url);
 const stage = join(ROOT, ".desktop-app");
@@ -116,6 +117,21 @@ try {
   check(await win.waitForFunction(() => /Exported|Downloaded|Saved/i.test(document.querySelector(".toasts")?.textContent ?? ""), null, { timeout: 60000 }).then(() => true, () => false), "Export finishes");
   await win.waitForTimeout(1000);
   check(existsSync(file("scanned.docx")) && readFileSync(file("scanned.docx")).subarray(0, 2).toString() === "PK", "Export to Word saves a .docx file");
+
+  // Open from URL: the app downloads the PDF itself, so sites that don't allow downloads by other sites (CORS) work too.
+  const site = await startFileServer();
+  await win.click(".menubar-item:has-text('File')");
+  await win.click(".menu-item:has-text('Open from URL')");
+  await win.waitForSelector(".dialog-title:has-text('Open from URL')");
+  await win.fill(".dialog input", `${site.url}/nocors/missing.pdf`);
+  await win.click(".dialog-footer .btn-primary");
+  await win.waitForSelector(".dialog .field-error", { timeout: 20000 });
+  check(/no file at that address/.test(await win.locator(".dialog .field-error").textContent()), "a wrong web address says there's no file there");
+  await win.fill(".dialog input", `${site.url}/nocors/download`);
+  await win.click(".dialog-footer .btn-primary");
+  check(await waitTitle(/^Quarterly report\.pdf — Quillmark$/), "Open from URL works even when the site doesn't allow downloads by other sites");
+  await loaded();
+  await site.close();
 
   // Links open in the default browser, never inside the app.
   await main(({ shell }) => {

@@ -6,6 +6,8 @@ import {
   PDFName,
   PDFNumber,
   PDFObject,
+  PDFPageLeaf,
+  PDFPageTree,
   PDFRef,
   PDFStream,
   PDFString,
@@ -42,8 +44,114 @@ export async function loadPdfLib(bytes: Uint8Array, password?: string): Promise<
     updateMetadata: false,
     throwOnInvalidObject: false,
   } as never);
+  // pdf-lib inserts and removes pages by following the page tree's /Count and /Parent entries,
+  // which some PDFs get wrong; it also overlooks pages without /Type.
+  if (!pageTreeIsSound(doc)) repairPageTree(doc);
   collectGarbage(doc);
   return doc;
+}
+
+const KIDS = PDFName.of("Kids");
+const COUNT = PDFName.of("Count");
+const PARENT = PDFName.of("Parent");
+const TYPE = PDFName.of("Type");
+const PAGE = PDFName.of("Page");
+
+/** Page attributes a page can inherit from the page tree above it. */
+const INHERITED = ["Resources", "MediaBox", "CropBox", "Rotate"].map((k) => PDFName.of(k));
+
+const copyValue = (doc: PDFDocument, v: PDFObject) => (v instanceof PDFDict || v instanceof PDFArray ? v.clone(doc.context) : v);
+
+/**
+ * Makes `pages` the document's pages, in this order, under one new page tree node. Use it
+ * instead of pdf-lib's insertPage/removePage, which rely on the tree's /Count entries. Pages
+ * missing from the list are removed.
+ */
+export function setPageOrder(doc: PDFDocument, pages: PDFPage[]) {
+  // The old tree goes away, so each page keeps its own copy of what it inherited from it.
+  for (const page of pages) {
+    for (const name of INHERITED) {
+      if (page.node.get(name) !== undefined) continue;
+      const value = page.node.getInheritableAttribute(name);
+      if (value !== undefined) page.node.set(name, copyValue(doc, value));
+    }
+  }
+  rebuildPageTree(doc, pages.map((p) => p.ref));
+}
+
+function rebuildPageTree(doc: PDFDocument, refs: PDFRef[]) {
+  const ctx = doc.context;
+  const tree = PDFPageTree.withContext(ctx);
+  const treeRef = ctx.register(tree);
+  tree.set(KIDS, ctx.obj(refs));
+  tree.set(COUNT, PDFNumber.of(refs.length));
+  for (const ref of refs) ctx.lookup(ref, PDFDict).set(PARENT, treeRef);
+  doc.catalog.set(PDFName.of("Pages"), treeRef);
+  // pdf-lib caches the page list and count.
+  const cache = doc as unknown as { pageCache: { invalidate(): void }; pageCount: number | undefined };
+  cache.pageCache.invalidate();
+  cache.pageCount = undefined;
+}
+
+/** True when every node of the page tree has a correct /Count and /Parent, every page has /Type, and there are no loops. */
+function pageTreeIsSound(doc: PDFDocument): boolean {
+  const ctx = doc.context;
+  const seen = new Set<PDFDict>();
+  const visit = (node: PDFDict): number | null => {
+    if (seen.has(node)) return null;
+    seen.add(node);
+    if (node.get(TYPE) === PAGE) return node instanceof PDFPageLeaf ? 1 : null;
+    const kids = node.lookupMaybe(KIDS, PDFArray);
+    if (!kids) return null;
+    let total = 0;
+    for (let i = 0; i < kids.size(); i++) {
+      const kid = kids.lookupMaybe(i, PDFDict);
+      if (!kid || ctx.lookup(kid.get(PARENT)) !== node) return null;
+      const n = visit(kid);
+      if (n === null) return null;
+      total += n;
+    }
+    return node.lookupMaybe(COUNT, PDFNumber)?.asNumber() === total ? total : null;
+  };
+  const root = doc.catalog.lookupMaybe(PDFName.of("Pages"), PDFDict);
+  return !!root && visit(root) !== null;
+}
+
+/**
+ * Rebuilds a damaged page tree as one flat list of the pages actually found in it, in
+ * document order. Inherited attributes are copied down along the real ancestry, and pages
+ * missing /Type become proper pages again.
+ */
+function repairPageTree(doc: PDFDocument) {
+  const ctx = doc.context;
+  const refs: PDFRef[] = [];
+  const seen = new Set<string>();
+  const walk = (ref: PDFObject | undefined, inherited: Map<PDFName, PDFObject>) => {
+    if (!(ref instanceof PDFRef) || seen.has(ref.tag)) return;
+    seen.add(ref.tag);
+    const node = ctx.lookup(ref);
+    if (!(node instanceof PDFDict)) return;
+    const kids = node.get(TYPE) === PAGE ? undefined : node.lookupMaybe(KIDS, PDFArray);
+    if (kids) {
+      const next = new Map(inherited);
+      for (const name of INHERITED) {
+        const v = node.get(name);
+        if (v !== undefined) next.set(name, v);
+      }
+      for (let i = 0; i < kids.size(); i++) walk(kids.get(i), next);
+      return;
+    }
+    let leaf = node;
+    if (!(leaf instanceof PDFPageLeaf)) {
+      leaf = PDFPageLeaf.fromMapWithContext(new Map(node.entries()), ctx);
+      ctx.assign(ref, leaf);
+    }
+    leaf.set(TYPE, PAGE);
+    for (const [name, v] of inherited) if (leaf.get(name) === undefined) leaf.set(name, copyValue(doc, v));
+    refs.push(ref);
+  };
+  walk(doc.catalog.get(PDFName.of("Pages")), new Map());
+  if (refs.length) rebuildPageTree(doc, refs);
 }
 
 /** Deletes every indirect object that can't be reached from the trailer. */

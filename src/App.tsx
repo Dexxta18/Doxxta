@@ -9,7 +9,8 @@ import { DialogHost } from "./components/dialogs/DialogHost";
 import { BusyOverlay, ContextMenuHost, Toasts, TooltipHost } from "./components/ui/Overlays";
 import { useGlobalShortcuts } from "./core/shortcuts";
 import { openBytes, openFile } from "./core/document";
-import { isImageFile, isPdfFile } from "./lib/util";
+import { errorMessage, isImageFile, isPdfFile } from "./lib/util";
+import { downloadPdf } from "./lib/download";
 import { loadRecent } from "./lib/recent";
 
 const CompareView = lazy(() => import("./components/modes/CompareView"));
@@ -87,10 +88,9 @@ function useLaunchFiles() {
     // ?url=https://… opens a remote PDF.
     const url = new URLSearchParams(location.search).get("url");
     if (url) {
-      fetch(url)
-        .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`HTTP ${r.status}`))))
-        .then((buf) => openBytes(new Uint8Array(buf), decodeURIComponent(new URL(url, location.href).pathname.split("/").pop() || "document.pdf")))
-        .catch((e) => toast(`Could not open ${url}: ${e.message}`, "error"));
+      downloadPdf(url)
+        .then((file) => openBytes(file.bytes, file.name))
+        .catch((e) => toast(errorMessage(e), "error"));
     }
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       if (Object.values(useApp.getState().docs).some((d) => d.dirty)) {

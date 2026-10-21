@@ -101,7 +101,7 @@ export default function PrintDialog({ props, close }: DialogProps<{ docId?: stri
       </div>
       <Checkbox checked={grayscale} onChange={setGrayscale} label="Print in grayscale" />
       <p className="faint" style={{ margin: 0, fontSize: 12 }}>
-        Printer, copies and duplex are chosen in your browser’s print dialog.
+        Printer, copies and two-sided printing are chosen in the print window that opens next.
       </p>
     </Dialog>
   );

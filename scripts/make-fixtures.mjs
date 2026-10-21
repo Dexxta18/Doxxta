@@ -244,7 +244,49 @@ async function simple() {
   writeFileSync(join(out, "simple.pdf"), await doc.save());
 }
 
+/**
+ * Four pages ("Page 1"…"Page 4") in a damaged page tree, the kind some PDF tools write: wrong
+ * /Count entries, a page whose /Parent points to the wrong node, a page without /Type, and
+ * pages 3–4 inheriting their size and fonts from their parent node. pdf-lib's own page
+ * insertion fails on it ("corrupt page tree").
+ */
+async function brokenTree() {
+  const doc = await PDFDocument.create();
+  const helv = await doc.embedFont(StandardFonts.HelveticaBold);
+  for (let i = 1; i <= 4; i++) {
+    const page = doc.addPage(i <= 2 ? [612, 792] : [400, 400]);
+    page.drawText(`Page ${i}`, { x: 60, y: page.getHeight() - 100, size: 40, font: helv });
+  }
+  const ctx = doc.context;
+  const root = doc.catalog.Pages();
+  const rootRef = doc.catalog.get(PDFName.of("Pages"));
+  const leaves = doc.getPages();
+  const node = (kids, count, extra = {}) => {
+    const ref = ctx.register(ctx.obj({ Type: "Pages", Parent: rootRef, Kids: kids.map((p) => p.ref), Count: count, ...extra }));
+    for (const p of kids) p.node.set(PDFName.of("Parent"), ref);
+    return ref;
+  };
+  // Fonts of pages 3 and 4 in one resource dictionary that both inherit.
+  const fonts = ctx.obj({});
+  for (const p of leaves.slice(2)) {
+    const own = p.node.Resources().lookup(PDFName.of("Font"));
+    for (const [k, v] of own.entries()) fonts.set(k, v);
+  }
+  const a = node(leaves.slice(0, 2), 2);
+  const b = node(leaves.slice(2), 5, { MediaBox: [0, 0, 400, 400], Resources: ctx.obj({ Font: fonts }) });
+  for (const p of leaves.slice(2)) {
+    p.node.delete(PDFName.of("MediaBox"));
+    p.node.delete(PDFName.of("Resources"));
+  }
+  leaves[1].node.set(PDFName.of("Parent"), rootRef);
+  leaves[3].node.delete(PDFName.of("Type"));
+  root.set(PDFName.of("Kids"), ctx.obj([a, b]));
+  root.set(PDFName.of("Count"), PDFNumber.of(7));
+  writeFileSync(join(out, "broken-tree.pdf"), await doc.save({ useObjectStreams: false }));
+}
+
 await sample();
+await brokenTree();
 await form();
 await annotated();
 await encrypted();

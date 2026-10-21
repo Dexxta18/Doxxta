@@ -177,6 +177,28 @@ handle("quillmark:write-file", async (file, data) => {
   await writeFileSafely(path.resolve(file), data);
 });
 
+// "Open from URL": the PDF is downloaded here, where websites' cross-origin (CORS) rules don't apply.
+const MAX_DOWNLOAD = 1024 * 1024 * 1024;
+
+handle("quillmark:download", async (address) => {
+  let url;
+  try {
+    url = new URL(String(address));
+  } catch {
+    return { ok: false, reason: "invalid" };
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") return { ok: false, reason: "invalid" };
+  try {
+    const res = await net.fetch(url.href, { signal: AbortSignal.timeout(10 * 60_000) });
+    if (!res.ok) return { ok: false, status: res.status };
+    if (Number(res.headers.get("content-length")) > MAX_DOWNLOAD) return { ok: false, reason: "too-large" };
+    const data = new Uint8Array(await res.arrayBuffer());
+    return { ok: true, data, url: res.url || url.href, disposition: res.headers.get("content-disposition") };
+  } catch {
+    return { ok: false, reason: "network" };
+  }
+});
+
 ipcMain.on("quillmark:grant", (event, file) => {
   if (fromApp(event) && typeof file === "string" && fs.existsSync(file)) grant(file);
 });

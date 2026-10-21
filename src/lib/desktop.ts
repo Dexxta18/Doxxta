@@ -11,12 +11,17 @@ interface DesktopFile {
   data: Uint8Array;
 }
 
+export type DesktopDownload =
+  | { ok: true; data: Uint8Array; url: string; disposition: string | null }
+  | { ok: false; status?: number; reason?: "invalid" | "too-large" | "network" };
+
 interface DesktopBridge {
   platform: string;
   openFiles(): Promise<DesktopFile[]>;
   saveDialog(suggestedName: string): Promise<string | null>;
   readFile(path: string): Promise<DesktopFile | null>;
   writeFile(path: string, data: Uint8Array): Promise<void>;
+  downloadUrl(address: string): Promise<DesktopDownload>;
   pathForFile(file: File): string | null;
   onOpenFiles(callback: (files: DesktopFile[]) => void): void;
 }

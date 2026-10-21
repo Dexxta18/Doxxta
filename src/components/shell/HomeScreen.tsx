@@ -28,6 +28,7 @@ import { formatBytes, formatRelative } from "../../lib/util";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/Fields";
 import { Logo } from "./TopBar";
+import { desktop } from "../../lib/desktop";
 
 const QUICK_TOOLS: { label: string; desc: string; icon: React.ReactNode; command: string; color: string }[] = [
   { label: "Edit PDF", desc: "Change text, add images and links", icon: <FilePen size={20} />, command: "mode.edit", color: "#e5484d" },
@@ -92,7 +93,9 @@ export function HomeScreen() {
               <span>Quillmark</span>
             </div>
             <h1>Everything you need to work with PDFs.</h1>
-            <p className="muted">Read, comment, sign, edit, organize, convert and protect — privately, right in your browser. Your files never leave this device.</p>
+            <p className="muted">
+              Read, comment, sign, edit, organize, convert and protect — privately, {desktop ? "on your computer" : "right in your browser"}. Your files never leave this device.
+            </p>
           </div>
           <div
             className="dropzone"
@@ -159,7 +162,7 @@ export function HomeScreen() {
           </div>
           {shown.length === 0 ? (
             <EmptyState icon={<Clock size={22} />} title={filter === "starred" ? "No starred files" : "No recent files yet"}>
-              Files you open appear here so you can get back to them quickly. They're stored only in this browser.
+              Files you open appear here so you can get back to them quickly. They're stored only {desktop ? "on this computer" : "in this browser"}.
             </EmptyState>
           ) : (
             <div className="recent-grid">

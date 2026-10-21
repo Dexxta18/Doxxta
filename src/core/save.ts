@@ -1,7 +1,7 @@
 import { getRuntime } from "../state/runtime";
 import { getDoc, toast, updateDoc, withBusy } from "../state/store";
 import type { OutlineNode, SecurityInfo } from "../state/types";
-import { FontCache, PDFName, PDFRef, loadPdfLib, pdfText, type PDFDocument } from "../lib/pdflib";
+import { FontCache, PDFName, PDFRef, loadPdfLib, pdfText, setPageOrder, type PDFDocument } from "../lib/pdflib";
 import { writeAnnotations } from "../annotations/writer";
 import { hexToPdf } from "../lib/colors";
 import { downloadBytes, errorMessage, withExt } from "../lib/util";
@@ -85,9 +85,8 @@ export async function buildPdf(docId: string, opts: BuildOptions = {}): Promise<
     }
   }
   if (opts.pageIndices) {
-    const keep = new Set(opts.pageIndices);
-    for (let i = pdfDoc.getPageCount() - 1; i >= 0; i--) if (!keep.has(i)) pdfDoc.removePage(i);
-    reorderPages(pdfDoc, opts.pageIndices.filter((i, n, arr) => arr.indexOf(i) === n));
+    const pages = pdfDoc.getPages();
+    setPageOrder(pdfDoc, opts.pageIndices.filter((i, n, arr) => arr.indexOf(i) === n && pages[i]).map((i) => pages[i]));
   }
   pdfDoc.setModificationDate(new Date());
   if (!pdfDoc.getProducer()) pdfDoc.setProducer("Quillmark");
@@ -97,18 +96,6 @@ export async function buildPdf(docId: string, opts: BuildOptions = {}): Promise<
 }
 
 /** After removing pages, put the remaining ones in the requested order. */
-function reorderPages(pdfDoc: PDFDocument, order: number[]) {
-  const sorted = [...order].sort((a, b) => a - b);
-  if (sorted.every((v, i) => v === order[i])) return;
-  const pages = pdfDoc.getPages();
-  const byOriginal = new Map(sorted.map((orig, i) => [orig, pages[i]]));
-  for (let i = pages.length - 1; i >= 0; i--) pdfDoc.removePage(i);
-  for (const orig of order) {
-    const p = byOriginal.get(orig);
-    if (p) pdfDoc.addPage(p);
-  }
-}
-
 const PERM = (pdfjs as unknown as { PermissionFlag: Record<string, number> }).PermissionFlag;
 
 async function applySecurity(pdfDoc: PDFDocument, docId: string, sec: SecurityInfo, mode: BuildOptions["security"]) {

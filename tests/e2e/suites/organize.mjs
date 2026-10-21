@@ -1,7 +1,7 @@
 // Organize pages, insert, combine, split, crop, undo/redo.
 export const title = "Organize, combine, split, crop";
 
-export default async function run({ page, check, st, open, idle, shot }) {
+export default async function run({ page, check, st, open, idle, shot, build, readPdf }) {
   const doc = () =>
     st(() => {
       const s = window.__quillmark.useApp.getState();
@@ -65,4 +65,26 @@ export default async function run({ page, check, st, open, idle, shot }) {
   await idle();
   const view = await st(() => { const s = window.__quillmark.useApp.getState(); return s.docs[s.activeId].pages[0].view; });
   check(view && view[0] >= 49, "crop changes the visible page area");
+
+  // A PDF with a damaged page tree (wrong counts and parents, a page without /Type).
+  await open("broken-tree.pdf");
+  const labels = async () => (await readPdf(await build())).text.map((t) => t.trim());
+  check((await doc()).pages === 4, "all 4 pages of a PDF with a damaged page tree are shown");
+  await st(async () => {
+    const { movePages } = await import("/src/ops/organize.ts");
+    await movePages(window.__quillmark.useApp.getState().activeId, [1], 0);
+  });
+  await idle();
+  check((await labels()).join() === "Page 2,Page 1,Page 3,Page 4", "moving a page works on it");
+  await st(async () => {
+    const id = window.__quillmark.useApp.getState().activeId;
+    const { insertBlankPages, duplicatePages, deletePages } = await import("/src/ops/organize.ts");
+    await insertBlankPages(id, 1, 1);
+    await duplicatePages(id, [4]);
+    await deletePages(id, [0]);
+  });
+  await idle();
+  const saved = await readPdf(await build());
+  check(saved.text.map((t) => t.trim()).join() === ",Page 1,Page 3,Page 4,Page 4", `inserting, duplicating and deleting pages work on it (${saved.text.map((t) => t.trim() || "blank").join(", ")})`);
+  check(saved.sizes.slice(2).every(([w, h]) => w === 400 && h === 400), "pages keep the size they inherited from the damaged tree");
 }

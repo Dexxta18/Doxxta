@@ -273,12 +273,13 @@ export async function decodeImage(doc: PDFDocument, stream: PDFRawStream): Promi
   const alphaSource = smask instanceof PDFRawStream ? decodeGray(doc, smask, false) : mask instanceof PDFRawStream ? decodeGray(doc, mask, true) : null;
   if ((smask instanceof PDFRawStream || mask instanceof PDFRawStream) && !alphaSource) return null;
   if (alphaSource) {
-    opaque = false;
     for (let y = 0; y < height; y++)
       for (let x = 0; x < width; x++) {
         const sx = Math.min(alphaSource.width - 1, Math.floor((x * alphaSource.width) / width));
         const sy = Math.min(alphaSource.height - 1, Math.floor((y * alphaSource.height) / height));
-        rgba[(y * width + x) * 4 + 3] = alphaSource.values[sy * alphaSource.width + sx];
+        const a = alphaSource.values[sy * alphaSource.width + sx];
+        rgba[(y * width + x) * 4 + 3] = a;
+        if (a !== 255) opaque = false;
       }
   }
   return { width, height, rgba, jpeg, opaque };
@@ -309,16 +310,41 @@ export function encodeStencil(doc: PDFDocument, original: PDFRawStream, width: n
   return doc.context.register(doc.context.flateStream(bits, dict as never));
 }
 
-/** Encodes RGBA pixels into a new image XObject (JPEG when opaque and photographic, PNG otherwise). */
+/** Encodes RGBA pixels into a new image XObject: JPEG when asked and opaque, otherwise lossless Flate (gray or RGB, with a soft mask only if needed). */
 export async function encodeImage(doc: PDFDocument, img: { width: number; height: number; rgba: Uint8ClampedArray }, opts: { jpeg: boolean; quality?: number }): Promise<PDFRef> {
-  const canvas = document.createElement("canvas");
-  canvas.width = img.width;
-  canvas.height = img.height;
-  canvas.getContext("2d")!.putImageData(new ImageData(img.rgba as unknown as Uint8ClampedArray<ArrayBuffer>, img.width, img.height), 0, 0);
-  if (opts.jpeg) {
-    const blob = await canvasToBlob(canvas, "image/jpeg", opts.quality ?? 0.9);
-    return (await doc.embedJpg(new Uint8Array(await blob.arrayBuffer()))).ref;
+  const { width: w, height: h, rgba } = img;
+  let alpha = false,
+    gray = true;
+  for (let i = 0; i < rgba.length; i += 4) {
+    if (rgba[i + 3] !== 255) alpha = true;
+    if (rgba[i] !== rgba[i + 1] || rgba[i] !== rgba[i + 2]) gray = false;
+    if (alpha && !gray) break;
   }
-  const blob = await canvasToBlob(canvas, "image/png");
-  return (await doc.embedPng(new Uint8Array(await blob.arrayBuffer()))).ref;
+  if (opts.jpeg && !alpha) {
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext("2d")!.putImageData(new ImageData(rgba as unknown as Uint8ClampedArray<ArrayBuffer>, w, h), 0, 0);
+    const blob = await canvasToBlob(canvas, "image/jpeg", opts.quality ?? 0.9);
+    const image = await doc.embedJpg(new Uint8Array(await blob.arrayBuffer()));
+    // Write the XObject now (pdf-lib would otherwise wait until save) so callers can inspect it.
+    await image.embed();
+    return image.ref;
+  }
+  const ctx = doc.context;
+  const comps = gray ? 1 : 3;
+  const data = new Uint8Array(w * h * comps);
+  const a = alpha ? new Uint8Array(w * h) : null;
+  for (let i = 0, p = 0; i < w * h; i++) {
+    if (gray) data[p++] = rgba[i * 4];
+    else {
+      data[p++] = rgba[i * 4];
+      data[p++] = rgba[i * 4 + 1];
+      data[p++] = rgba[i * 4 + 2];
+    }
+    if (a) a[i] = rgba[i * 4 + 3];
+  }
+  const dict: Record<string, unknown> = { Type: "XObject", Subtype: "Image", Width: w, Height: h, ColorSpace: gray ? "DeviceGray" : "DeviceRGB", BitsPerComponent: 8 };
+  if (a) dict.SMask = ctx.register(ctx.flateStream(a, { Type: "XObject", Subtype: "Image", Width: w, Height: h, ColorSpace: "DeviceGray", BitsPerComponent: 8 } as never));
+  return ctx.register(ctx.flateStream(data, dict as never));
 }

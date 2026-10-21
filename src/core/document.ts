@@ -6,6 +6,7 @@ import { errorMessage, isPdfBytes, readFileBytes, uid } from "../lib/util";
 import { useSettings } from "../state/settings";
 import { pushHistory, syncHistoryFlags } from "../state/annotActions";
 import { addRecentFile } from "../lib/recent";
+import { desktopHandleFor } from "../lib/desktop";
 import type { Annotation } from "../annotations/types";
 
 /** Annotation subtypes that are lifted out of the file into the editable model. */
@@ -125,7 +126,8 @@ export interface OpenOptions {
 
 export async function openFile(file: File, opts: OpenOptions = {}): Promise<string | null> {
   const bytes = await readFileBytes(file);
-  return openBytes(bytes, file.name, opts);
+  // In the desktop app a dropped file is saved back to where it came from.
+  return openBytes(bytes, file.name, { ...opts, fileHandle: opts.fileHandle ?? desktopHandleFor(file) });
 }
 
 /**

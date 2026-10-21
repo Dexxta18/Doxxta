@@ -2,6 +2,7 @@ import { createStore, del, get, set } from "idb-keyval";
 import { create } from "zustand";
 import type { PDFDocumentProxy } from "./pdfjs";
 import { renderPageToCanvas } from "./pdfjs";
+import { reviveFileHandle } from "./desktop";
 
 /**
  * Recent files, stored in IndexedDB so they can be reopened without the
@@ -95,7 +96,7 @@ async function forget(id: string) {
 
 export async function getRecentFile(id: string): Promise<{ bytes: Uint8Array; handle: FileSystemFileHandle | null } | null> {
   if (!store) return null;
-  const handle = ((await get(`handle:${id}`, store).catch(() => null)) as FileSystemFileHandle | null) ?? null;
+  const handle = reviveFileHandle(await get(`handle:${id}`, store).catch(() => null));
   if (handle && "queryPermission" in handle) {
     try {
       const h = handle as FileSystemFileHandle & {

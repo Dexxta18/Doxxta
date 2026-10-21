@@ -103,6 +103,17 @@ function useLaunchFiles() {
   }, []);
 }
 
+/** The window or tab title names the open document, like other editors. */
+function useDocumentTitle() {
+  const title = useApp((s) => {
+    const d = s.activeId ? s.docs[s.activeId] : undefined;
+    return d ? `${d.dirty ? "• " : ""}${d.name} — Quillmark` : "Quillmark";
+  });
+  useEffect(() => {
+    document.title = title;
+  }, [title]);
+}
+
 export default function App() {
   const activeId = useApp((s) => s.activeId);
   const presentation = useApp((s) => s.presentation);
@@ -111,6 +122,7 @@ export default function App() {
   useTheme();
   useGlobalShortcuts();
   useLaunchFiles();
+  useDocumentTitle();
   const dragging = useFileDrop();
 
   return (

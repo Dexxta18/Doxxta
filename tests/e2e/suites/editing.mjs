@@ -4,6 +4,16 @@ export const title = "Edit text, bookmarks, properties, search, comments";
 export default async function run({ page, check, st, open, shot, build, readPdf }) {
   await open("sample.pdf");
 
+  // Ctrl+C on selected page text is left to the browser's copy (not swallowed by shortcuts).
+  const span = await page.locator('.pdfViewer .page[data-page-number="1"] .textLayer span').nth(1).boundingBox();
+  await page.mouse.move(span.x + 2, span.y + span.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(span.x + span.width * 0.5, span.y + span.height / 2, { steps: 6 });
+  await page.mouse.up();
+  await page.evaluate(() => window.addEventListener("keydown", (e) => (window.__copyKeyBlocked = e.key === "c" && e.defaultPrevented)));
+  await page.keyboard.press("Control+c");
+  check((await page.evaluate(() => window.__copyKeyBlocked)) === false && (await page.evaluate(() => String(document.getSelection()).length > 10)), "Ctrl+C on selected page text isn't blocked");
+
   // Rewrite the first body paragraph.
   await page.evaluate(() => window.__quillmark.runCommand("mode.edit"));
   await page.click('.context-toolbar button[aria-label="Edit text"], .context-toolbar [data-tip="Edit text"]').catch(() => {});

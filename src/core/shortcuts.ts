@@ -50,6 +50,9 @@ const isTyping = (t: EventTarget | null) => {
 /** Floating panels that leave the document usable (keyboard navigation keeps working). */
 const NON_MODAL_DIALOGS = new Set(["link-view"]);
 
+/** Editing keys left to the browser when the app has nothing to act on (e.g. copying selected page text). */
+const NATIVE_EDITING = new Set(["Mod+C", "Mod+X", "Mod+V", "Mod+Z", "Mod+Y", "Mod+Shift+Z"]);
+
 /** Shortcuts that work even while typing in a field. */
 const GLOBAL = new Set(["Mod+S", "Mod+Shift+S", "Mod+O", "Mod+P", "Mod+F", "Mod+L", "F5", "F3", "F4"]);
 
@@ -124,7 +127,7 @@ export function useGlobalShortcuts() {
       const c = getCommand(id);
       // Single-letter tool keys shouldn't fire when no document is open.
       if (!isEnabled(c)) {
-        if (combo.startsWith("Mod")) e.preventDefault();
+        if (combo.startsWith("Mod") && !NATIVE_EDITING.has(combo)) e.preventDefault();
         return;
       }
       e.preventDefault();

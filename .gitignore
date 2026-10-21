@@ -7,3 +7,5 @@ public/vendor
 coverage
 test-output
 test-fixtures
+.desktop-app
+release

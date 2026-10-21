@@ -6,6 +6,7 @@ import { EmptyState } from "../ui/Fields";
 import { Button, Spinner } from "../ui/Button";
 import { downloadBytes, formatBytes, isPdfBytes, pickFiles, readFileBytes, uid } from "../../lib/util";
 import { openBytes } from "../../core/document";
+import { desktop } from "../../lib/desktop";
 import type { AttachmentInfo } from "../../state/types";
 
 export async function loadAttachments(docId: string) {
@@ -65,6 +66,8 @@ export default function AttachmentsPanel({ docId }: { docId: string }) {
   const open = async (a: AttachmentInfo) => {
     if (!a.content) return;
     if (isPdfBytes(a.content)) await openBytes(a.content, a.filename, { transient: true });
+    // The desktop app doesn't open attachments in other programs (they may be unsafe); it saves them instead.
+    else if (desktop) downloadBytes(a.content, a.filename, mimeFor(a.filename));
     else {
       const url = URL.createObjectURL(new Blob([a.content as BlobPart], { type: mimeFor(a.filename) }));
       window.open(url, "_blank", "noopener");

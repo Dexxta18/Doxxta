@@ -14,11 +14,14 @@ import { useApp } from "./state/store";
 import { useSettings } from "./state/settings";
 import { runtimes } from "./state/runtime";
 import { runCommand } from "./core/commands";
+import { installDesktop } from "./lib/desktop";
 
 if (import.meta.env.DEV) {
   // Debug handle for automated browser tests.
   (window as unknown as { __quillmark: unknown }).__quillmark = { useApp, useSettings, runtimes, runCommand };
 }
+
+installDesktop();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

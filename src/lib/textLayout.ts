@@ -198,7 +198,7 @@ function makeLine(runs: TextRun[]): TextLine {
   return { runs, text: text.replace(/\s+/g, " ").trim(), rect, baseline: runs[0].y, size, angle: runs[0].angle };
 }
 
-function buildBlocks(lines: TextLine[]): TextBlock[] {
+export function buildBlocks(lines: TextLine[]): TextBlock[] {
   const sorted = [...lines].sort((a, b) => b.baseline - a.baseline || a.rect[0] - b.rect[0]);
   const blocks: TextLine[][] = [];
   for (const line of sorted) {

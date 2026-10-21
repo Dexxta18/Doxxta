@@ -1,5 +1,6 @@
 # Builds the desktop installers on each operating system.
-# Run it from the Actions tab ("Run workflow"), or push a tag such as v0.1.0.
+# Run it from the Actions tab ("Run workflow") to get them as downloads on the run's page,
+# or push a tag such as v0.1.0 to also publish them on the repository's Releases page.
 name: Desktop installers
 
 on:
@@ -37,3 +38,23 @@ jobs:
             release/*.dmg
             release/*.AppImage
           if-no-files-found: error
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: installers
+          merge-multiple: true
+      - name: Publish the installers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" installers/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Quillmark $GITHUB_REF_NAME" \
+            --notes "Windows: Quillmark-Setup-*.exe · macOS: the .dmg for your Mac (arm64 = Apple Silicon, x64 = Intel) · Linux: the .AppImage"

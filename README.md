@@ -157,7 +157,7 @@ npm run test:smoke                # builds, then tests the production build thro
 ```
 
 ```bash
-npm run test:desktop              # desktop app: Open with, saving to disk, dialogs, OCR, unsaved-changes prompt
+npm run test:desktop              # desktop app: Open with, saving to disk, dialogs, OCR, Edit text, unsaved-changes prompt
 ```
 
 The desktop tests replace the system dialogs with answers chosen by the test. They need a display (on a Linux server, run them under `xvfb-run`); set `QUILLMARK_APP` to a packaged app (e.g. `release/linux-unpacked/quillmark`) to test an installer's build.

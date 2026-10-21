@@ -44,7 +44,7 @@ npm run dist:mac      # macOS disk images (on a Mac)
 npm run dist:linux    # Linux AppImage
 ```
 
-Build each installer on its own system: the macOS app can only be built on a Mac, and building the Windows installer elsewhere also needs [Wine](https://www.winehq.org/). The easiest way to get all three is GitHub: push this project to a repository, open **Actions → Desktop installers → Run workflow** (or push a tag such as `v0.1.0`), and download the installers from the finished run.
+Build each installer on its own system: the macOS app can only be built on a Mac, and building the Windows installer elsewhere also needs [Wine](https://www.winehq.org/). The easiest way to get all three is GitHub: push this project to a repository and push a version tag (`git tag v0.1.0 && git push origin v0.1.0`). GitHub builds the three installers and publishes them on the repository's **Releases** page. You can also run **Actions → Desktop installers → Run workflow** and download them from the finished run.
 
 Signing removes the first-launch warnings. It needs a code-signing certificate for Windows (set `WIN_CSC_LINK` to the `.pfx` file and `WIN_CSC_KEY_PASSWORD` to its password) and an Apple Developer ID for macOS (`CSC_LINK` and `CSC_KEY_PASSWORD`, plus `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID` for notarization). Without them, Windows builds are unsigned and Mac builds are ad-hoc signed.
 

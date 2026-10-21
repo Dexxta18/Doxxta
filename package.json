@@ -10,7 +10,10 @@
     "dev": "vite",
     "build": "tsc -p tsconfig.json && vite build",
     "typecheck": "tsc -p tsconfig.json",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e": "node tests/e2e/run.mjs",
+    "test:smoke": "npm run build && node tests/e2e/smoke.mjs",
+    "fixtures": "node scripts/make-fixtures.mjs"
   },
   "dependencies": {
     "@cantoo/fontkit": "^2.0.12",

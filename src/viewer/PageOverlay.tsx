@@ -34,6 +34,7 @@ import {
 } from "../annotations/factory";
 import { computeRect, resizeMode, selectionRect, transformAnnot, translateAnnot } from "../annotations/geometry";
 import { AnnotToolbar } from "./AnnotToolbar";
+import { openAnnotContextMenu } from "./annotMenu";
 import { NotePopup } from "./NotePopup";
 import { TextEditLayer } from "./TextEditLayer";
 import { getViewer } from "../state/runtime";
@@ -577,7 +578,7 @@ function PageOverlayInner({ docId, pageIndex }: { docId: string; pageIndex: numb
           e.preventDefault();
           const id = el.dataset.annotId!;
           if (!selSet.has(id)) selectAnnots(docId, [id]);
-          import("./annotMenu").then((m) => m.openAnnotContextMenu(docId, e.clientX, e.clientY));
+          openAnnotContextMenu(docId, e.clientX, e.clientY);
         }
       }}
     >

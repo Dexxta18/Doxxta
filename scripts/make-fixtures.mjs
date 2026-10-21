@@ -235,13 +235,11 @@ async function rotated() {
   writeFileSync(join(out, "rotated.pdf"), await doc.save());
 }
 
-async function scanned() {
-  // A page that is only an image of text (for OCR testing): rendered with a big font as vector,
-  // then rasterized by the OCR test itself. Here: draw text as many tiny rectangles? Keep simple:
+async function simple() {
+  // A one-page document with a single heading.
   const doc = await PDFDocument.create();
   const page = doc.addPage([612, 792]);
   const helv = await doc.embedFont(StandardFonts.HelveticaBold);
-  // Outline text via rendering mode 1 (stroke) is still text; instead use a 1x1 placeholder.
   page.drawText("INVOICE 2026", { x: 72, y: 700, size: 36, font: helv });
   writeFileSync(join(out, "simple.pdf"), await doc.save());
 }
@@ -251,7 +249,7 @@ await form();
 await annotated();
 await encrypted();
 await rotated();
-await scanned();
+await simple();
 console.log("Fixtures written to", out);
 void PDFArray;
 void PDFNumber;

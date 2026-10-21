@@ -38,7 +38,7 @@ const MONTHS = "(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|Ju
 
 /** Built-in patterns, like Acrobat's "Find text → Patterns". */
 export const REDACTION_PATTERNS: { id: string; label: string; example: string; regex: RegExp; accept?: (m: string) => boolean }[] = [
-  { id: "phone", label: "Phone numbers", example: "(555) 012-3456, +44 20 7946 0958", regex: /(?<![\d\w])(?:\+\d{1,3}[\s.-]?)?(?:\(\d{2,4}\)[\s.-]?|\d{2,4}[\s.-])\d{3,4}[\s.-]\d{3,4}(?![\d\w])/g },
+  { id: "phone", label: "Phone numbers", example: "(555) 012-3456, +44 20 7946 0958", regex: /(?<![\d\w])(?<!\d[\s.-])(?:\+\d{1,3}[\s.-]?)?(?:\(\d{2,4}\)[\s.-]?|\d{2,4}[\s.-])\d{3,4}[\s.-]\d{3,4}(?![\d\w])(?![\s.-]\d)/g },
   { id: "card", label: "Credit card numbers", example: "4111 1111 1111 1111", regex: /(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)/g, accept: (m) => luhn(m.replace(/\D/g, "")) },
   { id: "ssn", label: "Social Security numbers", example: "123-45-6789", regex: /(?<!\d)\d{3}-\d{2}-\d{4}(?!\d)/g },
   { id: "email", label: "Email addresses", example: "name@example.com", regex: /[\p{L}\p{N}._%+-]+@[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)*\.\p{L}{2,}/gu },

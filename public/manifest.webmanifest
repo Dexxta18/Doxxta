@@ -1,0 +1,11 @@
+{
+  "name": "Folio PDF",
+  "short_name": "Folio",
+  "description": "Read, annotate, sign, organize, convert and protect PDFs in your browser.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4f5f7",
+  "theme_color": "#2f5bea",
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" }],
+  "file_handlers": [{ "action": "./", "accept": { "application/pdf": [".pdf"] } }]
+}

@@ -1,0 +1,9 @@
+node_modules
+dist
+public/vendor
+*.log
+.DS_Store
+.vite
+coverage
+test-output
+test-fixtures

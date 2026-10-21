@@ -24,7 +24,7 @@ function stageApp() {
   for (const f of ["main.cjs", "preload.cjs"]) cpSync(join(root, "desktop", f), join(stage, f));
   cpSync(join(root, "desktop", "build", "icon.png"), join(stage, "icon.png"));
   const { version } = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
-  const pkg = { name: "quillmark", productName: "Quillmark", version, description: "PDF reader and editor", author: "Quillmark", main: "main.cjs" };
+  const pkg = { name: "quillmark", productName: "Quillmark", desktopName: "quillmark.desktop", version, description: "PDF reader and editor", author: "Quillmark", main: "main.cjs" };
   writeFileSync(join(stage, "package.json"), JSON.stringify(pkg, null, 2));
 }
 
@@ -42,8 +42,10 @@ if (task === "stage") {
   process.exit(run(require("electron"), [stage, ...rest]));
 } else if (task === "dist") {
   stageApp();
-  const builder = join(root, "node_modules", ".bin", process.platform === "win32" ? "electron-builder.cmd" : "electron-builder");
-  process.exit(run(builder, ["--config", "electron-builder.config.cjs", "--publish", "never", ...rest], { CSC_IDENTITY_AUTO_DISCOVERY: process.env.CSC_IDENTITY_AUTO_DISCOVERY ?? "false" }));
+  // Run through Node, so it works the same on Windows (which can't spawn .cmd shims directly).
+  const builder = require.resolve("electron-builder/cli.js");
+  const env = { CSC_IDENTITY_AUTO_DISCOVERY: process.env.CSC_IDENTITY_AUTO_DISCOVERY ?? "false" };
+  process.exit(run(process.execPath, [builder, "--config", "electron-builder.config.cjs", "--publish", "never", ...rest], env));
 } else {
   console.error("Usage: node scripts/desktop.mjs start | dist --win|--mac|--linux");
   process.exit(2);

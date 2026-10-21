@@ -1,4 +1,5 @@
 // Desktop app tests: npm run test:desktop (needs a display; on Linux servers run it under xvfb-run).
+// Set QUILLMARK_APP to a packaged executable to test an installer's build.
 // Native dialogs are replaced in the main process with answers chosen by the test.
 import { spawnSync } from "node:child_process";
 import { copyFileSync, mkdtempSync, readFileSync, statSync, existsSync } from "node:fs";
@@ -30,7 +31,11 @@ const errors = [];
 const cspViolations = [];
 // Root can't use Chromium's sandbox (CI containers); a normal user's app always runs with it.
 const flags = [...(process.getuid?.() === 0 ? ["--no-sandbox"] : []), "--disable-gpu", `--user-data-dir=${userData}`];
-const app = await electron.launch({ executablePath: require("electron"), args: [...flags, stage, file("sample.pdf")], cwd: ROOT });
+// QUILLMARK_APP tests a packaged build instead, e.g. QUILLMARK_APP=release/linux-unpacked/quillmark
+const packaged = process.env.QUILLMARK_APP;
+const app = await electron.launch(
+  packaged ? { executablePath: packaged, args: [...flags, file("sample.pdf")] } : { executablePath: require("electron"), args: [...flags, stage, file("sample.pdf")], cwd: ROOT },
+);
 const win = await app.firstWindow();
 win.on("pageerror", (e) => errors.push(e.message));
 win.on("console", (m) => /Content Security Policy/i.test(m.text()) && cspViolations.push(m.text()));

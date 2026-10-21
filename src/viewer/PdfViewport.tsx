@@ -146,6 +146,15 @@ export function PdfViewport({ docId }: { docId: string }) {
           behavior: "smooth",
         });
       },
+      goToDestination: (pageIndex, { left, top, zoom }) => {
+        if (!pdfViewer.pagesCount) return;
+        const pageNumber = clamp(pageIndex + 1, 1, pdfViewer.pagesCount);
+        if (left === null && top === null && !zoom) {
+          pdfViewer.currentPageNumber = pageNumber;
+          return;
+        }
+        pdfViewer.scrollPageIntoView({ pageNumber, destArray: [null, { name: "XYZ" }, left, top, zoom ? zoom : null], allowNegativeOffset: true });
+      },
       getPageDiv: (i) => (pdfViewer.getPageView(i)?.div as HTMLDivElement) ?? null,
       getVisiblePageIndexes: () => {
         const vis = (pdfViewer as unknown as { _getVisiblePages(): { views: { id: number }[] } })._getVisiblePages();

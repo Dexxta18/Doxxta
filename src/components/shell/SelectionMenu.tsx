@@ -1,7 +1,8 @@
 import { createPortal } from "react-dom";
-import { Copy, EyeOff, Highlighter, MessageSquarePlus, Strikethrough, Underline, Volume2, Waves, Search } from "lucide-react";
+import { Copy, EyeOff, Highlighter, Link2, MessageSquarePlus, Strikethrough, Underline, Volume2, Waves, Search } from "lucide-react";
 import { markupFromSelection, useTextSelectionMenu } from "../../viewer/interactions";
-import { setFind, toast, useApp } from "../../state/store";
+import { getDoc, openDialog, setFind, toast, useApp } from "../../state/store";
+import { quadBounds, unionRects } from "../../lib/geometry";
 import { useSettings } from "../../state/settings";
 import { dispatchFind } from "./FindBar";
 
@@ -82,6 +83,20 @@ export function SelectionMenu() {
         }}
       >
         <Volume2 size={16} />
+      </button>
+      <button
+        data-tip="Create link"
+        onClick={() => {
+          const doc = getDoc(docId);
+          const sel = selections.find((s) => s.quads.length);
+          close();
+          if (!doc || !sel) return;
+          const page = doc.pages[sel.pageIndex];
+          window.getSelection()?.removeAllRanges();
+          openDialog("link", { docId, pageId: page.id, rect: unionRects(sel.quads.map(quadBounds)), rotation: (page.rotate + doc.view.rotation) % 360, quads: sel.quads });
+        }}
+      >
+        <Link2 size={16} />
       </button>
       <span className="toolbar-sep" />
       <button data-tip="Mark for redaction" onClick={() => act("redact")}>

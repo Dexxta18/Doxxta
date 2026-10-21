@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import { useId, useRef, useState, type ComponentPropsWithRef, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 import { Popover } from "./Popover";
 import { PALETTE } from "../../lib/colors";
 import { Ban } from "lucide-react";
@@ -13,7 +13,7 @@ export function Field({ label, hint, error, children, inline }: { label?: ReactN
   );
 }
 
-export function TextInput(props: InputHTMLAttributes<HTMLInputElement>) {
+export function TextInput(props: ComponentPropsWithRef<"input">) {
   return <input type="text" {...props} className={`input ${props.className ?? ""}`} />;
 }
 

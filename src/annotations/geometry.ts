@@ -68,6 +68,7 @@ export function translateAnnot<T extends Annotation>(a: T, dx: number, dy: numbe
     case "squiggly":
       return { ...a, rect, quads: a.quads.map((q) => moveQuad(q, dx, dy)) };
     case "redact":
+    case "link":
       return { ...a, rect, quads: a.quads?.map((q) => moveQuad(q, dx, dy)) };
     case "ink":
       return { ...a, rect, paths: a.paths.map((p) => p.map((pt) => movePt(pt, dx, dy))) };
@@ -112,6 +113,9 @@ export function transformAnnot<T extends Annotation>(a: T, from: PdfRect, to: Pd
     case "freetext":
       // Text boxes resize without scaling the text; the callout target stays put.
       return { ...a, rect: fr(a.rect) };
+    case "link":
+      // A resized link no longer follows the text lines it was made from.
+      return { ...a, rect: fr(a.rect), quads: undefined };
     case "highlight":
     case "underline":
     case "strikeout":

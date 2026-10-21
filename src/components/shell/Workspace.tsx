@@ -18,7 +18,7 @@ const OrganizeView = lazy(() => import("../modes/OrganizeView"));
 const MODE_HINTS: Partial<Record<string, string>> = {
   "edit-text": "Click a paragraph to edit its text. Changes are written into the page when you save.",
   crop: "Drag a rectangle around the area to keep.",
-  link: "Drag a rectangle over the area that should become a link.",
+  link: "Drag a rectangle over the area that should become a link. Double-click a link to change it.",
   "redact-area": "Drag to mark areas for redaction, then click Apply redactions.",
   "redact-text": "Select text to mark it for redaction, then click Apply redactions.",
   "measure-perimeter": "Click to add points, double-click (or Enter) to finish.",
@@ -75,6 +75,12 @@ export function Workspace({ docId }: { docId: string }) {
   useEffect(() => {
     if (status === "ready") consumePendingCommand();
   }, [status]);
+
+  // Existing links become editable when the user starts working with links.
+  const tool = useApp((s) => s.tool);
+  useEffect(() => {
+    if (status === "ready" && (tool === "link" || mode === "edit")) void import("../../ops/links").then((m) => m.liftLinks(docId));
+  }, [status, tool, mode, docId]);
 
   return (
     <div className={`workspace${readMode ? " is-read-mode" : ""}`}>

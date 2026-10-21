@@ -37,6 +37,7 @@ const REGISTRY: Record<string, Lazy> = {
   background: L(() => import("./BackgroundDialog")),
   crop: L(() => import("./CropDialog")),
   link: L(() => import("./LinkDialog")),
+  "link-view": L(() => import("./LinkDialog").then((m) => ({ default: m.LinkViewPicker }))),
   protect: L(() => import("./ProtectDialog")),
   "remove-security": L(() => import("./ProtectDialog").then((m) => ({ default: m.RemoveSecurityDialog }))),
   sanitize: L(() => import("./SanitizeDialog")),

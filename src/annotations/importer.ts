@@ -140,7 +140,7 @@ export async function importAnnotations(bytes: Uint8Array, password?: string): P
   return { bytes: saved, changed: true, annotations: out, skipped };
 }
 
-function pageView(page: PDFPage): number[] {
+export function pageView(page: PDFPage): number[] {
   const crop = page.getCropBox();
   const media = page.getMediaBox();
   const x0 = Math.max(crop.x, media.x),
@@ -150,12 +150,12 @@ function pageView(page: PDFPage): number[] {
   return x1 > x0 && y1 > y0 ? [x0, y0, x1, y1] : [media.x, media.y, media.x + media.width, media.y + media.height];
 }
 
-function rectOf(d: PDFDict): PdfRect {
+export function rectOf(d: PDFDict): PdfRect {
   const r = numbers(get(d, "Rect"));
   return r.length === 4 ? normRect(r[0], r[1], r[2], r[3]) : [0, 0, 0, 0];
 }
 
-function colorOf(d: PDFDict, key = "C"): string | null {
+export function colorOf(d: PDFDict, key = "C"): string | null {
   return pdfColorToHex(numbers(get(d, key)));
 }
 
@@ -173,7 +173,7 @@ function normalizeQuad(q: number[], rotation: number, view: number[]): Quad {
   return [upper[0].x, upper[0].y, upper[1].x, upper[1].y, lower[0].x, lower[0].y, lower[1].x, lower[1].y];
 }
 
-function quadsOf(d: PDFDict, rotation: number, view: number[]): Quad[] {
+export function quadsOf(d: PDFDict, rotation: number, view: number[]): Quad[] {
   const q = numbers(get(d, "QuadPoints"));
   const out: Quad[] = [];
   for (let i = 0; i + 7 < q.length; i += 8) out.push(normalizeQuad(q.slice(i, i + 8), rotation, view));
@@ -184,7 +184,7 @@ function quadsOf(d: PDFDict, rotation: number, view: number[]): Quad[] {
   return out;
 }
 
-function borderWidth(doc: PDFDocument, d: PDFDict, fallback = 1): number {
+export function borderWidth(doc: PDFDocument, d: PDFDict, fallback = 1): number {
   const bs = lookup(doc, get(d, "BS"));
   if (bs instanceof PDFDict) {
     const w = get(bs, "W");
@@ -422,7 +422,7 @@ function convert(doc: PDFDocument, d: PDFDict, subtype: string, pageRotation: nu
 }
 
 /** Restores an annotation written by Folio when it hasn't been changed by another app. */
-function readFolioData(doc: PDFDocument, d: PDFDict): Annotation | null {
+export function readFolioData(doc: PDFDocument, d: PDFDict): Annotation | null {
   const raw = decodeText(get(d, FOLIO_KEY));
   if (!raw) return null;
   let data: Annotation & { v?: number };

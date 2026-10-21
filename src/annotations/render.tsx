@@ -5,6 +5,7 @@ import {
   normalizeRotation,
   polygonArea,
   polylineLength,
+  quadBounds,
   transformRect,
   type Matrix,
   type PdfRect,
@@ -374,10 +375,23 @@ export const AnnotSvg = memo(function AnnotSvg({ a, ctx }: { a: Annotation; ctx:
       );
     }
     case "link": {
-      if (ctx.thumbnail) return null;
       const box = stageBox(m, a.rect);
+      const sw = a.borderWidth ?? 1;
+      const lines = a.quads?.length ? a.quads.map((q) => stageBox(m, quadBounds(q))) : [box];
+      const border =
+        a.showBorder &&
+        lines.map((b, i) =>
+          a.borderStyle === "underline" ? (
+            <line key={i} x1={b.x} x2={b.x + b.w} y1={b.y + b.h - sw / 2} y2={b.y + b.h - sw / 2} stroke={a.color} strokeWidth={sw} />
+          ) : (
+            <rect key={i} x={b.x + sw / 2} y={b.y + sw / 2} width={Math.max(0, b.w - sw)} height={Math.max(0, b.h - sw)} fill="none" stroke={a.color} strokeWidth={sw} strokeDasharray={a.borderStyle === "dashed" ? "3 2" : undefined} />
+          ),
+        );
+      if (ctx.thumbnail) return border ? <g>{border}</g> : null;
       return (
         <g {...svgKindProps(a)}>
+          <title>{a.target.type === "url" ? a.target.url.replace(/^mailto:/i, "") : "Go to page"}</title>
+          {border}
           <rect
             x={box.x}
             y={box.y}
@@ -385,7 +399,7 @@ export const AnnotSvg = memo(function AnnotSvg({ a, ctx }: { a: Annotation; ctx:
             height={box.h}
             className={`folio-link-box${ctx.mode === "edit" ? " is-editing" : ""}`}
             fill="rgba(47,91,234,0.06)"
-            stroke={a.color}
+            stroke="#2f5bea"
             strokeWidth={1}
             strokeDasharray="4 3"
             vectorEffect="non-scaling-stroke"

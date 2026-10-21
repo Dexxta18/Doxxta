@@ -13,10 +13,11 @@ import App from "./App";
 import { useApp } from "./state/store";
 import { useSettings } from "./state/settings";
 import { runtimes } from "./state/runtime";
+import { runCommand } from "./core/commands";
 
 if (import.meta.env.DEV) {
   // Debug handle for automated browser tests.
-  (window as unknown as { __folio: unknown }).__folio = { useApp, useSettings, runtimes };
+  (window as unknown as { __folio: unknown }).__folio = { useApp, useSettings, runtimes, runCommand };
 }
 
 createRoot(document.getElementById("root")!).render(

@@ -174,6 +174,7 @@ export function toolsMenu(): MenuItem[] {
       items: () => [cmd("tool.watermark"), cmd("tool.headerFooter"), cmd("tool.pageNumbers"), cmd("tool.bates"), cmd("tool.background")],
     },
     cmd("tool.crop"),
+    cmd("tool.link"),
     { type: "header", label: "Protect & optimize" },
     cmd("mode.protect"),
     cmd("mode.redact"),

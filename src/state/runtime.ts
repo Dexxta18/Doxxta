@@ -21,6 +21,8 @@ export interface ViewerHandle {
   setSpreadMode(mode: number): void;
   /** Scrolls so that a point (PDF user space) on a page is visible. */
   scrollToPoint(pageIndex: number, x: number, y: number, opts?: { center?: boolean }): void;
+  /** Opens a page view like an /XYZ destination (PDF user space; null keeps the current value). */
+  goToDestination(pageIndex: number, view: { left: number | null; top: number | null; zoom: number | null }): void;
   getPageDiv(pageIndex: number): HTMLDivElement | null;
   getVisiblePageIndexes(): number[];
   refreshOptionalContent(): Promise<void>;

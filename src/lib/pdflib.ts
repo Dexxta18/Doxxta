@@ -13,8 +13,23 @@ import {
   type PDFFont,
   type PDFPage,
 } from "@cantoo/pdf-lib";
+import { rotationMatrix, type Matrix } from "./geometry";
 
 export * from "@cantoo/pdf-lib";
+
+/** Display frame of a page: width/height as shown and the display → user matrix (y up). */
+export function displayFrame(page: PDFPage): { w: number; h: number; m: Matrix } {
+  const cb = page.getCropBox();
+  const x0 = cb.x,
+    y0 = cb.y,
+    x1 = cb.x + cb.width,
+    y1 = cb.y + cb.height;
+  const r = ((page.getRotation().angle % 360) + 360) % 360;
+  const rot = rotationMatrix(r);
+  const t = r === 90 ? [x1, y0] : r === 180 ? [x1, y1] : r === 270 ? [x0, y1] : [x0, y0];
+  const swap = r === 90 || r === 270;
+  return { w: swap ? cb.height : cb.width, h: swap ? cb.width : cb.height, m: [rot[0], rot[1], rot[2], rot[3], t[0], t[1]] };
+}
 
 /**
  * Loads a document with pdf-lib, decrypting it when a password is given, and

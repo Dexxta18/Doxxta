@@ -180,13 +180,27 @@ export interface RedactAnnot extends Base {
   markedText?: string;
 }
 
-export type LinkTarget = { type: "page"; pageId: string; top?: number } | { type: "url"; url: string };
+/**
+ * Where a link goes. Page targets may carry an explicit view (PDF user space of
+ * the target page, as in an /XYZ destination); without one the link opens the
+ * top of the page.
+ */
+export type LinkTarget = { type: "page"; pageId: string; left?: number | null; top?: number | null; zoom?: number | null } | { type: "url"; url: string };
+
+export type LinkHighlight = "none" | "invert" | "outline" | "push";
 
 export interface LinkAnnot extends Base {
   kind: "link";
   target: LinkTarget;
-  /** Show a visible border in other viewers. */
+  /** Visible rectangle (drawn by viewers from /Border and /C). */
   showBorder: boolean;
+  borderStyle?: "solid" | "dashed" | "underline";
+  /** 1 thin, 2 medium, 3 thick. */
+  borderWidth?: number;
+  /** What viewers do while the link is clicked. */
+  highlight?: LinkHighlight;
+  /** Text areas of a link that wraps across lines. */
+  quads?: Quad[];
 }
 
 /** "Edit PDF > Edit text": replaces a block of page text on save. */

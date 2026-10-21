@@ -47,6 +47,9 @@ const isTyping = (t: EventTarget | null) => {
   return el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
 };
 
+/** Floating panels that leave the document usable (keyboard navigation keeps working). */
+const NON_MODAL_DIALOGS = new Set(["link-view"]);
+
 /** Shortcuts that work even while typing in a field. */
 const GLOBAL = new Set(["Mod+S", "Mod+Shift+S", "Mod+O", "Mod+P", "Mod+F", "Mod+L", "F5", "F3", "F4"]);
 
@@ -58,7 +61,7 @@ export function useGlobalShortcuts() {
       const combo = normalize(e);
       const typing = isTyping(e.target);
       const app = getApp();
-      if (app.dialogs.length) {
+      if (app.dialogs.some((d) => !NON_MODAL_DIALOGS.has(d.id))) {
         if (e.key === "Escape") closeDialog();
         return;
       }

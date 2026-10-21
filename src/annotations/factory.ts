@@ -6,6 +6,8 @@ import type {
   ImageAnnot,
   InkAnnot,
   LineAnnot,
+  LinkAnnot,
+  LinkTarget,
   NoteAnnot,
   PolyAnnot,
   RedactAnnot,
@@ -92,6 +94,10 @@ export function createInk(tool: ToolId, pageId: string, paths: Point[][], rotati
     highlighter: tool === "highlighter-pen" || undefined,
   } as InkAnnot;
   return { ...a, rect: computeRect(a) };
+}
+
+export function createLink(pageId: string, rect: PdfRect, rotation: number, target: LinkTarget, extra: Partial<LinkAnnot> = {}): LinkAnnot {
+  return { ...base("link", pageId, rect, rotation), color: "#2f5bea", showBorder: false, ...extra, target } as LinkAnnot;
 }
 
 export function createShape(tool: "rect" | "ellipse", pageId: string, rect: PdfRect, rotation: number): ShapeAnnot {

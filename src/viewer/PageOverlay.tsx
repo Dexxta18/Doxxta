@@ -89,6 +89,8 @@ function PageOverlayInner({ docId, pageIndex }: { docId: string; pageIndex: numb
   const all = useApp((s) => s.docs[docId].annotations);
   const selection = useApp((s) => s.docs[docId].selection);
   const tool = useApp((s) => s.tool);
+  // Outside Edit mode a click on a link follows it (Shift/Ctrl+click selects it).
+  const followLinks = mode !== "edit" && (tool === "select" || tool === "hand");
   const editingId = useApp((s) => s.editingId);
   const smoothInk = useSettings((s) => s.smoothInk);
 
@@ -419,6 +421,7 @@ function PageOverlayInner({ docId, pageIndex }: { docId: string; pageIndex: numb
     }
   };
 
+  const lastAnnotDown = useRef({ id: "", t: 0 });
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
     const target = e.target as Element;
@@ -440,21 +443,34 @@ function PageOverlayInner({ docId, pageIndex }: { docId: string; pageIndex: numb
     }
 
     const annotEl = target.closest<HTMLElement>("[data-annot-id]");
-    if (TEXT_TOOLS.has(tool) || mode === "organize") {
-      if (annotEl && (tool === "select" || tool === "hand") && !annotEl.classList.contains("is-editing")) {
+    const editingLink = tool === "link" && annotEl?.classList.contains("folio-annot-link");
+    if (TEXT_TOOLS.has(tool) || mode === "organize" || editingLink) {
+      if (annotEl && (tool === "select" || tool === "hand" || editingLink) && !annotEl.classList.contains("is-editing")) {
         const id = annotEl.dataset.annotId!;
         const a = annots.find((x) => x.id === id);
         if (!a) return;
         e.preventDefault();
         e.stopPropagation();
+        if (a.kind === "link" && followLinks) {
+          if (!e.shiftKey && !e.metaKey && !e.ctrlKey) {
+            window.getSelection()?.removeAllRanges();
+            void import("../ops/links").then((m) => m.followLink(docId, a));
+            return;
+          }
+        }
         // Clear any text selection so the click doesn't extend it.
         window.getSelection()?.removeAllRanges();
         let next = selection;
         if (e.shiftKey || e.metaKey || e.ctrlKey) next = selSet.has(id) ? selection.filter((s) => s !== id) : [...selection, id];
         else if (!selSet.has(id)) next = [id];
         selectAnnots(docId, next);
-        if (e.detail >= 2) {
+        // Pointer events report detail 0 in some browsers, so time the clicks too.
+        const now = Date.now();
+        const double = e.detail >= 2 || (lastAnnotDown.current.id === id && now - lastAnnotDown.current.t < 450);
+        lastAnnotDown.current = { id: double ? "" : id, t: now };
+        if (double) {
           if (a.kind === "freetext" || a.kind === "note") useApp.setState({ editingId: a.id });
+          else if (a.kind === "link") openDialog("link", { docId, editId: a.id });
           else useApp.setState({ focusCommentId: a.id });
           return;
         }
@@ -545,7 +561,7 @@ function PageOverlayInner({ docId, pageIndex }: { docId: string; pageIndex: numb
 
   return (
     <div
-      className={`folio-overlay${isCreateTool ? " is-creating" : ""} tool-${tool}`}
+      className={`folio-overlay${isCreateTool ? " is-creating" : ""} tool-${tool}${followLinks ? " links-follow" : ""}`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onContextMenu={(e) => {

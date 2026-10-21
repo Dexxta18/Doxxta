@@ -93,9 +93,14 @@
   top: 0;
   overflow: visible;
 }
+/* Layers above the annotations only take events on their interactive children. */
+.folio-ui {
+  pointer-events: none;
+}
 .folio-html {
   position: absolute;
   inset: 0;
+  pointer-events: none;
 }
 .folio-annot {
   pointer-events: auto;
@@ -103,6 +108,9 @@
 }
 .folio-overlay.is-creating .folio-annot {
   pointer-events: none;
+}
+.folio-overlay.is-creating .folio-annot.is-editing {
+  pointer-events: auto;
 }
 .folio-overlay.tool-select .folio-annot,
 .folio-overlay.tool-hand .folio-annot {
@@ -145,8 +153,19 @@ g.folio-annot:hover {
   opacity: 0;
 }
 .folio-link-box.is-editing,
+.folio-overlay.tool-link .folio-link-box,
 .folio-annot-link:hover .folio-link-box {
   opacity: 1;
+}
+.folio-overlay.links-follow .folio-annot-link {
+  cursor: pointer;
+}
+.folio-overlay.links-follow .folio-annot-link:hover .folio-link-box {
+  opacity: 0;
+}
+.folio-overlay.tool-link .folio-annot-link {
+  pointer-events: auto;
+  cursor: move;
 }
 .folio-field-box {
   fill-opacity: 1;

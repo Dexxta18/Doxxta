@@ -3,9 +3,11 @@ import {
   PDFDict,
   PDFName,
   PDFRef,
+  PDFString,
   addAnnotRef,
   addPageContent,
   addPageResource,
+  displayFrame,
   fontKeyFor,
   pdfText,
   type FontCache,
@@ -30,7 +32,7 @@ import type {
   LineEnding,
 } from "./types";
 import { fmt, hexToPdf } from "../lib/colors";
-import { normalizeRotation, rotationMatrix, multiply, type Matrix, type PdfRect, type Point } from "../lib/geometry";
+import { apply, inflateRect, normalizeRotation, quadBounds, rectContainsRect, rotationMatrix, multiply, type Matrix, type PdfRect, type Point } from "../lib/geometry";
 import {
   cloudPath,
   cloudRectPath,
@@ -682,21 +684,42 @@ function writeThread(doc: PDFDocument, page: PDFPage, a: Annotation, parentRef: 
   }
 }
 
+const LINK_HIGHLIGHT = { none: "N", invert: "I", outline: "O", push: "P" } as const;
+
 function writeLink(doc: PDFDocument, a: LinkAnnot, ctx: Ctx): PDFRef {
+  const width = a.showBorder ? (a.borderWidth ?? 1) : 0;
+  const style = a.borderStyle === "dashed" ? "D" : a.borderStyle === "underline" ? "U" : "S";
   const entries: Record<string, unknown> = {
     Type: PDFName.of("Annot"),
     Subtype: PDFName.of("Link"),
     Rect: a.rect,
-    Border: [0, 0, a.showBorder ? 1 : 0],
+    Border: [0, 0, width],
+    BS: doc.context.obj({ W: width, S: PDFName.of(style), ...(style === "D" ? { D: [3, 2] } : {}) }),
+    H: PDFName.of(LINK_HIGHLIGHT[a.highlight ?? "invert"]),
     C: hexToPdf(a.color),
     F: 4,
     NM: pdfText(a.id),
   };
+  // Keep the per-line areas only while they still sit inside the link.
+  if (a.quads?.length && a.quads.every((q) => rectContainsRect(inflateRect(a.rect, 1), quadBounds(q)))) {
+    entries.QuadPoints = a.quads.flat();
+  }
   if (a.target.type === "url") {
-    entries.A = doc.context.obj({ Type: "Action", S: "URI", URI: pdfText(a.target.url) });
+    entries.A = doc.context.obj({ Type: "Action", S: "URI", URI: PDFString.of(a.target.url) });
   } else {
     const pageRef = ctx.pageRefs.get(a.target.pageId);
-    if (pageRef) entries.Dest = [pageRef, PDFName.of("XYZ"), null, a.target.top ?? null, null];
+    const page = pageRef && doc.getPages().find((p) => p.ref === pageRef);
+    if (pageRef && page) {
+      let { left = null, top = null } = a.target;
+      if (top === null || top === undefined) {
+        // Open at the top-left corner of the page as displayed.
+        const { h, m } = displayFrame(page);
+        const corner = apply(m, 0, h);
+        left = corner.x;
+        top = corner.y;
+      }
+      entries.Dest = [pageRef, PDFName.of("XYZ"), left ?? null, top, a.target.zoom ?? null];
+    }
   }
   const dict = doc.context.obj(entries as never) as unknown as PDFDict;
   dict.set(PDFName.of(FOLIO_KEY), pdfText(folioData(a)));

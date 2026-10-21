@@ -145,6 +145,10 @@ export interface SecurityInfo {
   password?: string;
   /** Allowed actions (pdf.js PermissionFlag values), null = no restrictions. */
   permissions: number[] | null;
+  /** The permissions (owner) password, once the user has entered it. */
+  ownerPassword?: string;
+  /** Restrictions lifted for this session with the permissions password. */
+  unlocked?: boolean;
   /** Requested protection on save; `undefined` keeps the original. */
   pending?: { kind: "encrypt"; userPassword: string; ownerPassword: string; permissions: Record<string, boolean | string>; algorithm: string } | { kind: "remove" };
 }

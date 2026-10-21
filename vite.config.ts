@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
@@ -6,6 +7,12 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   base: "./",
   plugins: [react()],
+  resolve: {
+    alias: {
+      // pdf-lib's password algorithms aren't exported from its package entry.
+      "pdf-lib-crypto": fileURLToPath(new URL("./node_modules/@cantoo/pdf-lib/es/core/crypto.js", import.meta.url)),
+    },
+  },
   worker: { format: "es" },
   build: {
     target: "es2022",
@@ -14,6 +21,8 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ["pdfjs-dist"],
+    // Pre-bundled together so both share one copy of pdf-lib's object classes.
+    include: ["@cantoo/pdf-lib", "pdf-lib-crypto"],
   },
   server: { host: "127.0.0.1", port: 5173 },
   preview: { host: "127.0.0.1", port: 4173 },

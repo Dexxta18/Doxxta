@@ -43,6 +43,7 @@ import type { Mode, ToolId } from "../state/types";
 import { pickFiles } from "../lib/util";
 import { closeDocument, openFile, redo, revertDocument, undo } from "./document";
 import { copySelected, deleteSelected, duplicateSelected, hasAnnotClipboard, pasteAnnots, selectAllOnPage } from "./annotOps";
+import { MODE_PERMISSION, withPermission, type Permission } from "./permissions";
 
 export interface Command {
   id: string;
@@ -53,7 +54,9 @@ export interface Command {
   needsDoc?: boolean;
   enabled?: () => boolean;
   checked?: () => boolean;
-  run: () => void | Promise<unknown>;
+  /** Restriction of secured PDFs this command is subject to. */
+  perm?: Permission;
+  run: () => unknown;
 }
 
 const ic = (C: React.ComponentType<{ size?: number }>) => <C size={16} />;
@@ -86,7 +89,10 @@ function mode(m: Mode) {
     const id = activeId();
     if (!id) return;
     const doc = getActiveDoc()!;
-    setMode(id, doc.mode === m && m !== "view" ? "view" : m);
+    const next = doc.mode === m && m !== "view" ? "view" : m;
+    const perm = MODE_PERMISSION[next];
+    if (perm) void withPermission(id, perm, () => setMode(id, next));
+    else setMode(id, next);
   };
 }
 
@@ -100,7 +106,7 @@ const commands: Command[] = [
   { id: "file.openUrl", label: "Open from URL…", icon: ic(Link2), run: () => openDialog("open-url") },
   { id: "file.save", label: "Save", icon: ic(Save), shortcut: "Mod+S", needsDoc: true, run: async () => (await import("./save")).saveDocument(activeId()!) },
   { id: "file.saveAs", label: "Save as…", icon: ic(Download), shortcut: "Mod+Shift+S", needsDoc: true, run: () => openDialog("save-as", { docId: activeId() }) },
-  { id: "file.print", label: "Print…", icon: ic(Printer), shortcut: "Mod+P", needsDoc: true, run: () => openDialog("print", { docId: activeId() }) },
+  { id: "file.print", perm: "print", label: "Print…", icon: ic(Printer), shortcut: "Mod+P", needsDoc: true, run: () => openDialog("print", { docId: activeId() }) },
   { id: "file.properties", label: "Document properties…", icon: ic(Info), shortcut: "Mod+D", needsDoc: true, run: () => openDialog("properties", { docId: activeId() }) },
   { id: "file.close", label: "Close document", icon: ic(X), needsDoc: true, run: () => closeDocument(activeId()!) },
   {
@@ -118,16 +124,16 @@ const commands: Command[] = [
   { id: "file.createClipboard", label: "From clipboard image", icon: ic(Clipboard), run: async () => (await import("../ops/create")).createFromClipboard() },
   { id: "file.createCamera", label: "From camera / scanner…", icon: ic(Camera), run: () => openDialog("camera") },
   { id: "file.combine", label: "Combine files…", icon: ic(Files), run: () => openDialog("combine") },
-  { id: "file.export", label: "Export PDF…", icon: ic(Download), needsDoc: true, run: () => openDialog("export", { docId: activeId() }) },
+  { id: "file.export", perm: "copy", label: "Export PDF…", icon: ic(Download), needsDoc: true, run: () => openDialog("export", { docId: activeId() }) },
 
   // ----- Edit -----
   { id: "edit.undo", label: "Undo", icon: ic(Undo2), shortcut: "Mod+Z", needsDoc: true, enabled: () => !!getActiveDoc()?.canUndo, run: () => undo(activeId()!) },
   { id: "edit.redo", label: "Redo", icon: ic(Redo2), shortcut: "Mod+Shift+Z", needsDoc: true, enabled: () => !!getActiveDoc()?.canRedo, run: () => redo(activeId()!) },
-  { id: "edit.cut", label: "Cut", icon: ic(Scissors), shortcut: "Mod+X", needsDoc: true, enabled: () => !!getActiveDoc()?.selection.length, run: () => copySelected(activeId()!, true) },
+  { id: "edit.cut", perm: "annotate", label: "Cut", icon: ic(Scissors), shortcut: "Mod+X", needsDoc: true, enabled: () => !!getActiveDoc()?.selection.length, run: () => copySelected(activeId()!, true) },
   { id: "edit.copy", label: "Copy", icon: ic(Copy), shortcut: "Mod+C", needsDoc: true, enabled: () => !!getActiveDoc()?.selection.length, run: () => copySelected(activeId()!) },
-  { id: "edit.paste", label: "Paste", icon: ic(Clipboard), shortcut: "Mod+V", needsDoc: true, enabled: () => hasAnnotClipboard(), run: () => pasteAnnots(activeId()!) },
-  { id: "edit.duplicate", label: "Duplicate", icon: ic(Copy), shortcut: "Mod+Shift+D", needsDoc: true, enabled: () => !!getActiveDoc()?.selection.length, run: () => duplicateSelected(activeId()!) },
-  { id: "edit.delete", label: "Delete", icon: ic(Trash2), shortcut: "Delete", needsDoc: true, enabled: () => !!getActiveDoc()?.selection.length, run: () => deleteSelected(activeId()!) },
+  { id: "edit.paste", perm: "annotate", label: "Paste", icon: ic(Clipboard), shortcut: "Mod+V", needsDoc: true, enabled: () => hasAnnotClipboard(), run: () => pasteAnnots(activeId()!) },
+  { id: "edit.duplicate", perm: "annotate", label: "Duplicate", icon: ic(Copy), shortcut: "Mod+Shift+D", needsDoc: true, enabled: () => !!getActiveDoc()?.selection.length, run: () => duplicateSelected(activeId()!) },
+  { id: "edit.delete", perm: "annotate", label: "Delete", icon: ic(Trash2), shortcut: "Delete", needsDoc: true, enabled: () => !!getActiveDoc()?.selection.length, run: () => deleteSelected(activeId()!) },
   { id: "edit.selectAll", label: "Select all comments on page", needsDoc: true, run: () => selectAllOnPage(activeId()!) },
   {
     id: "edit.find",
@@ -212,11 +218,11 @@ const commands: Command[] = [
   { id: "tool.select", label: "Select", icon: ic(MousePointer2), shortcut: "V", needsDoc: true, checked: () => getApp().tool === "select", run: tool("select") },
   { id: "tool.hand", label: "Hand", icon: ic(Hand), shortcut: "H", needsDoc: true, checked: () => getApp().tool === "hand", run: tool("hand") },
   { id: "tool.snapshot", label: "Take a snapshot", icon: ic(Camera), needsDoc: true, run: tool("snapshot") },
-  { id: "tool.note", label: "Sticky note", shortcut: "N", needsDoc: true, run: () => enterTool("comment", "note") },
-  { id: "tool.highlight", label: "Highlight text", shortcut: "U", needsDoc: true, run: () => enterTool("comment", "highlight") },
-  { id: "tool.freetext", label: "Text box", shortcut: "T", needsDoc: true, run: () => enterTool("comment", "freetext") },
-  { id: "tool.ink", label: "Draw", shortcut: "D", needsDoc: true, run: () => enterTool("comment", "ink") },
-  { id: "tool.rect", label: "Rectangle", shortcut: "R", needsDoc: true, run: () => enterTool("comment", "rect") },
+  { id: "tool.note", perm: "annotate", label: "Sticky note", shortcut: "N", needsDoc: true, run: () => enterTool("comment", "note") },
+  { id: "tool.highlight", perm: "annotate", label: "Highlight text", shortcut: "U", needsDoc: true, run: () => enterTool("comment", "highlight") },
+  { id: "tool.freetext", perm: "annotate", label: "Text box", shortcut: "T", needsDoc: true, run: () => enterTool("comment", "freetext") },
+  { id: "tool.ink", perm: "annotate", label: "Draw", shortcut: "D", needsDoc: true, run: () => enterTool("comment", "ink") },
+  { id: "tool.rect", perm: "annotate", label: "Rectangle", shortcut: "R", needsDoc: true, run: () => enterTool("comment", "rect") },
   { id: "mode.view", label: "View", needsDoc: true, checked: () => getActiveDoc()?.mode === "view", run: mode("view") },
   { id: "mode.comment", label: "Comment", needsDoc: true, checked: () => getActiveDoc()?.mode === "comment", run: mode("comment") },
   { id: "mode.fillsign", label: "Fill & Sign", needsDoc: true, checked: () => getActiveDoc()?.mode === "fillsign", run: mode("fillsign") },
@@ -227,31 +233,31 @@ const commands: Command[] = [
   { id: "mode.measure", label: "Measure", needsDoc: true, checked: () => getActiveDoc()?.mode === "measure", run: mode("measure") },
   { id: "mode.protect", label: "Protect", needsDoc: true, checked: () => getActiveDoc()?.mode === "protect", run: mode("protect") },
   { id: "tool.compare", label: "Compare files", needsDoc: false, run: () => openDialog("compare-setup", { docId: activeId() }) },
-  { id: "tool.compress", label: "Compress PDF", needsDoc: true, run: () => openDialog("compress", { docId: activeId() }) },
-  { id: "tool.ocr", label: "Recognize text (OCR)", needsDoc: true, run: () => openDialog("ocr", { docId: activeId() }) },
-  { id: "tool.export", label: "Export PDF", needsDoc: true, run: () => openDialog("export", { docId: activeId() }) },
-  { id: "tool.split", label: "Split document", needsDoc: true, run: () => openDialog("split", { docId: activeId() }) },
-  { id: "tool.insertPages", label: "Insert pages", needsDoc: true, run: () => openDialog("insert-pages", { docId: activeId() }) },
-  { id: "tool.extractPages", label: "Extract pages", needsDoc: true, run: () => openDialog("extract-pages", { docId: activeId() }) },
-  { id: "tool.watermark", label: "Watermark", needsDoc: true, run: () => openDialog("watermark", { docId: activeId() }) },
-  { id: "tool.headerFooter", label: "Header & footer", needsDoc: true, run: () => openDialog("header-footer", { docId: activeId() }) },
-  { id: "tool.background", label: "Background", needsDoc: true, run: () => openDialog("background", { docId: activeId() }) },
-  { id: "tool.bates", label: "Bates numbering", needsDoc: true, run: () => openDialog("bates", { docId: activeId() }) },
-  { id: "tool.pageNumbers", label: "Add page numbers", needsDoc: true, run: () => openDialog("page-numbers", { docId: activeId() }) },
-  { id: "tool.crop", label: "Crop pages", icon: ic(Crop), needsDoc: true, run: () => enterTool("edit", "crop") },
-  { id: "tool.link", label: "Add or edit links", icon: ic(Link2), needsDoc: true, run: () => enterTool("edit", "link") },
-  { id: "tool.protect", label: "Protect with password", needsDoc: true, run: () => openDialog("protect", { docId: activeId() }) },
+  { id: "tool.compress", perm: "modify", label: "Compress PDF", needsDoc: true, run: () => openDialog("compress", { docId: activeId() }) },
+  { id: "tool.ocr", perm: "modify", label: "Recognize text (OCR)", needsDoc: true, run: () => openDialog("ocr", { docId: activeId() }) },
+  { id: "tool.export", perm: "copy", label: "Export PDF", needsDoc: true, run: () => openDialog("export", { docId: activeId() }) },
+  { id: "tool.split", perm: "assemble", label: "Split document", needsDoc: true, run: () => openDialog("split", { docId: activeId() }) },
+  { id: "tool.insertPages", perm: "assemble", label: "Insert pages", needsDoc: true, run: () => openDialog("insert-pages", { docId: activeId() }) },
+  { id: "tool.extractPages", perm: "assemble", label: "Extract pages", needsDoc: true, run: () => openDialog("extract-pages", { docId: activeId() }) },
+  { id: "tool.watermark", perm: "modify", label: "Watermark", needsDoc: true, run: () => openDialog("watermark", { docId: activeId() }) },
+  { id: "tool.headerFooter", perm: "modify", label: "Header & footer", needsDoc: true, run: () => openDialog("header-footer", { docId: activeId() }) },
+  { id: "tool.background", perm: "modify", label: "Background", needsDoc: true, run: () => openDialog("background", { docId: activeId() }) },
+  { id: "tool.bates", perm: "modify", label: "Bates numbering", needsDoc: true, run: () => openDialog("bates", { docId: activeId() }) },
+  { id: "tool.pageNumbers", perm: "modify", label: "Add page numbers", needsDoc: true, run: () => openDialog("page-numbers", { docId: activeId() }) },
+  { id: "tool.crop", perm: "modify", label: "Crop pages", icon: ic(Crop), needsDoc: true, run: () => enterTool("edit", "crop") },
+  { id: "tool.link", perm: "modify", label: "Add or edit links", icon: ic(Link2), needsDoc: true, run: () => enterTool("edit", "link") },
+  { id: "tool.protect", perm: "owner", label: "Protect with password", needsDoc: true, run: () => openDialog("protect", { docId: activeId() }) },
   { id: "tool.removeSecurity", label: "Remove security", needsDoc: true, run: () => openDialog("remove-security", { docId: activeId() }) },
-  { id: "tool.sanitize", label: "Remove hidden information", needsDoc: true, run: () => openDialog("sanitize", { docId: activeId() }) },
-  { id: "tool.flatten", label: "Flatten comments & forms", needsDoc: true, run: () => openDialog("flatten", { docId: activeId() }) },
-  { id: "tool.stamps", label: "Stamps", needsDoc: true, run: () => enterTool("comment", "stamp") },
+  { id: "tool.sanitize", perm: "modify", label: "Remove hidden information", needsDoc: true, run: () => openDialog("sanitize", { docId: activeId() }) },
+  { id: "tool.flatten", perm: "modify", label: "Flatten comments & forms", needsDoc: true, run: () => openDialog("flatten", { docId: activeId() }) },
+  { id: "tool.stamps", perm: "annotate", label: "Stamps", needsDoc: true, run: () => enterTool("comment", "stamp") },
   { id: "tool.signatures", label: "Manage signatures", needsDoc: false, run: () => openDialog("signature", { kind: "signature" }) },
-  { id: "tool.importComments", label: "Import comments (XFDF)…", needsDoc: true, run: async () => (await import("../annotations/xfdf")).importCommentsFromFile(activeId()!) },
+  { id: "tool.importComments", perm: "annotate", label: "Import comments (XFDF)…", needsDoc: true, run: async () => (await import("../annotations/xfdf")).importCommentsFromFile(activeId()!) },
   { id: "tool.exportComments", label: "Export comments (XFDF)", needsDoc: true, run: async () => (await import("../annotations/xfdf")).exportCommentsToFile(activeId()!) },
   { id: "tool.summarizeComments", label: "Summarize comments", needsDoc: true, run: async () => (await import("../ops/commentSummary")).summarizeComments(activeId()!) },
   { id: "tool.exportFormData", label: "Export form data…", needsDoc: true, run: () => openDialog("form-data", { docId: activeId(), mode: "export" }) },
-  { id: "tool.importFormData", label: "Import form data…", needsDoc: true, run: () => openDialog("form-data", { docId: activeId(), mode: "import" }) },
-  { id: "tool.resetForm", label: "Clear form", needsDoc: true, run: async () => (await import("../ops/forms")).resetForm(activeId()!) },
+  { id: "tool.importFormData", perm: "fillForms", label: "Import form data…", needsDoc: true, run: () => openDialog("form-data", { docId: activeId(), mode: "import" }) },
+  { id: "tool.resetForm", perm: "fillForms", label: "Clear form", needsDoc: true, run: async () => (await import("../ops/forms")).resetForm(activeId()!) },
   { id: "help.shortcuts", label: "Keyboard shortcuts", icon: ic(Keyboard), shortcut: "Shift+?", run: () => openDialog("shortcuts") },
   { id: "help.about", label: "About Folio", icon: ic(Info), run: () => openDialog("about") },
 ];
@@ -266,9 +272,13 @@ function setLayout(scroll: number, spread: number) {
 export function enterTool(m: Mode, t: ToolId) {
   const id = activeId();
   if (!id) return;
-  const doc = getActiveDoc()!;
-  if (doc.mode !== m) setMode(id, m);
-  setTool(t);
+  const go = () => {
+    if (getActiveDoc()?.mode !== m) setMode(id, m);
+    setTool(t);
+  };
+  const perm = MODE_PERMISSION[m];
+  if (perm) void withPermission(id, perm, go);
+  else go();
 }
 
 const byId = new Map(commands.map((c) => [c.id, c]));
@@ -288,10 +298,14 @@ export function isEnabled(c: Command): boolean {
 export function runCommand(id: string) {
   const c = getCommand(id);
   if (!isEnabled(c)) return;
-  Promise.resolve(c.run()).catch((e) => {
-    console.error(e);
-    toast(e instanceof Error ? e.message : String(e), "error");
-  });
+  const run = () =>
+    Promise.resolve(c.run()).catch((e) => {
+      console.error(e);
+      toast(e instanceof Error ? e.message : String(e), "error");
+    });
+  const docId = activeId();
+  if (c.perm && c.needsDoc && docId) void withPermission(docId, c.perm, run);
+  else void run();
 }
 
 export function allCommands() {

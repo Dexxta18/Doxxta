@@ -6,6 +6,7 @@ import { writeAnnotations } from "../annotations/writer";
 import { hexToPdf } from "../lib/colors";
 import { downloadBytes, errorMessage, withExt } from "../lib/util";
 import { pdfjs } from "../lib/pdfjs";
+import { keepOriginalEncryption, savePdf } from "../lib/security";
 
 export interface BuildOptions {
   /** Draw annotations into the page content. */
@@ -91,8 +92,8 @@ export async function buildPdf(docId: string, opts: BuildOptions = {}): Promise<
   pdfDoc.setModificationDate(new Date());
   if (!pdfDoc.getProducer()) pdfDoc.setProducer("Folio PDF");
 
-  applySecurity(pdfDoc, doc.security, opts.security ?? "keep");
-  return pdfDoc.save({ useObjectStreams: true });
+  await applySecurity(pdfDoc, docId, doc.security, opts.security ?? "keep");
+  return savePdf(pdfDoc);
 }
 
 /** After removing pages, put the remaining ones in the requested order. */
@@ -110,7 +111,7 @@ function reorderPages(pdfDoc: PDFDocument, order: number[]) {
 
 const PERM = (pdfjs as unknown as { PermissionFlag: Record<string, number> }).PermissionFlag;
 
-function applySecurity(pdfDoc: PDFDocument, sec: SecurityInfo, mode: BuildOptions["security"]) {
+async function applySecurity(pdfDoc: PDFDocument, docId: string, sec: SecurityInfo, mode: BuildOptions["security"]) {
   const pending = mode === "keep" ? sec.pending : mode === "none" ? { kind: "remove" as const } : mode;
   if (pending?.kind === "remove") return;
   if (pending?.kind === "encrypt") {
@@ -119,16 +120,20 @@ function applySecurity(pdfDoc: PDFDocument, sec: SecurityInfo, mode: BuildOption
       ownerPassword: pending.ownerPassword || pending.userPassword || randomPassword(),
       permissions: pending.permissions as never,
       algorithm: pending.algorithm as never,
+      allowWeakCryptography: pending.algorithm.startsWith("RC4"),
     });
     return;
   }
   if (!sec.encrypted) return;
-  // Re-apply the original protection with the same open password and restrictions.
+  // Keep the original encryption so its owner password stays valid.
+  const original = getRuntime(docId)?.originalBytes;
+  if (original && (await keepOriginalEncryption(pdfDoc, original, sec.password ?? ""))) return;
+  // Otherwise re-apply the same open password and restrictions.
   const allowed = sec.permissions ? new Set(sec.permissions) : null;
   const has = (flag: string) => !allowed || allowed.has(PERM[flag]);
   pdfDoc.encrypt({
     userPassword: sec.password ?? "",
-    ownerPassword: allowed ? randomPassword() : sec.password || randomPassword(),
+    ownerPassword: sec.ownerPassword || (allowed ? randomPassword() : sec.password || randomPassword()),
     permissions: {
       printing: has("PRINT") ? (has("PRINT_HIGH_QUALITY") ? "highResolution" : "lowResolution") : false,
       modifying: has("MODIFY_CONTENTS"),
@@ -184,6 +189,26 @@ export function writeOutline(pdfDoc: PDFDocument, nodes: OutlineNode[], pageIds:
   pdfDoc.catalog.set(PDFName.of("Outlines"), rootRef);
 }
 
+/** The document's protection once pending changes have been written. */
+function securityAfterSave(sec: SecurityInfo): SecurityInfo {
+  const p = sec.pending;
+  if (!p) return sec;
+  if (p.kind === "remove") return { encrypted: false, filter: null, permissions: null };
+  const allow = p.permissions;
+  const flags = [
+    allow.printing && PERM.PRINT,
+    allow.printing === "highResolution" && PERM.PRINT_HIGH_QUALITY,
+    allow.modifying && PERM.MODIFY_CONTENTS,
+    allow.copying && PERM.COPY,
+    allow.annotating && PERM.MODIFY_ANNOTATIONS,
+    allow.fillingForms && PERM.FILL_INTERACTIVE_FORMS,
+    allow.contentAccessibility && PERM.COPY_FOR_ACCESSIBILITY,
+    allow.documentAssembly && PERM.ASSEMBLE,
+  ].filter((f): f is number => typeof f === "number");
+  // Whoever set the passwords keeps full access for this session.
+  return { encrypted: true, filter: "Standard", password: p.userPassword, ownerPassword: p.ownerPassword || p.userPassword, permissions: flags.length === 8 ? null : flags, unlocked: true };
+}
+
 function markSaved(docId: string, bytes: Uint8Array, name?: string) {
   const rt = getRuntime(docId);
   if (rt) rt.originalBytes = bytes;
@@ -192,7 +217,7 @@ function markSaved(docId: string, bytes: Uint8Array, name?: string) {
     savedAt: new Date().toISOString(),
     fileSize: bytes.length,
     name: name ?? d.name,
-    security: { ...d.security, pending: undefined, ...(d.security.pending?.kind === "remove" ? { encrypted: false, permissions: null, password: undefined } : {}), ...(d.security.pending?.kind === "encrypt" ? { encrypted: true, password: d.security.pending.userPassword } : {}) },
+    security: securityAfterSave(d.security),
   }));
 }
 

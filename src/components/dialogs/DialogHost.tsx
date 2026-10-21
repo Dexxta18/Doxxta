@@ -40,6 +40,7 @@ const REGISTRY: Record<string, Lazy> = {
   "link-view": L(() => import("./LinkDialog").then((m) => ({ default: m.LinkViewPicker }))),
   protect: L(() => import("./ProtectDialog")),
   "remove-security": L(() => import("./ProtectDialog").then((m) => ({ default: m.RemoveSecurityDialog }))),
+  "permissions-password": L(() => import("./ProtectDialog").then((m) => ({ default: m.PermissionsPasswordDialog }))),
   sanitize: L(() => import("./SanitizeDialog")),
   flatten: L(() => import("./SanitizeDialog").then((m) => ({ default: m.FlattenDialog }))),
   signature: L(() => import("./SignatureDialog")),

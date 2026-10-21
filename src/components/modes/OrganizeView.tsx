@@ -32,7 +32,7 @@ import {
   reversePages,
   rotatePages,
 } from "../../ops/organize";
-import { isImageFile, isPdfFile, pickFiles, readFileBytes } from "../../lib/util";
+import { isImageFile, isPdfFile, pickFiles, plural, readFileBytes } from "../../lib/util";
 import { formatPageRanges } from "../../lib/pageRanges";
 
 export default function OrganizeView({ docId, onClose }: { docId: string; onClose: () => void }) {
@@ -132,7 +132,7 @@ export default function OrganizeView({ docId, onClose }: { docId: string; onClos
             <X size={13} />
           </button>
         </span>
-        <span className="faint organize-count">{hasSel ? `${sel.length} of ${count} selected (${formatPageRanges(sel)})` : `${count} pages`}</span>
+        <span className="faint organize-count">{hasSel ? `${sel.length} of ${count} selected (${formatPageRanges(sel)})` : plural(count, "page")}</span>
         <span className="toolbar-sep" />
         <button
           className="toolbar-text-btn"

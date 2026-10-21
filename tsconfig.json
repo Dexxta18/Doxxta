@@ -15,7 +15,10 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "useDefineForClassFields": true,
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "paths": {
+      "pdf-lib-crypto": ["./node_modules/@cantoo/pdf-lib/es/core/crypto.d.ts"]
+    }
   },
   "include": ["src"]
 }

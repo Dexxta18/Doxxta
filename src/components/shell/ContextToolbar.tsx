@@ -61,7 +61,8 @@ import {
   Layers,
   FileDown,
 } from "lucide-react";
-import { getApp, openDialog, setMode, setTool, useApp } from "../../state/store";
+import { getApp, openDialog, setMode, setTool as selectTool, useApp } from "../../state/store";
+import { MODE_PERMISSION, withPermission } from "../../core/permissions";
 import { useSettings, useToolStyle, type SavedSignature } from "../../state/settings";
 import type { Mode, ToolId } from "../../state/types";
 import { IconButton } from "../ui/Button";
@@ -161,6 +162,16 @@ function ToolButtons({ tools }: { tools: ToolDef[] }) {
       ))}
     </>
   );
+}
+
+const FREE_TOOLS = new Set<ToolId>(["select", "hand", "marquee-zoom", "snapshot"]);
+
+/** Picks a tool, asking for the permissions password first on restricted documents. */
+function setTool(t: ToolId, sticky?: boolean) {
+  const { activeId, docs } = getApp();
+  const doc = activeId ? docs[activeId] : undefined;
+  if (!doc || FREE_TOOLS.has(t)) return selectTool(t, sticky);
+  void withPermission(doc.id, MODE_PERMISSION[doc.mode] ?? "annotate", () => selectTool(t, sticky));
 }
 
 const Sep = () => <span className="toolbar-sep" />;

@@ -3,6 +3,7 @@ import { RotateCw, RotateCcw, Trash2, FilePlus2, FileOutput, Copy, ZoomIn, ZoomO
 import { openContextMenu, useApp } from "../../state/store";
 import { getViewer } from "../../state/runtime";
 import { PageThumb } from "./PageThumb";
+import { plural } from "../../lib/util";
 
 export default function ThumbnailsPanel({ docId }: { docId: string }) {
   const pages = useApp((s) => s.docs[docId].pages);
@@ -33,7 +34,7 @@ export default function ThumbnailsPanel({ docId }: { docId: string }) {
   return (
     <div className="thumbs-panel">
       <div className="panel-toolbar">
-        <span className="faint">{pages.length} pages</span>
+        <span className="faint">{plural(pages.length, "page")}</span>
         <span className="spacer" />
         <button className="icon-btn icon-btn-sm" aria-label="Smaller thumbnails" data-tip="Smaller" onClick={() => setSize((s) => Math.max(80, s - 30))}>
           <ZoomOut size={15} />

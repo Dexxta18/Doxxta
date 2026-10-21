@@ -349,3 +349,48 @@
 .pw-strength-3 {
   color: var(--success, #2e7d32);
 }
+
+/* Find text to redact: results */
+.redact-results {
+  max-height: 340px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.redact-results-page + .redact-results-page {
+  border-top: 1px solid var(--border);
+}
+.redact-results-title {
+  position: sticky;
+  top: 0;
+  padding: 6px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-2);
+  background: var(--surface-2);
+}
+.redact-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 12.5px;
+}
+.redact-result:hover {
+  background: var(--surface-hover);
+}
+.redact-result input {
+  margin-top: 2px;
+}
+.redact-result-text {
+  all: unset;
+  cursor: pointer;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.redact-result-text mark {
+  background: rgb(229 56 59 / 0.18);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}

@@ -72,7 +72,7 @@ export function selectionToQuads(pdfViewer: PDFViewer, container: HTMLElement): 
 }
 
 /** Merges client rects that belong to the same visual line. */
-function mergeLineRects(rects: DOMRect[]): DOMRect[] {
+export function mergeLineRects(rects: DOMRect[]): DOMRect[] {
   // Rotated pages produce vertical lines; detect orientation by aspect.
   const vertical = rects.filter((r) => r.height > r.width * 1.5).length > rects.length / 2 && rects.every((r) => r.height > r.width);
   const sorted = [...rects].sort((a, b) => (vertical ? a.left - b.left || a.top - b.top : a.top - b.top || a.left - b.left));

@@ -104,6 +104,7 @@ interface SettingsState {
   selectedSignatureId: string | null;
   selectedInitialsId: string | null;
   customStamps: CustomStamp[];
+  selectedCustomStampId: string | null;
   lastViews: Record<string, { page: number; scaleValue: string }>;
   set: (patch: Partial<Omit<SettingsState, "set" | "setToolStyle">>) => void;
   setToolStyle: (tool: ToolId, patch: Partial<ToolStyle>) => void;
@@ -132,6 +133,7 @@ export const useSettings = create<SettingsState>()(
       selectedSignatureId: null,
       selectedInitialsId: null,
       customStamps: [],
+      selectedCustomStampId: null,
       lastViews: {},
       set: (patch) => set(patch),
       setToolStyle: (tool, patch) =>

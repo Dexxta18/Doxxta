@@ -246,11 +246,21 @@ function StampPicker() {
             <button
               className="stamp-chip stamp-chip-add"
               onClick={() => {
+                useSettings.getState().set({ selectedCustomStampId: null });
                 setTool("image-stamp");
                 setOpen(false);
               }}
             >
               <ImagePlus size={14} /> Image stamp
+            </button>
+            <button
+              className="stamp-chip stamp-chip-add"
+              onClick={() => {
+                setOpen(false);
+                openDialog("custom-stamp");
+              }}
+            >
+              Manage…
             </button>
           </div>
         </div>

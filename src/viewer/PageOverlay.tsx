@@ -400,6 +400,15 @@ function PageOverlayInner({ docId, pageIndex }: { docId: string; pageIndex: numb
       }
       case "image-stamp":
       case "add-image": {
+        if (t === "image-stamp") {
+          const { selectedCustomStampId, customStamps } = useSettings.getState();
+          const stamp = customStamps.find((c) => c.id === selectedCustomStampId);
+          if (stamp) {
+            addAnnotations(docId, [createImage(page.id, p, rotation, stamp.dataUrl, stamp.width, stamp.height, "stamp", 160)], "Add stamp");
+            finishTool();
+            return;
+          }
+        }
         const [file] = await pickFiles("image/*");
         if (!file) return;
         const img = await loadImageFile(file);

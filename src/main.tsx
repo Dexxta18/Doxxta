@@ -8,6 +8,7 @@ import "./styles/shell.css";
 import "./styles/viewer.css";
 import "./styles/panels.css";
 import "./styles/dialogs.css";
+import "./styles/modes.css";
 import App from "./App";
 import { useApp } from "./state/store";
 import { useSettings } from "./state/settings";

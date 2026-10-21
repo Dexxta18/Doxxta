@@ -28,6 +28,12 @@ export type ContextMenuItem =
   | { type: "item"; label: string; icon?: React.ReactNode; shortcut?: string; danger?: boolean; disabled?: boolean; run: () => void }
   | { type: "separator" };
 
+export interface CompareSession {
+  old: { name: string; bytes: Uint8Array };
+  new: { name: string; bytes: Uint8Array };
+  kind: "text" | "visual";
+}
+
 export interface DialogState {
   id: string;
   props?: Record<string, unknown>;
@@ -45,6 +51,8 @@ interface AppState {
   busy: BusyState | null;
   contextMenu: ContextMenuState | null;
   presentation: boolean;
+  /** Compare Files session shown over the workspace. */
+  compare: CompareSession | null;
   readMode: boolean;
   findBarOpen: boolean;
   speaking: boolean;
@@ -78,6 +86,7 @@ export const useApp = create<AppState>()(() => ({
   busy: null,
   contextMenu: null,
   presentation: false,
+  compare: null,
   readMode: false,
   findBarOpen: false,
   speaking: false,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { FileUp } from "lucide-react";
 import { useApp, toast } from "./state/store";
 import { useSettings } from "./state/settings";
@@ -11,6 +11,8 @@ import { useGlobalShortcuts } from "./core/shortcuts";
 import { openBytes, openFile } from "./core/document";
 import { isImageFile, isPdfFile } from "./lib/util";
 import { loadRecent } from "./lib/recent";
+
+const CompareView = lazy(() => import("./components/modes/CompareView"));
 
 function useTheme() {
   const theme = useSettings((s) => s.theme);
@@ -102,6 +104,7 @@ function useLaunchFiles() {
 export default function App() {
   const activeId = useApp((s) => s.activeId);
   const presentation = useApp((s) => s.presentation);
+  const compare = useApp((s) => s.compare);
   useTheme();
   useGlobalShortcuts();
   useLaunchFiles();
@@ -110,7 +113,14 @@ export default function App() {
   return (
     <div className={`app${presentation ? " is-presenting" : ""}`}>
       <TopBar />
-      <main className="main">{activeId ? <Workspace key={activeId} docId={activeId} /> : <HomeScreen />}</main>
+      <main className="main">
+        {activeId ? <Workspace key={activeId} docId={activeId} /> : <HomeScreen />}
+        {compare && (
+          <Suspense fallback={null}>
+            <CompareView />
+          </Suspense>
+        )}
+      </main>
       {dragging && (
         <div className="drop-overlay">
           <div className="drop-overlay-card">

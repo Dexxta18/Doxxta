@@ -318,3 +318,82 @@
   background: rgb(48 164 108 / 0.2);
   text-decoration: none;
 }
+.compare-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  min-width: 0;
+}
+.compare-header strong {
+  max-width: 28ch;
+}
+.compare-header-spacer {
+  flex: 1;
+}
+.compare-summary {
+  font-size: 12.5px;
+  margin-right: 4px;
+}
+.compare-tag {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.compare-tag-old {
+  background: rgb(229 72 77 / 0.14);
+  color: #b4232a;
+}
+.compare-tag-new {
+  background: rgb(48 164 108 / 0.16);
+  color: #1d7a4c;
+}
+.diff-box.rep {
+  background: rgb(47 91 234 / 0.2);
+  outline: 1px solid rgb(47 91 234 / 0.7);
+}
+.diff-box.vis {
+  background: rgb(240 140 0 / 0.18);
+  outline: 1px solid rgb(240 140 0 / 0.8);
+}
+.diff-box.marker {
+  background: rgb(229 72 77 / 0.9);
+  outline: none;
+  min-width: 2px;
+}
+.diff-box.ins.marker {
+  background: rgb(48 164 108 / 0.9);
+}
+.compare-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.change-item.is-active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.change-kind {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+.change-kind-replace {
+  color: var(--accent);
+}
+.change-kind-insert {
+  color: #1d7a4c;
+}
+.change-kind-delete {
+  color: #b4232a;
+}
+.change-kind-visual {
+  color: #b26a00;
+}

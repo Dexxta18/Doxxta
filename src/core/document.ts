@@ -27,7 +27,7 @@ export const IMPORTABLE_PDFJS_TYPES = [
 ];
 
 /** Asks the user for a password through the password dialog. */
-function promptPassword(fileName: string) {
+export function promptPassword(fileName: string) {
   return (reason: "need" | "incorrect") =>
     new Promise<string | null>((resolve) => {
       openDialog("password", { fileName, reason, resolve });

@@ -13,6 +13,8 @@ import { isImageFile, isPdfFile } from "./lib/util";
 import { loadRecent } from "./lib/recent";
 
 const CompareView = lazy(() => import("./components/modes/CompareView"));
+const SpeechBar = lazy(() => import("./components/shell/SpeechBar"));
+const Presentation = lazy(() => import("./components/modes/Presentation"));
 
 function useTheme() {
   const theme = useSettings((s) => s.theme);
@@ -105,6 +107,7 @@ export default function App() {
   const activeId = useApp((s) => s.activeId);
   const presentation = useApp((s) => s.presentation);
   const compare = useApp((s) => s.compare);
+  const speaking = useApp((s) => s.speaking);
   useTheme();
   useGlobalShortcuts();
   useLaunchFiles();
@@ -129,6 +132,16 @@ export default function App() {
             <span className="muted">PDFs open in new tabs · images become a new PDF</span>
           </div>
         </div>
+      )}
+      {speaking && (
+        <Suspense fallback={null}>
+          <SpeechBar />
+        </Suspense>
+      )}
+      {presentation && (
+        <Suspense fallback={null}>
+          <Presentation />
+        </Suspense>
       )}
       <DialogHost />
       <ContextMenuHost />

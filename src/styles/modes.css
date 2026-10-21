@@ -397,3 +397,12 @@
 .change-kind-visual {
   color: #b26a00;
 }
+.speech-select {
+  height: 28px;
+  width: auto;
+  padding: 0 24px 0 8px;
+  font-size: 12px;
+}
+.speech-voice {
+  max-width: 150px;
+}

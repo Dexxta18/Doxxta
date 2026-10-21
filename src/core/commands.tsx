@@ -192,7 +192,7 @@ const commands: Command[] = [
       else document.documentElement.requestFullscreen().catch(() => toast("Full screen is not available", "warning"));
     },
   },
-  { id: "view.presentation", label: "Presentation mode", icon: ic(Presentation), shortcut: "F5", needsDoc: true, run: async () => (await import("../components/modes/presentation")).startPresentation() },
+  { id: "view.presentation", label: "Presentation mode", icon: ic(Presentation), shortcut: "F5", needsDoc: true, run: async () => (await import("../components/modes/presentationMode")).startPresentation() },
   { id: "view.readMode", label: "Read mode", icon: ic(Expand), shortcut: "Mod+H", needsDoc: true, checked: () => getApp().readMode, run: () => useApp.setState((s) => ({ readMode: !s.readMode })) },
   { id: "view.toolsPanel", label: "Tools panel", shortcut: "F3", checked: () => useSettings.getState().toolsPanelOpen, run: () => useSettings.getState().set({ toolsPanelOpen: !useSettings.getState().toolsPanelOpen }) },
   {

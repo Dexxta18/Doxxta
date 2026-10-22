@@ -22,6 +22,10 @@ contextBridge.exposeInMainWorld("doxxtaDesktop", {
       return null;
     }
   },
+  /** Fonts installed on the computer that may be embedded in documents: { id, family, weight, italic, noSubset }. */
+  systemFonts: () => ipcRenderer.invoke("doxxta:system-fonts"),
+  /** One of those fonts' file. */
+  fontFile: (id) => ipcRenderer.invoke("doxxta:font-file", id),
   /** Files opened with Doxxta from the operating system (also those that arrived before the page loaded). */
   onOpenFiles: (callback) => {
     ipcRenderer.on("doxxta:open-files", (_event, files) => callback(files));

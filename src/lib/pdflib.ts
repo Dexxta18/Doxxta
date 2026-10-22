@@ -16,6 +16,7 @@ import {
   type PDFPage,
 } from "@cantoo/pdf-lib";
 import { rotationMatrix, type Matrix } from "./geometry";
+import type { FontFile } from "./fontMatch";
 
 export * from "@cantoo/pdf-lib";
 
@@ -289,6 +290,10 @@ export function addPageResource(page: PDFPage, kind: "Font" | "XObject" | "ExtGS
     dict = ctx.obj({});
     resources.set(PDFName.of(kind), dict);
   }
+  // The page may list it already (a font of the page's own text).
+  for (const [key, value] of dict.entries()) {
+    if (value === ref || (value instanceof PDFRef && ref instanceof PDFRef && value.tag === ref.tag)) return key.decodeText();
+  }
   let i = 1;
   while (dict.has(PDFName.of(`${prefix}${i}`))) i++;
   const name = `${prefix}${i}`;
@@ -325,48 +330,32 @@ const STD: Record<FontKey, StandardFonts> = {
   "Courier-BoldOblique": StandardFonts.CourierBoldOblique,
 };
 
-const fontFiles = new Map<string, Promise<Uint8Array>>();
-
-/** A bundled font file: Liberation Sans comes with pdf.js, the other fonts are in public/fonts. */
-function fontFile(name: string): Promise<Uint8Array> {
-  let bytes = fontFiles.get(name);
-  if (!bytes) {
-    const dir = name.startsWith("LiberationSans-") ? "vendor/pdfjs/standard_fonts/" : "fonts/";
-    const url = new URL(`${import.meta.env.BASE_URL}${dir}${name}.ttf`, document.baseURI).href;
-    bytes = fetch(url).then(async (r) => {
-      if (!r.ok) throw new Error(`The font ${name} couldn't be loaded.`);
-      return new Uint8Array(await r.arrayBuffer());
-    });
-    bytes.catch(() => fontFiles.delete(name));
-    fontFiles.set(name, bytes);
-  }
-  return bytes;
-}
-
-/** Open fonts with the same character widths as fonts documents often use. */
-const LOOKALIKES: [RegExp, string][] = [
-  [/calibri|carlito/i, "Carlito"],
-  [/cambria|caladea/i, "Caladea"],
-  [/arial|helvetica|arimo|liberation ?sans|nimbus ?sans/i, "LiberationSans"],
-  [/times|tinos|liberation ?serif|nimbus ?rom/i, "LiberationSerif"],
-  [/courier|cousine|liberation ?mono|nimbus ?mono/i, "LiberationMono"],
-];
-
 /** A document font, as far as it matters for finding one like it. */
 export interface FontLook {
   /** PostScript name, e.g. "Calibri-Bold". */
   name: string;
+  /** Family when known otherwise, e.g. "Calibri". */
+  familyName?: string;
   family: "serif" | "sans-serif" | "monospace";
+  /** 100–900, when known; otherwise from `bold`. */
+  weight?: number;
   bold: boolean;
   italic: boolean;
 }
 
-const variant = (bold: boolean, italic: boolean) => (bold && italic ? "BoldItalic" : bold ? "Bold" : italic ? "Italic" : "Regular");
+/** A font to write text in like a document's font. */
+export interface LikeFont {
+  font: PDFFont;
+  /** The family has no italics: slant the text. */
+  slant: boolean;
+  /** The family has nothing as heavy: embolden the text. */
+  embolden: boolean;
+}
 
 /** Per-document font cache: standard 14 fonts, plus embedded fonts for other text. */
 export class FontCache {
   private std = new Map<string, PDFFont>();
-  private embedded = new Map<string, Promise<PDFFont>>();
+  private faces = new Map<string, Promise<PDFFont>>();
   constructor(private doc: PDFDocument) {}
 
   get(name: FontKey): PDFFont {
@@ -378,41 +367,46 @@ export class FontCache {
     return f;
   }
 
-  /** A font able to encode `text`: the requested standard font, or Liberation Sans. */
+  /** A font able to encode `text`: the requested standard font, or the Liberation font with its widths. */
   async forText(name: FontKey, text: string): Promise<PDFFont> {
     const std = this.get(name);
     if (canEncode(std, text)) return std;
-    return this.embed(`LiberationSans-${variant(/Bold/.test(name), /Italic|Oblique/.test(name))}`);
+    const { builtInFace } = await import("./fontMatch");
+    const kind = name.startsWith("Times") ? "serif" : name.startsWith("Courier") ? "monospace" : "sans-serif";
+    return this.embedFace(builtInFace(kind, /Bold/.test(name), /Italic|Oblique/.test(name)));
   }
 
   /**
-   * A font that looks like a document's font and can show `text`: one with the same widths
-   * when there is one (Carlito for Calibri, Liberation Sans for Arial…), otherwise one of
-   * the same kind (serif, sans-serif or monospace), in the same weight and slant.
+   * A font that looks like a document's font and can show `text` (see fontMatch.ts): the same
+   * font installed on the computer, the same family from the app's library, a stand-in made
+   * for it (Carlito for Calibri…), or the closest one by kind and weight.
    */
-  async like(look: FontLook, text: string): Promise<PDFFont> {
-    const base = LOOKALIKES.find(([re]) => re.test(look.name))?.[1] ?? (look.family === "serif" ? "LiberationSerif" : look.family === "monospace" ? "LiberationMono" : "LiberationSans");
-    const std = fontKeyFor(base === "LiberationSerif" || base === "Caladea" ? "Times" : base === "LiberationMono" ? "Courier" : "Helvetica", look.bold, look.italic);
+  async like(look: FontLook, text: string): Promise<LikeFont> {
     try {
-      const font = await this.embed(`${base}-${variant(look.bold, look.italic)}`);
+      const { matchFont } = await import("./fontMatch");
+      const choice = await matchFont(look);
+      const font = await this.embedFace(choice.file);
       const chars = new Set(font.getCharacterSet());
-      if ([...text].every((ch) => /\s/.test(ch) || chars.has(ch.codePointAt(0)!))) return font;
+      if ([...text].every((ch) => /\s/.test(ch) || chars.has(ch.codePointAt(0)!))) return { font, slant: choice.slant, embolden: choice.embolden };
     } catch {
-      // The font file couldn't be loaded: use a standard font.
+      // The font couldn't be loaded: use a standard font.
     }
-    return this.forText(std, text);
+    const kind = look.family === "serif" ? "Times" : look.family === "monospace" ? "Courier" : "Helvetica";
+    return { font: await this.forText(fontKeyFor(kind, (look.weight ?? (look.bold ? 700 : 400)) >= 600, look.italic), text), slant: false, embolden: false };
   }
 
-  private embed(file: string): Promise<PDFFont> {
-    let font = this.embedded.get(file);
+  /** Embeds a font from the library or the computer (whole, when its license asks for that). */
+  embedFace(file: FontFile): Promise<PDFFont> {
+    const id = `${file.source}:${file.ref}`;
+    let font = this.faces.get(id);
     if (!font) {
       font = (async () => {
-        const fontkit = (await import("@cantoo/fontkit")).default;
+        const [{ default: fontkit }, { fontBytes }] = await Promise.all([import("@cantoo/fontkit"), import("./fontMatch")]);
         this.doc.registerFontkit(fontkit as never);
-        return this.doc.embedFont(await fontFile(file), { subset: true });
+        return this.doc.embedFont(await fontBytes(file), { subset: !file.noSubset });
       })();
-      font.catch(() => this.embedded.delete(file));
-      this.embedded.set(file, font);
+      font.catch(() => this.faces.delete(id));
+      this.faces.set(id, font);
     }
     return font;
   }

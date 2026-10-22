@@ -1,8 +1,9 @@
-import { PDFArray, PDFDict, PDFName, PDFNumber, PDFRawStream, PDFRef, PDFStream, addContentStream, addPageResource, displayFrame, fontKeyFor, setPageContent, type FontCache, type PDFDocument, type PDFFont, type PDFObject, type PDFPage } from "../lib/pdflib";
+import { PDFArray, PDFDict, PDFHexString, PDFName, PDFNumber, PDFRawStream, PDFRef, PDFStream, PDFString, addContentStream, addPageResource, displayFrame, fontKeyFor, setPageContent, type FontCache, type PDFDocument, type PDFFont, type PDFObject, type PDFPage } from "../lib/pdflib";
 import { PName, PString, parseContent, serializeContent, type Op, type Operand } from "../lib/contentStream";
 import { decodeImage, decodeStencil, decodeStreamData, encodeImage, encodeStencil, isImageMask } from "../lib/pdfImages";
 import { IDENTITY, apply, invert, multiply, type Matrix, type Point } from "../lib/geometry";
 import { encodingTable, glyphUnicode, standardFontName, stdGlyphWidth } from "../lib/fontMetrics";
+import { parseFontName } from "../lib/fontNames";
 import { fmt, hexToPdf } from "../lib/colors";
 
 /**
@@ -51,6 +52,10 @@ export interface PageGlyph {
 export interface FontStyle {
   /** BaseFont without the subset prefix, e.g. "Calibri-Bold". */
   name: string;
+  /** Family read from the name (or the font descriptor), e.g. "Calibri"; empty when unknown. */
+  familyName: string;
+  /** 100–900. */
+  weight: number;
   bold: boolean;
   italic: boolean;
   family: "serif" | "sans-serif" | "monospace";
@@ -221,14 +226,20 @@ function fontStyleOf(c: Ctx, f: PDFDict): FontStyle {
     const kid = kids instanceof PDFArray ? c.lookup(kids.get(0)) : undefined;
     desc = kid instanceof PDFDict ? c.lookup(kid.get(PDFName.of("FontDescriptor"))) : undefined;
   }
-  const flags = desc instanceof PDFDict ? numOf(c.lookup(desc.get(PDFName.of("Flags")))) : 0;
-  const weight = desc instanceof PDFDict ? numOf(c.lookup(desc.get(PDFName.of("FontWeight")))) : 0;
-  const angle = desc instanceof PDFDict ? numOf(c.lookup(desc.get(PDFName.of("ItalicAngle")))) : 0;
+  const descNum = (key: string) => (desc instanceof PDFDict ? numOf(c.lookup(desc.get(PDFName.of(key)))) : 0);
+  const flags = descNum("Flags");
+  const angle = descNum("ItalicAngle");
+  const parsed = parseFontName(base);
+  const descFamily = desc instanceof PDFDict ? c.lookup(desc.get(PDFName.of("FontFamily"))) : undefined;
+  // Weight: from the name ("-LightItalic", "-SemiBold"), else the descriptor's /FontWeight, its
+  // ForceBold flag, or a thick stem.
+  const declared = descNum("FontWeight");
+  const weight = parsed.weight ?? (declared >= 100 && declared <= 1000 ? declared : (flags & 262144) !== 0 || descNum("StemV") >= 135 ? 700 : 400);
+  const italic = parsed.italic || angle !== 0 || (flags & 64) !== 0;
   const n = base.toLowerCase();
-  const bold = /bold|black|heavy|semibold|demi|extrab/.test(n) || weight >= 600 || (flags & 262144) !== 0;
-  const italic = /italic|oblique/.test(n) || angle !== 0 || (flags & 64) !== 0;
-  const family = /courier|mono|consol|menlo|typewriter/.test(n) || (flags & 1) !== 0 ? "monospace" : !/sans|arial|helvet|calibri|verdana|tahoma/.test(n) && (/times|roman|serif|georgia|garamond|cambria|book|minion|palatino|caslon/.test(n) || (flags & 2) !== 0) ? "serif" : "sans-serif";
-  return { name: base, bold, italic, family };
+  const family = /courier|mono|consol|menlo|typewriter|code/.test(n) || (flags & 1) !== 0 ? "monospace" : !/sans|arial|helvet|calibri|verdana|tahoma|gothic|grotesk/.test(n) && (/times|roman|serif|georgia|garamond|cambria|book|minion|palatino|caslon|baskerville|bodoni|merriweather|playfair|lora|slab/.test(n) || (flags & 2) !== 0) ? "serif" : "sans-serif";
+  const familyName = parsed.family || (descFamily instanceof PDFString || descFamily instanceof PDFHexString ? descFamily.decodeText() : "");
+  return { name: base, familyName, weight, bold: weight >= 600, italic, family };
 }
 
 /** Parses a ToUnicode CMap (bfchar / bfrange). */

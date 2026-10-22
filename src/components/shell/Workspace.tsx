@@ -16,7 +16,7 @@ import { consumePendingCommand } from "./HomeScreen";
 const OrganizeView = lazy(() => import("../modes/OrganizeView"));
 
 const MODE_HINTS: Partial<Record<string, string>> = {
-  "edit-text": "Click a paragraph to edit its text. Changes are written into the page when you save.",
+  "edit-text": "Click a paragraph to edit its text. Format it with the toolbar, or Ctrl+B, Ctrl+I and Ctrl+U as in Word.",
   crop: "Drag a rectangle around the area to keep.",
   link: "Drag a rectangle over the area that should become a link. Double-click a link to change it.",
   "redact-area": "Drag to mark areas for redaction, then click Apply redactions.",

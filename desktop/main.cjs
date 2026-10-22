@@ -201,6 +201,152 @@ handle("doxxta:download", async (address) => {
   }
 });
 
+// ----- Fonts installed on the computer -----
+// Edit text writes new text in the font a document uses, so when that font is installed here
+// the window may use it. Only fonts whose license allows embedding them in documents are
+// listed, and the window can only read the fonts in this list.
+
+function fontFolders() {
+  const home = app.getPath("home");
+  if (process.platform === "win32") {
+    return [path.join(process.env.WINDIR || "C:\\Windows", "Fonts"), path.join(process.env.LOCALAPPDATA || path.join(home, "AppData", "Local"), "Microsoft", "Windows", "Fonts")];
+  }
+  if (process.platform === "darwin") return ["/System/Library/Fonts", "/Library/Fonts", path.join(home, "Library", "Fonts")];
+  return ["/usr/share/fonts", "/usr/local/share/fonts", path.join(home, ".local", "share", "fonts"), path.join(home, ".fonts")];
+}
+
+async function fontFilesIn(dir, depth = 0, out = []) {
+  let entries = [];
+  try {
+    entries = await fs.promises.readdir(dir, { withFileTypes: true });
+  } catch {
+    return out;
+  }
+  for (const e of entries) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory() && depth < 5) await fontFilesIn(p, depth + 1, out);
+    else if (/\.(ttf|otf|ttc)$/i.test(e.name)) out.push(p);
+  }
+  return out;
+}
+
+/** Names from a font's 'name' table: 1 family, 2 style, 16/17 typographic family/style. English preferred. */
+function fontNames(buf) {
+  const out = {};
+  if (buf.length < 6) return out;
+  const count = buf.readUInt16BE(2);
+  const strings = buf.readUInt16BE(4);
+  for (let i = 0; i < count; i++) {
+    const r = 6 + 12 * i;
+    if (r + 12 > buf.length) break;
+    const [platform, encoding, lang, id, len, off] = [0, 2, 4, 6, 8, 10].map((k) => buf.readUInt16BE(r + k));
+    if (![1, 2, 16, 17].includes(id)) continue;
+    const start = strings + off;
+    if (start + len > buf.length) continue;
+    let text = "";
+    if (platform === 3 || platform === 0) for (let k = 0; k + 1 < len; k += 2) text += String.fromCharCode(buf.readUInt16BE(start + k));
+    else if (platform === 1 && encoding === 0) text = buf.toString("latin1", start, start + len);
+    else continue;
+    if ((platform === 3 && lang === 0x409) || out[id] === undefined) out[id] = text;
+  }
+  return out;
+}
+
+/** The fonts in a file (several in a collection): family, weight, italics, and whether they may be embedded. */
+async function fontsInFile(file) {
+  const fh = await fs.promises.open(file, "r");
+  try {
+    const read = async (pos, len) => {
+      const b = Buffer.alloc(len);
+      const { bytesRead } = await fh.read(b, 0, len, pos);
+      return b.subarray(0, bytesRead);
+    };
+    const head = await read(0, 12);
+    if (head.length < 12) return [];
+    let offsets = [0];
+    if (head.toString("latin1", 0, 4) === "ttcf") {
+      const n = Math.min(head.readUInt32BE(8), 64);
+      const b = await read(12, 4 * n);
+      offsets = Array.from({ length: n }, (_, i) => b.readUInt32BE(4 * i));
+    }
+    const out = [];
+    for (let index = 0; index < offsets.length; index++) {
+      const h = await read(offsets[index], 12);
+      const numTables = h.readUInt16BE(4);
+      const dir = await read(offsets[index] + 12, 16 * numTables);
+      const tables = {};
+      for (let i = 0; i < numTables; i++) tables[dir.toString("latin1", 16 * i, 16 * i + 4)] = { offset: dir.readUInt32BE(16 * i + 8), length: dir.readUInt32BE(16 * i + 12) };
+      if (!tables.name || !tables["OS/2"] || !(tables.glyf || tables["CFF "])) continue;
+      const os2 = await read(tables["OS/2"].offset, Math.min(tables["OS/2"].length, 96));
+      if (os2.length < 64) continue;
+      const fsType = os2.readUInt16BE(8);
+      // Restricted, or bitmaps only: the license doesn't allow embedding the outlines.
+      if ((fsType & 0x000f) === 0x0002 || fsType & 0x0200) continue;
+      const names = fontNames(await read(tables.name.offset, Math.min(tables.name.length, 1 << 16)));
+      const family = names[16] || names[1];
+      if (!family || family.startsWith(".")) continue;
+      const style = names[17] || names[2] || "";
+      out.push({ family, weight: os2.readUInt16BE(4) || 400, italic: (os2.readUInt16BE(62) & 1) !== 0 || /italic|oblique/i.test(style), noSubset: (fsType & 0x0100) !== 0, file, index, collection: offsets.length > 1 || head.toString("latin1", 0, 4) === "ttcf" });
+    }
+    return out;
+  } catch {
+    return [];
+  } finally {
+    await fh.close();
+  }
+}
+
+let systemFonts = null;
+function listSystemFonts() {
+  systemFonts ??= (async () => {
+    const files = (await Promise.all(fontFolders().map((d) => fontFilesIn(d)))).flat();
+    const seen = new Set();
+    const fonts = [];
+    for (const file of files) {
+      for (const f of await fontsInFile(file)) {
+        const key = `${f.family}|${f.weight}|${f.italic}`.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        fonts.push(f);
+      }
+    }
+    return fonts;
+  })();
+  return systemFonts;
+}
+
+/** One font of a collection (.ttc) as a font file of its own. */
+function fontFromCollection(data, index) {
+  const off = data.readUInt32BE(12 + 4 * index);
+  const numTables = data.readUInt16BE(off + 4);
+  const tables = Array.from({ length: numTables }, (_, i) => {
+    const r = off + 12 + 16 * i;
+    return { record: data.subarray(r, r + 8), offset: data.readUInt32BE(r + 8), length: data.readUInt32BE(r + 12) };
+  });
+  const headerLength = 12 + 16 * numTables;
+  const out = Buffer.alloc(tables.reduce((n, t) => n + ((t.length + 3) & ~3), headerLength));
+  data.copy(out, 0, off, off + 12);
+  let pos = headerLength;
+  tables.forEach((t, i) => {
+    const r = 12 + 16 * i;
+    t.record.copy(out, r);
+    out.writeUInt32BE(pos, r + 8);
+    out.writeUInt32BE(t.length, r + 12);
+    data.copy(out, pos, t.offset, t.offset + t.length);
+    pos += (t.length + 3) & ~3;
+  });
+  return out;
+}
+
+handle("doxxta:system-fonts", async () => (await listSystemFonts()).map((f, id) => ({ id: String(id), family: f.family, weight: f.weight, italic: f.italic, noSubset: f.noSubset })));
+
+handle("doxxta:font-file", async (id) => {
+  const f = (await listSystemFonts())[Number(id)];
+  if (!f) throw new Error("No such font.");
+  const data = await fs.promises.readFile(f.file);
+  return new Uint8Array(f.collection ? fontFromCollection(data, f.index) : data);
+});
+
 ipcMain.on("doxxta:grant", (event, file) => {
   if (fromApp(event) && typeof file === "string" && fs.existsSync(file)) grant(file);
 });

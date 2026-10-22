@@ -1,5 +1,8 @@
 export type RGB = [number, number, number];
 
+/** Word's standard text colors. */
+export const TEXT_COLORS = ["#000000", "#404040", "#7f7f7f", "#c00000", "#ff0000", "#ffc000", "#00b050", "#0070c0", "#002060", "#7030a0"];
+
 export const PALETTE = [
   "#ffd400", // yellow
   "#ff6b6b", // red

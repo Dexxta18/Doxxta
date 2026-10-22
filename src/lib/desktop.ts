@@ -11,6 +11,15 @@ interface DesktopFile {
   data: Uint8Array;
 }
 
+/** A font installed on the computer that may be embedded in documents. */
+export interface SystemFont {
+  id: string;
+  family: string;
+  weight: number;
+  italic: boolean;
+  noSubset: boolean;
+}
+
 export type DesktopDownload =
   | { ok: true; data: Uint8Array; url: string; disposition: string | null }
   | { ok: false; status?: number; reason?: "invalid" | "too-large" | "network" };
@@ -23,6 +32,9 @@ interface DesktopBridge {
   writeFile(path: string, data: Uint8Array): Promise<void>;
   downloadUrl(address: string): Promise<DesktopDownload>;
   pathForFile(file: File): string | null;
+  /** Missing in desktop apps older than the font matching. */
+  systemFonts?(): Promise<SystemFont[]>;
+  fontFile?(id: string): Promise<Uint8Array>;
   onOpenFiles(callback: (files: DesktopFile[]) => void): void;
 }
 

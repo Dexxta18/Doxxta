@@ -147,13 +147,20 @@ try {
   }, file("cv.pdf"));
   await waitTitle(/^cv\.pdf — Doxxta$/);
   await loaded();
-  // The text layer nests spans: the one that holds the text has a width.
-  const spans = win.locator('.pdfViewer .page[data-page-number="1"] .textLayer span', { hasText: "PROFESSIONAL EXPERIENCE" });
-  let heading = null;
-  for (let i = 0; i < (await spans.count()) && !heading; i++) {
-    const b = await spans.nth(i).boundingBox();
-    if (b && b.width > 2) heading = b;
-  }
+  // The text layer nests spans: the one that holds the text has a width. It may take a moment to be drawn.
+  const textBox = async (text) => {
+    for (let tries = 0; tries < 40; tries++) {
+      const spans = win.locator('.pdfViewer .page[data-page-number="1"] .textLayer span', { hasText: text });
+      for (let i = 0; i < (await spans.count()); i++) {
+        const b = await spans.nth(i).boundingBox();
+        if (b && b.width > 2) return b;
+      }
+      await win.waitForTimeout(250);
+    }
+    throw new Error(`No text "${text}" on the page`);
+  };
+  const heading = await textBox("PROFESSIONAL EXPERIENCE");
+  const body = await textBox("Build monthly forecasts");
   await win.click('button.tools-item:has-text("Edit PDF")');
   await win.click('.context-toolbar button[aria-label="Edit text"]').catch(() => {});
   await win.waitForSelector(".doxxta-text-block", { timeout: 15000 });
@@ -169,6 +176,34 @@ try {
   const fonts = cv.getPage(0).node.Resources().lookup(PDFName.of("Font"), PDFDict);
   const baseFonts = fonts.keys().map((k) => cv.context.lookup(fonts.get(k), PDFDict).get(PDFName.of("BaseFont"))?.toString() ?? "");
   check(baseFonts.some((n) => /^\/Carlito-Bold-\d+$/.test(n)), `edited text uses a font like the heading's (${baseFonts.join(" ")})`);
+
+  // Fonts installed on the computer are in the font menu, and text given one is written in it.
+  await win.waitForSelector(".doxxta-text-block", { timeout: 15000 });
+  await win.mouse.click(body.x + 4, body.y + body.height / 2);
+  await win.waitForSelector(".text-format-bar");
+  const installed = await win.waitForFunction(() => [...document.querySelectorAll('.text-format-font optgroup[label="On this computer"] option')].map((o) => o.value), null, { timeout: 15000 }).then((h) => h.jsonValue());
+  const pick = ["DejaVu Serif", "DejaVu Sans", "Liberation Serif", "FreeSerif"].find((f) => installed.includes(f));
+  check(installed.length > 0, `the font menu lists the computer's fonts (${installed.length})`);
+  if (pick) {
+    await win.evaluate(() => {
+      const root = document.querySelector(".doxxta-textedit-editor");
+      const text = root.firstChild.firstChild;
+      const range = document.createRange();
+      range.setStart(text, 0);
+      range.setEnd(text, "Build".length);
+      getSelection().removeAllRanges();
+      getSelection().addRange(range);
+    });
+    await win.selectOption(".text-format-font", pick);
+    await win.keyboard.press("Control+Enter");
+    await waitTitle(/^• cv\.pdf/);
+    await win.keyboard.press("Control+s");
+    await waitTitle(/^cv\.pdf — Doxxta$/);
+    const saved = await PDFDocument.load(readFileSync(file("cv.pdf")));
+    const res = saved.getPage(0).node.Resources().lookup(PDFName.of("Font"), PDFDict);
+    const names = res.keys().map((k) => saved.context.lookup(res.get(k), PDFDict).get(PDFName.of("BaseFont"))?.toString() ?? "");
+    check(names.some((n) => n.startsWith(`/${pick.replace(/ /g, "")}`)), `text given an installed font is written in it (${pick}: ${names.join(" ")})`);
+  }
 
   // Links open in the default browser, never inside the app.
   await main(({ shell }) => {

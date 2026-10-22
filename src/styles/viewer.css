@@ -287,6 +287,10 @@ g.doxxta-annot:hover {
   position: absolute;
   background: #fff;
 }
+.doxxta-textedit-live {
+  pointer-events: none;
+  z-index: 4;
+}
 .doxxta-textedit-editor {
   position: absolute;
   pointer-events: auto;
@@ -298,6 +302,53 @@ g.doxxta-annot:hover {
   word-break: break-word;
   padding: 1px;
   z-index: 4;
+  cursor: text;
+}
+
+/* Formatting toolbar of Edit text (not scaled with zoom) */
+.annot-toolbar.text-format-bar {
+  transform: none;
+  flex-wrap: wrap;
+  max-width: calc(100vw - 24px);
+}
+.text-format-font {
+  width: 150px;
+}
+.text-format-font.is-stand-in {
+  font-style: italic;
+}
+.text-format-size {
+  width: 48px;
+  border-color: var(--border);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.text-color-btn {
+  flex-direction: column;
+  gap: 1px;
+}
+.text-color-bar {
+  width: 15px;
+  height: 3px;
+  border-radius: 1px;
+  margin-top: -2px;
+  box-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.25);
+}
+.text-color-own {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 5px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+}
+.text-color-own:hover {
+  background: var(--surface-hover);
 }
 .doxxta-textedit-loading {
   position: absolute;

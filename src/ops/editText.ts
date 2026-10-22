@@ -1,9 +1,10 @@
 import { diffChars } from "diff";
-import { PDFArray, PDFDict, PDFName, PDFRef, addContentStream, addPageResource, fontKeyFor, type FontCache, type FontLook, type PDFDocument, type PDFFont, type PDFObject, type PDFPage } from "../lib/pdflib";
+import { PDFArray, PDFDict, PDFName, PDFRef, addContentStream, addPageResource, fontKeyFor, type FontCache, type FontLook, type LikeFont, type PDFDocument, type PDFFont, type PDFObject, type PDFPage } from "../lib/pdflib";
 import { extractGlyphs, redactPage, type GlyphStyle, type PageGlyph, type Region } from "./contentRedact";
 import { fmt, hexToPdf } from "../lib/colors";
 import { parseContent } from "../lib/contentStream";
 import { wrapText } from "../lib/fontMetrics";
+import { familyKey } from "../lib/fontNames";
 import type { PdfRect } from "../lib/geometry";
 
 /**
@@ -13,9 +14,15 @@ import type { PdfRect } from "../lib/geometry";
  * the page content and drawn again, each character in the style of the text
  * it replaces or follows: its original font when the document contains the
  * character in it, its size, color and spacing. A word with a character the
- * document's font lacks is drawn in a font like it (Carlito for Calibri,
- * Liberation Sans for Arial…), so no word mixes two fonts. Right-aligned,
- * centered and justified paragraphs keep their alignment.
+ * document's font lacks is drawn in the font most like it (the same font
+ * installed on the computer, or one from the app's library in the same
+ * weight), so no word mixes two fonts. Right-aligned, centered and justified
+ * paragraphs keep their alignment.
+ *
+ * Formatting chosen in the editor (bold, italics, font, size, color,
+ * underline, strikethrough, alignment) is applied to the characters it was
+ * given to: in another font of the document when it has one in that weight
+ * and slant, otherwise in the closest font found.
  */
 
 /** One line of the edited paragraph, as the editor showed it. */
@@ -25,6 +32,25 @@ export interface EditLine {
   baseline: number;
   /** What joins it to the next line in the paragraph's text: " ", "\n" or "" (after a hyphen). */
   sep: string;
+}
+
+export type TextAlign = "left" | "right" | "center" | "justify";
+
+/** Formatting given to text in the editor, over its own. */
+export interface CharFormat {
+  /** Font family, e.g. "Inter". */
+  family?: string;
+  /** 100–900. */
+  weight?: number;
+  italic?: boolean;
+  underline?: boolean;
+  strike?: boolean;
+  /** Font size in points. */
+  size?: number;
+  /** Text color (#rrggbb). */
+  color?: string;
+  /** Highlight behind the text (#rrggbb). */
+  highlight?: string;
 }
 
 export interface TextEditRequest {
@@ -37,6 +63,10 @@ export interface TextEditRequest {
   background: string;
   /** Style of the paragraph for that case. */
   fallback: { size: number; color: string; bold: boolean; italic: boolean; family: "Helvetica" | "Times" | "Courier" };
+  /** Formatting given in the editor, by position in `after` (UTF-16 code units); missing or null: unchanged. */
+  formats?: (CharFormat | null | undefined)[];
+  /** Alignment chosen in the editor. */
+  align?: TextAlign;
 }
 
 /** A character of the paragraph: original (with its glyph) or new. */
@@ -58,8 +88,17 @@ interface NewChar extends Char {
   old: number;
   /** For new text: the index in `before` it was inserted before. */
   at: number;
-  /** Drawn in a font like the original: its word has a character the original font lacks. */
+  /** Formatting given to it in the editor. */
+  fmt?: CharFormat;
+  /** Its font or size was changed: its glyph can't be reused. */
+  reshaped?: boolean;
+  /** The document's font to draw it in: its own, or another of the document's in the weight and slant asked for. */
+  face?: GlyphStyle | null;
+  /** The font to look for when that one lacks a character of its word. */
+  look?: FontLook;
+  /** Drawn in a font like the original (`like`): its word has a character the original font lacks. */
   sub?: boolean;
+  like?: LikeFont;
 }
 
 interface Placed {
@@ -69,9 +108,12 @@ interface Placed {
 }
 
 const isSpace = (s: string) => /^\s*$/.test(s);
+/** Slant given to upright fonts standing in for italics (tan 12°). */
+const SLANT = 0.2126;
 
 export async function editPageText(doc: PDFDocument, req: TextEditRequest, fonts: FontCache): Promise<"edited" | "covered" | "unchanged"> {
-  if (req.before === req.after) return "unchanged";
+  const formatted = !!req.formats?.some((f) => f && Object.values(f).some((v) => v !== undefined && v !== false));
+  if (req.before === req.after && !formatted && !req.align) return "unchanged";
   const page = doc.getPages()[req.pageIndex];
   if (!page) return "unchanged";
   const all = await extractGlyphs(doc, page).catch(() => null);
@@ -103,6 +145,21 @@ export async function editPageText(doc: PDFDocument, req: TextEditRequest, fonts
   fillStyles(oldChars);
   if (oldChars.every((c) => !c.style)) return cover(doc, page, req, fonts);
 
+  // ----- Paragraph geometry (spaces drawn at the ends of lines don't count) -----
+  const ink = lineGlyphs.map((g) => g.filter((x) => !isSpace(x.text)));
+  if (ink.some((g) => !g.length)) return cover(doc, page, req, fonts);
+  const left = ink.map((g) => g[0].origin.x);
+  const right = ink.map((g) => Math.max(...g.map((x) => x.end.x)));
+  const baselines = ink.map((g) => g[0].origin.y);
+  const n = req.lines.length;
+  const pitch = n > 1 ? (baselines[0] - baselines[n - 1]) / (n - 1) : (oldChars.find((c) => c.size)?.size ?? 12) * 1.2;
+  const detected = alignment(ink, left, right, glyphs, baselines[0]);
+  // A new alignment lays the whole paragraph out again, between its margins.
+  const realign = !!req.align && req.align !== detected;
+  const align = req.align ?? detected;
+  const limit = n > 1 ? Math.max(...right) + 0.5 : rightLimit(glyphs, baselines[0], right[0], lineGlyphs[0]);
+  const margins = realign ? paragraphMargins(page, glyphs, lineGlyphs, left, right, baselines[0]) : null;
+
   // ----- What changed -----
   const newChars: NewChar[] = [];
   const touched = new Set<number>();
@@ -123,19 +180,21 @@ export async function editPageText(doc: PDFDocument, req: TextEditRequest, fonts
       oi += part.value.length;
     }
   }
+  // Formatting from the editor: what differs from the character's own style.
+  let at = 0;
+  for (const c of newChars) {
+    const f = formatChange(req.formats?.[at], c);
+    at += c.ch.length;
+    if (!f) continue;
+    c.fmt = f;
+    c.reshaped = f.family !== undefined || f.weight !== undefined || f.italic !== undefined || f.size !== undefined;
+    if (c.old >= 0) touched.add(lineOf[c.old]);
+  }
+  if (realign) for (let i = 0; i < n; i++) touched.add(i);
   if (!touched.size) return "unchanged";
   const first = Math.min(...touched);
-
-  // ----- Paragraph geometry (spaces drawn at the ends of lines don't count) -----
-  const ink = lineGlyphs.map((g) => g.filter((x) => !isSpace(x.text)));
-  if (ink.some((g) => !g.length)) return cover(doc, page, req, fonts);
-  const left = ink.map((g) => g[0].origin.x);
-  const right = ink.map((g) => Math.max(...g.map((x) => x.end.x)));
-  const baselines = ink.map((g) => g[0].origin.y);
-  const n = req.lines.length;
-  const pitch = n > 1 ? (baselines[0] - baselines[n - 1]) / (n - 1) : (oldChars.find((c) => c.size)?.size ?? 12) * 1.2;
-  const align = alignment(ink, left, right, glyphs, baselines[0]);
-  const limit = n > 1 ? Math.max(...right) + 0.5 : rightLimit(glyphs, baselines[0], right[0], lineGlyphs[0]);
+  const sizeOf = (c: NewChar) => c.fmt?.size ?? (c.size || req.fallback.size);
+  const resized = newChars.some((c) => c.fmt?.size !== undefined);
 
   // ----- Fonts: which characters the original fonts can show -----
   // Characters the document draws in each font, on this page and the ones around it.
@@ -151,41 +210,68 @@ export async function editPageText(doc: PDFDocument, req: TextEditRequest, fonts
     bold: req.fallback.bold,
     italic: req.fallback.italic,
   };
-  const fallbackFor = (s: GlyphStyle | null, text: string): Promise<PDFFont> => fonts.like(s?.font ?? fallbackLook, text);
-  const codeFor = (s: GlyphStyle | null, ch: string): { bytes: Uint8Array; width: number } | null => {
+  const codeFor = (s: GlyphStyle | null | undefined, ch: string): { bytes: Uint8Array; width: number } | null => {
     if (!s) return null;
     const seen = encodings.get(fontKey(s))?.get(ch);
     if (seen) return seen;
     const code = s.encode?.(ch);
     return code === undefined ? null : { bytes: Uint8Array.of(code), width: s.codeWidth(code) };
   };
-  // A word with a character the original font lacks is drawn all in a font like it.
-  const lacking = (c: NewChar) => !/\s/.test(c.ch) && !c.glyph && !c.inLigature && !codeFor(c.style, c.ch);
-  for (let i = 0; i < newChars.length; ) {
-    let j = i;
-    while (j < newChars.length && !/\s/.test(newChars[j].ch)) j++;
-    if (newChars.slice(i, j).some(lacking)) for (let k = i; k < j; k++) newChars[k].sub = true;
-    i = Math.max(j, i + 1);
-  }
-  const advance = async (c: NewChar, prev: NewChar | undefined, next: NewChar | undefined): Promise<number> => {
+  // The font each character is drawn in: its own, or for a new weight, slant or family, one of
+  // the document's fonts in it.
+  const faces = documentFaces(seen);
+  for (const c of newChars) {
     const s = c.style;
-    const size = c.size || req.fallback.size;
+    const f = c.fmt;
+    const base = s?.font ?? fallbackLook;
+    if (!f || (f.family === undefined && f.weight === undefined && f.italic === undefined)) {
+      c.face = s;
+      c.look = base;
+      continue;
+    }
+    const familyName = f.family ?? base.familyName ?? "";
+    const weight = f.weight ?? base.weight ?? (base.bold ? 700 : 400);
+    const italic = f.italic ?? base.italic;
+    const other = faces.find(familyName, weight, italic);
+    c.face = other && s ? { ...other, fill: s.fill, mode: s.mode, tc: s.tc, tw: s.tw, th: s.th } : other;
+    c.look = { name: familyName || base.name, familyName, family: base.family, weight, bold: weight >= 600, italic };
+  }
+  // Letters of a word in one font are drawn in a font like it when that font lacks one of them.
+  const lacking = (c: NewChar) => !/\s/.test(c.ch) && (c.reshaped || (!c.glyph && !c.inLigature)) && !codeFor(c.face, c.ch);
+  const faceKey = (c: NewChar) => `${c.face ? fontKey(c.face) : "-"}|${c.look?.familyName ?? ""}|${c.look?.name}|${c.look?.weight}|${c.look?.italic}`;
+  for (let i = 0; i < newChars.length; ) {
+    let j = i + 1;
+    if (!/\s/.test(newChars[i].ch)) while (j < newChars.length && !/\s/.test(newChars[j].ch) && faceKey(newChars[j]) === faceKey(newChars[i])) j++;
+    const part = newChars.slice(i, j);
+    if (part.some(lacking)) {
+      const like = await fonts.like(part[0].look ?? fallbackLook, part.map((c) => c.ch).join(""));
+      for (const c of part) {
+        c.sub = true;
+        c.like = like;
+      }
+    }
+    i = j;
+  }
+  const advance = (c: NewChar, prev: NewChar | undefined, next: NewChar | undefined): number => {
+    const s = c.face ?? c.style;
+    const size = sizeOf(c);
     const th = s?.th ?? 1;
-    if (c.sub) return ((await fallbackFor(s, c.ch)).widthOfTextAtSize(c.ch, size) + (s?.tc ?? 0)) * th;
-    if (c.inLigature) return 0;
+    const tc = s?.tc ?? 0;
+    if (c.sub && c.like) return (c.like.font.widthOfTextAtSize(c.ch, size) + tc) * th;
+    if (c.inLigature && !c.reshaped) return 0;
     const code = codeFor(s, c.ch);
     if (/\s/.test(c.ch)) {
-      const usual = ((code ? (code.width / 1000) * size : size * 0.25) + (s?.tc ?? 0)) * th;
+      const usual = ((code ? (code.width / 1000) * size : size * 0.25) + tc) * th;
       // A space next to unchanged text keeps its width, so the gap after a bullet stays as it was;
       // but justified lines are spaced out again from spaces of the usual width.
-      const anchored = c.old >= 0 && ((prev !== undefined && prev.old >= 0 && prev.old === c.old - 1) || (next !== undefined && next.old === c.old + 1));
+      const anchored = !c.reshaped && !realign && c.old >= 0 && ((prev !== undefined && prev.old >= 0 && prev.old === c.old - 1) || (next !== undefined && next.old === c.old + 1));
       const width = c.gap ?? (c.glyph ? c.glyph.end.x - c.glyph.origin.x : undefined);
       if (width !== undefined && anchored && (align !== "justify" || width > usual * 2)) return width;
       return usual + (c.ch === " " && align !== "justify" ? (s?.tw ?? 0) * th : 0);
     }
-    if (c.glyph) return c.glyph.end.x - c.glyph.origin.x;
-    if (code) return ((code.width / 1000) * size + (s?.tc ?? 0)) * th;
-    return ((await fallbackFor(s, c.ch)).widthOfTextAtSize(c.ch, size) + (s?.tc ?? 0)) * th;
+    if (c.glyph && !c.reshaped) return c.glyph.end.x - c.glyph.origin.x;
+    if (code) return ((code.width / 1000) * size + tc) * th;
+    return (size * 0.5 + tc) * th;
   };
 
   // ----- Lay out the changed part -----
@@ -196,8 +282,8 @@ export async function editPageText(doc: PDFDocument, req: TextEditRequest, fonts
   if (pos < 0) pos = newChars.length;
   // Left-aligned text keeps the unchanged start of the first changed line as it is.
   let keep = 0;
-  if (align === "left") {
-    while (pos + keep < newChars.length && newChars[pos + keep].old === lineStart[first] + keep && lineOf[newChars[pos + keep].old] === first) keep++;
+  if (align === "left" && !realign) {
+    while (pos + keep < newChars.length && newChars[pos + keep].old === lineStart[first] + keep && lineOf[newChars[pos + keep].old] === first && !newChars[pos + keep].fmt) keep++;
     // A word drawn in another font is drawn again whole.
     if (newChars[pos + keep]?.sub) while (keep > 0 && newChars[pos + keep - 1].sub) keep--;
     // Don't split a ligature, and leave trailing spaces to the layout.
@@ -205,16 +291,21 @@ export async function editPageText(doc: PDFDocument, req: TextEditRequest, fonts
   }
   for (const c of oldChars.slice(lineStart[first] + keep, lineOf.lastIndexOf(first) + 1)) if (c.glyph) remove.add(c.glyph);
   const lastKept = newChars.slice(pos, pos + keep).reverse().find((c) => c.glyph)?.glyph;
-  let x = lastKept ? lastKept.end.x : left[first];
+  const x = lastKept ? lastKept.end.x : margins ? margins.left : left[first];
   for (const g of extras[first]) if (!lastKept || g.origin.x >= lastKept.end.x - 0.1) remove.add(g);
   pos += keep;
 
+  // Line spacing in proportion to the text's size, for text made bigger or smaller.
+  const sizes = oldChars.filter((c) => c.glyph).map((c) => c.size);
+  const usualSize = sizes.length ? sizes.reduce((s, v) => s + v, 0) / sizes.length : req.fallback.size;
+  const leading = pitch / usualSize;
   let line = first;
   let resynced = false;
+  let lastBaseline: number | null = first > 0 ? baselines[first - 1] : null;
   while (pos < newChars.length) {
     const placed: Placed[] = [];
-    const lineLeft = line === first ? x : (left[line] ?? left[n - 1]);
-    const maxRight = align === "left" || align === "justify" ? limit : Number.POSITIVE_INFINITY;
+    const lineLeft = margins ? margins.left : line === first ? x : (left[line] ?? left[n - 1]);
+    const maxRight = margins ? margins.right : align === "left" || align === "justify" ? limit : Number.POSITIVE_INFINITY;
     let cx = lineLeft;
     let hard = false;
     while (pos < newChars.length) {
@@ -229,7 +320,7 @@ export async function editPageText(doc: PDFDocument, req: TextEditRequest, fonts
       while (end < newChars.length && /\s/.test(newChars[end].ch) && newChars[end].ch !== "\n") end++;
       while (end < newChars.length && !/\s/.test(newChars[end].ch)) end++;
       const widths: number[] = [];
-      for (let k = pos; k < end; k++) widths.push(await advance(newChars[k], newChars[k - 1], newChars[k + 1]));
+      for (let k = pos; k < end; k++) widths.push(advance(newChars[k], newChars[k - 1], newChars[k + 1]));
       const wordStart = widths.findIndex((_, k) => !/\s/.test(newChars[pos + k].ch));
       const inkEnd = cx + widths.reduce((s, w) => s + w, 0);
       if (placed.length && inkEnd > maxRight + 0.5) {
@@ -243,12 +334,25 @@ export async function editPageText(doc: PDFDocument, req: TextEditRequest, fonts
       }
       pos = end;
     }
-    const baseline = line < n ? baselines[line] : baselines[n - 1] - pitch * (line - n + 1);
-    placeLine(placed, align, lineLeft, line < n ? right[line] : limit, limit, !hard && pos < newChars.length);
+    let baseline = line < n ? baselines[line] : baselines[n - 1] - pitch * (line - n + 1);
+    if (resized && lastBaseline !== null) {
+      const lineSize = Math.max(0, ...placed.filter((p) => !/\s/.test(p.c.ch)).map((p) => sizeOf(p.c))) || usualSize;
+      baseline = lastBaseline - leading * lineSize;
+    }
+    lastBaseline = baseline;
+    placeLine(placed, align, lineLeft, margins ? margins.right : line < n ? right[line] : limit, margins ? margins.right : limit, !hard && pos < newChars.length);
     draw.push({ chars: placed, baseline });
     line++;
     // The rest of the paragraph is unchanged and starts a line as before: keep those lines.
-    if (line < n && pos < newChars.length && newChars[pos].old === lineStart[line] && newChars.slice(pos).every((c, k) => c.old === lineStart[line] + k) && newChars.length - pos === oldChars.length - lineStart[line]) {
+    if (
+      !realign &&
+      !resized &&
+      line < n &&
+      pos < newChars.length &&
+      newChars[pos].old === lineStart[line] &&
+      newChars.slice(pos).every((c, k) => c.old === lineStart[line] + k && !c.fmt) &&
+      newChars.length - pos === oldChars.length - lineStart[line]
+    ) {
       resynced = true;
       break;
     }
@@ -267,6 +371,8 @@ export async function editPageText(doc: PDFDocument, req: TextEditRequest, fonts
 
   // ----- Draw the new text where the old was in the page's drawing order, and remove the old -----
   const ops: string[] = [];
+  // Highlights go under all the text.
+  const under = draw.flatMap((l) => highlights(l.chars, l.baseline, sizeOf));
   const names = new Map<PDFObject | PDFFont, string>();
   const fontName = (key: PDFObject | PDFFont): string => {
     let name = names.get(key);
@@ -279,40 +385,45 @@ export async function editPageText(doc: PDFDocument, req: TextEditRequest, fonts
   };
   for (const l of draw) {
     // Runs of characters drawn the same way, without gaps between them.
-    let run: { font: PDFObject | PDFFont; hex: string[]; text: string; x: number; style: GlyphStyle | null; size: number; next: number } | null = null;
+    let run: { font: PDFObject | PDFFont; like: LikeFont | null; hex: string[]; text: string; x: number; style: GlyphStyle | null; fill: string; size: number; next: number } | null = null;
     const flush = () => {
       if (!run) return;
       const s = run.style;
-      const [r, g, b] = hexToPdf(s?.fill ?? req.fallback.color);
+      const [r, g, b] = hexToPdf(run.fill);
       const hex = run.font instanceof PDFRef || run.font instanceof PDFDict ? `<${run.hex.join("")}>` : (run.font as PDFFont).encodeText(run.text).toString();
-      ops.push(
-        `BT /${fontName(run.font)} ${fmt(run.size)} Tf ${fmt(s?.tc ?? 0)} Tc 0 Tw ${fmt((s?.th ?? 1) * 100)} Tz 0 Ts ${s?.mode ?? 0} Tr ${fmt(r)} ${fmt(g)} ${fmt(b)} rg 1 0 0 1 ${fmt(run.x)} ${fmt(l.baseline)} Tm ${hex} Tj ET`,
-      );
+      // Fonts without the weight or slant asked for are emboldened (outlined as well as filled) or slanted.
+      const mode = s?.mode ?? 0;
+      const bold = !!run.like?.embolden && mode === 0;
+      const text = `BT /${fontName(run.font)} ${fmt(run.size)} Tf ${fmt(s?.tc ?? 0)} Tc 0 Tw ${fmt((s?.th ?? 1) * 100)} Tz 0 Ts ${bold ? 2 : mode} Tr ${fmt(r)} ${fmt(g)} ${fmt(b)} rg 1 0 ${run.like?.slant ? SLANT : 0} 1 ${fmt(run.x)} ${fmt(l.baseline)} Tm ${hex} Tj ET`;
+      ops.push(bold ? `q ${fmt(run.size * 0.035)} w ${fmt(r)} ${fmt(g)} ${fmt(b)} RG ${text} Q` : text);
       run = null;
     };
     for (const p of l.chars) {
-      if (/\s/.test(p.c.ch) || (p.c.inLigature && !p.c.sub)) {
+      if (/\s/.test(p.c.ch) || (p.c.inLigature && !p.c.sub && !p.c.reshaped)) {
         flush();
         continue;
       }
-      const s = p.c.style;
-      const size = p.c.size || req.fallback.size;
-      const own = p.c.glyph?.style;
+      const s = p.c.face ?? p.c.style;
+      const size = sizeOf(p.c);
+      const own = p.c.reshaped ? undefined : p.c.glyph?.style;
       const style = own ?? s;
       const code = p.c.sub || !style?.fontObj ? null : own ? { bytes: own.bytes } : codeFor(s, p.c.ch);
-      const font: PDFObject | PDFFont = code ? (style!.fontObj as PDFObject) : await fallbackFor(s, p.c.ch);
-      const same = run && run.font === font && run.size === size && run.style?.fill === style?.fill && run.style?.tc === style?.tc && run.style?.th === style?.th && run.style?.mode === style?.mode;
+      const like = code ? null : (p.c.like ?? (await fonts.like(p.c.look ?? fallbackLook, p.c.ch)));
+      const font: PDFObject | PDFFont = code ? (style!.fontObj as PDFObject) : like!.font;
+      const fill = p.c.fmt?.color ?? style?.fill ?? req.fallback.color;
+      const same = run && run.font === font && run.like === like && run.size === size && run.fill === fill && run.style?.tc === style?.tc && run.style?.th === style?.th && run.style?.mode === style?.mode;
       if (!run || !same || Math.abs(run.next - p.x) > 0.05) {
         flush();
-        run = { font, hex: [], text: "", x: p.x, style, size, next: p.x };
+        run = { font, like, hex: [], text: "", x: p.x, style, fill, size, next: p.x };
       }
       if (code) run.hex.push(Array.from(code.bytes, (v) => v.toString(16).padStart(2, "0")).join(""));
       run.text += p.c.ch;
       run.next = p.x + p.width;
     }
     flush();
+    ops.push(...decorations(l.chars, l.baseline, sizeOf, (c) => c.fmt?.color ?? (c.face ?? c.style)?.fill ?? req.fallback.color));
   }
-  const content = ops.join("\n");
+  const content = [...under, ...ops].join("\n");
   // After the text object of the line's unchanged start, or of the first glyph replaced.
   const anchor = lastKept ?? [...remove].sort((a, b) => all.indexOf(a) - all.indexOf(b))[0];
   const result = await redactPage(doc, page, [...remove].map(tightRegion), {
@@ -339,6 +450,116 @@ export async function editPageText(doc: PDFDocument, req: TextEditRequest, fonts
     appendIsolated(doc, page, content);
   }
   return "edited";
+}
+
+/** The formatting asked for a character, less what it already has; undefined when nothing changes. */
+function formatChange(f: CharFormat | null | undefined, c: NewChar): CharFormat | undefined {
+  if (!f) return undefined;
+  const font = c.style?.font;
+  const out: CharFormat = {};
+  if (f.family !== undefined && familyKey(f.family) !== familyKey(font?.familyName ?? "")) out.family = f.family;
+  if (f.weight !== undefined && f.weight !== (font?.weight ?? 400)) out.weight = f.weight;
+  if (f.italic !== undefined && f.italic !== (font?.italic ?? false)) out.italic = f.italic;
+  if (f.size !== undefined && Math.abs(f.size - c.size) >= 0.05) out.size = f.size;
+  if (f.color !== undefined && f.color.toLowerCase() !== (c.style?.fill ?? "").toLowerCase()) out.color = f.color;
+  if (f.underline) out.underline = true;
+  if (f.strike) out.strike = true;
+  if (f.highlight) out.highlight = f.highlight;
+  return Object.keys(out).length ? out : undefined;
+}
+
+/** The document's fonts by family, weight and slant, to draw text given another weight or slant in. */
+function documentFaces(glyphs: PageGlyph[]) {
+  const list: GlyphStyle[] = [];
+  const known = new Set<string>();
+  for (const g of glyphs) {
+    const s = g.style;
+    if (!s?.fontObj || !s.font.familyName) continue;
+    const key = fontKey(s);
+    if (known.has(key)) continue;
+    known.add(key);
+    list.push(s);
+  }
+  return {
+    find(family: string, weight: number, italic: boolean): GlyphStyle | null {
+      const key = familyKey(family);
+      if (!key) return null;
+      const same = list.filter((s) => familyKey(s.font.familyName) === key && s.font.italic === italic && Math.abs(s.font.weight - weight) < 50);
+      return same[0] ?? null;
+    },
+  };
+}
+
+/**
+ * Where a paragraph given a new alignment is laid out: between its own left and right edges, or
+ * for a single line, the page's text margins.
+ */
+function paragraphMargins(page: PDFPage, glyphs: PageGlyph[], lines: PageGlyph[][], left: number[], right: number[], baseline: number): { left: number; right: number } {
+  if (lines.length > 1) return { left: Math.min(...left), right: Math.max(...right) };
+  const mine = new Set(lines[0]);
+  const others = glyphs.filter((g) => !mine.has(g) && !isSpace(g.text) && Math.abs(g.origin.y - baseline) > g.size);
+  if (others.length) {
+    return { left: Math.min(left[0], ...others.map((g) => g.origin.x)), right: Math.max(right[0], ...others.map((g) => g.end.x)) };
+  }
+  const { x, width } = page.getMediaBox();
+  return { left: Math.min(left[0], x + 72), right: Math.max(right[0], x + width - 72) };
+}
+
+/** Highlights of a laid-out line, from below the descenders to above the ascenders (spaces between highlighted words too). */
+function highlights(chars: Placed[], baseline: number, sizeOf: (c: NewChar) => number): string[] {
+  const out: string[] = [];
+  let seg: { x0: number; x1: number; size: number; color: string } | null = null;
+  const close = () => {
+    if (seg && seg.x1 > seg.x0) {
+      const [r, g, b] = hexToPdf(seg.color);
+      out.push(`q ${fmt(r)} ${fmt(g)} ${fmt(b)} rg ${fmt(seg.x0)} ${fmt(baseline - seg.size * 0.24)} ${fmt(seg.x1 - seg.x0)} ${fmt(seg.size * 1.16)} re f Q`);
+    }
+    seg = null;
+  };
+  for (const p of chars) {
+    const color = p.c.fmt?.highlight;
+    if (!color || (seg && seg.color !== color)) close();
+    if (!color) continue;
+    if (!seg) seg = { x0: p.x, x1: p.x + p.width, size: sizeOf(p.c), color };
+    else {
+      seg.x1 = p.x + p.width;
+      seg.size = Math.max(seg.size, sizeOf(p.c));
+    }
+  }
+  close();
+  return out;
+}
+
+/** Underlines and strikethroughs of a laid-out line: across the words given them and the spaces between those. */
+function decorations(chars: Placed[], baseline: number, sizeOf: (c: NewChar) => number, colorOf: (c: NewChar) => string): string[] {
+  const out: string[] = [];
+  for (const kind of ["underline", "strike"] as const) {
+    let seg: { x0: number; x1: number; size: number; color: string } | null = null;
+    const close = () => {
+      if (seg && seg.x1 > seg.x0) {
+        const [r, g, b] = hexToPdf(seg.color);
+        const h = Math.max(0.5, seg.size * 0.055);
+        const y = kind === "underline" ? baseline - seg.size * 0.12 - h / 2 : baseline + seg.size * 0.28 - h / 2;
+        out.push(`q ${fmt(r)} ${fmt(g)} ${fmt(b)} rg ${fmt(seg.x0)} ${fmt(y)} ${fmt(seg.x1 - seg.x0)} ${fmt(h)} re f Q`);
+      }
+      seg = null;
+    };
+    for (const p of chars) {
+      const on = !!p.c.fmt?.[kind];
+      const space = /\s/.test(p.c.ch);
+      const color = colorOf(p.c);
+      if (!on || (seg && !space && seg.color !== color)) close();
+      if (!on) continue;
+      if (space) continue;
+      if (!seg) seg = { x0: p.x, x1: p.x + p.width, size: sizeOf(p.c), color };
+      else {
+        seg.x1 = p.x + p.width;
+        seg.size = Math.max(seg.size, sizeOf(p.c));
+      }
+    }
+    close();
+  }
+  return out;
 }
 
 /** The glyphs of one line of the paragraph, left to right. */

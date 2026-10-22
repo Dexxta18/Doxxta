@@ -75,7 +75,9 @@ Signing removes the first-launch warnings. It needs a code-signing certificate f
 - Signatures and initials: type (six script fonts), draw, or upload an image; saved on the device for reuse
 
 **Edit PDF**
-- Edit existing text in place, keeping its formatting: text you don't change stays exactly as it was, and changed words are written in the document's own font at the same size, color, spacing and alignment (left, right, centered or justified). When the font embedded in the file lacks a letter, the word is written in a font with the same widths (Carlito for Calibri, Liberation for Arial, Times New Roman and Courier New). The old glyphs are removed from the page, not covered, and the new text is placed where the old was in the page's text order, so copying, search and CV-screening software read it in sequence
+- Edit existing text in place, keeping its formatting: text you don't change stays exactly as it was, and changed words are written in the document's own font at the same size, color, spacing and alignment (left, right, centered or justified). The old glyphs are removed from the page, not covered, and the new text is placed where the old was in the page's text order, so copying, search and CV-screening software read it in sequence
+- Fonts are recognized from the names PDFs give them (family, weight from Thin to Black, italics, condensed), so the editor shows text in its own font and weight. When the font embedded in the file lacks a letter, the word is written in the closest font available: the same font installed on the computer (desktop app, when its license allows embedding), the same family from the app's font library, a font made to stand in for it (Carlito for Calibri, Liberation for Arial, Times New Roman and Courier New, Gelasio for Georgia…), or one of the same kind and weight. Light text stays light, bold stays bold
+- Word-style formatting while editing text: font (the document's, the app's library of 68 open font families, and in the desktop app the computer's fonts), size, bold, italics, underline, strikethrough, font color, highlight color, alignment and clear formatting, from a toolbar or Word's shortcuts (Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+Shift+> and <, Ctrl+] and [, Ctrl+L/E/R/J, Ctrl+Space). With nothing selected, formatting applies to what you type next; Ctrl+Z undoes inside the editor
 - Add text and images, add/edit/remove links
 - Watermark (text, image or PDF page), header & footer, page numbers, Bates numbering, background (color, image or PDF page); each can be replaced or removed later
 - Crop pages
@@ -153,7 +155,7 @@ The browser tests drive the app in headless Chromium with Playwright, then read 
 
 ```bash
 npx playwright install chromium   # once
-npm run test:e2e                  # 8 suites against the dev server (86 checks)
+npm run test:e2e                  # 8 suites against the dev server (98 checks)
 npm run test:e2e -- security      # one suite: organize, forms, editing, export, signing, security, redaction, openurl
 npm run test:smoke                # builds, then tests the production build through the UI (incl. OCR)
 ```
@@ -175,7 +177,7 @@ A note on the API key: a key used directly from the browser can be read by anyon
 ## Known limitations
 
 - **Digital IDs:** signatures are visual (typed, drawn or image). Certificate-based digital signatures and signature validation are not implemented yet.
-- **Edit text** works one paragraph at a time, like Acrobat: a paragraph that grows flows onto new lines below it without moving the paragraphs after it, and one that shrinks leaves its space empty.
+- **Edit text** works one paragraph at a time, like Acrobat: a paragraph that grows flows onto new lines below it without moving the paragraphs after it, and one that shrinks leaves its space empty. Underlines and highlights already in a PDF are shapes of their own: they stay where they are when the text over them moves.
 - **Export to Office** recreates text, tables and images in reading order; multi-column layouts, text boxes and drawings will need touch-ups, as with any PDF converter.
 - **Read Out Loud** uses the voices installed on the device; some systems have none.
 - Not included: PDF/A and preflight, accessibility tagging, batch actions, cloud storage, and sending documents to others for e-signature (those need a server).
@@ -184,4 +186,4 @@ A note on the API key: a key used directly from the browser can be read by anyon
 
 ## License
 
-Doxxta's own code has no license file yet; add one of your choice before sharing it. The app bundles open-source libraries under their own licenses: pdf.js, tesseract.js and idb-keyval (Apache-2.0); pdf-lib, fontkit, React, Zustand, docx, PptxGenJS, fflate and html-entities (MIT); jsdiff (BSD-3-Clause); Lucide icons (ISC); the Inter and signature fonts from Fontsource (SIL Open Font License 1.1, except Homemade Apple, Apache-2.0); and the Carlito, Caladea and Liberation fonts used by Edit text (SIL Open Font License 1.1, license files in `public/fonts`).
+Doxxta's own code has no license file yet; add one of your choice before sharing it. The app bundles open-source libraries under their own licenses: pdf.js, tesseract.js and idb-keyval (Apache-2.0); pdf-lib, fontkit, React, Zustand, docx, PptxGenJS, fflate and html-entities (MIT); jsdiff (BSD-3-Clause); Lucide icons (ISC); the Inter and signature fonts from Fontsource (SIL Open Font License 1.1, except Homemade Apple, Apache-2.0); the Carlito, Caladea and Liberation fonts used by Edit text (SIL Open Font License 1.1, license files in `public/fonts`); and the font library in `public/fonts/library`, from Google Fonts (each family's license is in its folder: SIL Open Font License 1.1, Apache-2.0 or the Ubuntu Font Licence). `scripts/fonts/build_library.py` rebuilds it (it needs fontTools).

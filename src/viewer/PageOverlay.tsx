@@ -621,7 +621,7 @@ function PageOverlayInner({ docId, pageIndex }: { docId: string; pageIndex: numb
             ))}
         </svg>
       </div>
-      {tool === "edit-text" && <TextEditLayer docId={docId} pageIndex={pageIndex} ctx={ctx} geo={geo} />}
+      {tool === "edit-text" && <TextEditLayer docId={docId} pageIndex={pageIndex} ctx={ctx} geo={geo} scale={scale} />}
       {showToolbar && primary && <AnnotToolbar docId={docId} a={primary} box={stageBox(geo.m, selectionRect(primary))} scale={scale} count={selection.length} />}
       {editingNote && <NotePopup docId={docId} a={editingNote} box={stageBox(geo.m, editingNote.rect)} scale={scale} />}
     </div>

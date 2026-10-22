@@ -1,8 +1,9 @@
 // Generates PDFs used for manual and automated testing: node scripts/make-fixtures.mjs
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PDFDocument, StandardFonts, rgb, PDFName, PDFString, PDFArray, PDFNumber, degrees } from "@cantoo/pdf-lib";
+import { PDFDocument, StandardFonts, rgb, PDFName, PDFString, PDFArray, PDFNumber, PDFDict, degrees } from "@cantoo/pdf-lib";
+import fontkit from "@cantoo/fontkit";
 
 const out = join(dirname(fileURLToPath(import.meta.url)), "..", "test-fixtures");
 mkdirSync(out, { recursive: true });
@@ -294,7 +295,37 @@ async function hiddenPages() {
   writeFileSync(join(out, "hidden-pages.pdf"), await doc.save({ useObjectStreams: false }));
 }
 
+/**
+ * Like PDFObject's sample PDF, made on a Mac: a title and a paragraph in Helvetica Neue Light, a
+ * line in Light Italic, embedded as subsets (here Inter Light under Helvetica Neue's names).
+ * Text typed into it must stay light.
+ */
+async function light() {
+  const doc = await PDFDocument.create();
+  doc.registerFontkit(fontkit);
+  const lib = join(dirname(fileURLToPath(import.meta.url)), "..", "public", "fonts", "library", "Inter");
+  const upright = await doc.embedFont(readFileSync(join(lib, "Inter-300.ttf")), { subset: true });
+  const italic = await doc.embedFont(readFileSync(join(lib, "Inter-300i.ttf")), { subset: true });
+  const page = doc.addPage([612, 792]);
+  page.drawText("Sample PDF", { x: 72, y: 700, size: 30, font: upright });
+  page.drawText("This is a simple PDF file. Fun fun fun.", { x: 72, y: 664, size: 14, font: italic });
+  wrap(LOREM, upright, 11, 468).forEach((line, i) => page.drawText(line, { x: 72, y: 630 - i * 15, size: 11, font: upright }));
+  await doc.flush();
+  const rename = (name) => name.replace("Inter-Light", "HelveticaNeue-Light");
+  for (const [, obj] of doc.context.enumerateIndirectObjects()) {
+    if (!(obj instanceof PDFDict)) continue;
+    for (const key of ["BaseFont", "FontName"]) {
+      const v = obj.get(PDFName.of(key));
+      if (v instanceof PDFName && v.decodeText().includes("Inter-Light")) obj.set(PDFName.of(key), PDFName.of(rename(v.decodeText())));
+    }
+    const family = obj.get(PDFName.of("FontFamily"));
+    if (family) obj.set(PDFName.of("FontFamily"), PDFString.of("Helvetica Neue"));
+  }
+  writeFileSync(join(out, "light.pdf"), await doc.save());
+}
+
 await sample();
+await light();
 await brokenTree();
 await hiddenPages();
 await form();

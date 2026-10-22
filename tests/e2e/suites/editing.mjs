@@ -25,6 +25,41 @@ export default async function run({ page, check, st, open, shot, build, readPdf 
     await page.evaluate(() => window.__doxxta.runCommand("mode.view"));
     await page.waitForTimeout(800);
   };
+  /** Clicks the paragraph containing `containing` in Edit text mode, runs `actions` in the editor and commits. */
+  const formatText = async (containing, actions, { commit = true } = {}) => {
+    const box = await page.locator('.pdfViewer .page[data-page-number="1"] .textLayer span', { hasText: containing }).first().boundingBox();
+    await page.evaluate(() => window.__doxxta.runCommand("mode.edit"));
+    await page.click('.context-toolbar button[aria-label="Edit text"], .context-toolbar [data-tip="Edit text"]').catch(() => {});
+    await page.waitForSelector(".doxxta-text-block", { timeout: 15000 });
+    const v0 = await version();
+    await page.mouse.click(box.x + 3, box.y + box.height / 2);
+    await page.waitForSelector(".text-format-bar");
+    await actions();
+    if (commit) {
+      await page.keyboard.press("Control+Enter");
+      await page.waitForFunction((v0) => { const s = window.__doxxta.useApp.getState(); return s.docs[s.activeId].version > v0 && !s.busy; }, v0, { timeout: 30000 });
+    } else await page.keyboard.press("Escape");
+    await page.evaluate(() => window.__doxxta.runCommand("mode.view"));
+    await page.waitForTimeout(800);
+  };
+  /** Selects the first `word` in the editor. */
+  const select = (word) =>
+    page.evaluate((word) => {
+      const root = document.querySelector(".doxxta-textedit-editor");
+      root.focus();
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        const i = n.nodeValue.search(new RegExp(`\\b${word}\\b`));
+        if (i < 0) continue;
+        const r = document.createRange();
+        r.setStart(n, i);
+        r.setEnd(n, i + word.length);
+        getSelection().removeAllRanges();
+        getSelection().addRange(r);
+        return;
+      }
+      throw new Error(`No "${word}" in the editor`);
+    }, word);
   await open("sample.pdf");
 
   // Ctrl+C on selected page text is left to the browser's copy (not swallowed by shortcuts).
@@ -108,6 +143,79 @@ export default async function run({ page, check, st, open, shot, build, readPdf 
   const languages = line(after, /UK English/);
   check(languages?.runs.find((r) => r.str.includes("UK"))?.bold === false && languages.runs.find((r) => r.str.includes("Languages"))?.bold === true, "words typed before a regular word aren't made bold by the label before them");
 
+  // Text typed into light text stays light (the font isn't installed, the closest one is used).
+  await open("light.pdf");
+  await formatText("Fun fun", async () => {
+    await page.keyboard.press("End");
+    await page.keyboard.type(" kbksjvb");
+  });
+  let items = await textItems(page, await build());
+  check(/Inter-LightItalic/.test(items.find((i) => i.str.includes("kbksjvb"))?.font ?? ""), `new text keeps the light italic weight (${items.find((i) => i.str.includes("kbksjvb"))?.font})`);
+  check(/HelveticaNeue-LightItalic/.test(items.find((i) => i.str.includes("Fun fun fun."))?.font ?? ""), "the rest of the line keeps the document's font");
+
+  // Word-style formatting: shortcuts and the toolbar.
+  await formatText("Lorem ipsum", async () => {
+    await select("Lorem");
+    await page.keyboard.press("Control+Shift+Period");
+    await page.keyboard.press("Control+Shift+Period");
+    await select("ipsum");
+    await page.keyboard.press("Control+i");
+    await page.keyboard.press("Control+u");
+    await select("dolor");
+    await page.keyboard.press("Control+b");
+    await select("amet");
+    await page.keyboard.press("Control+b");
+    await page.keyboard.press("Control+z");
+    await select("Integer");
+    await page.click('.text-format-bar button[aria-label="Font color"]');
+    await page.click('.popover .swatch[aria-label="#c00000"]');
+    await select("posuere");
+    await page.click('.text-format-bar button[aria-label="Highlight color"]');
+    await page.click('.popover .swatch[aria-label="#ffd400"]');
+    await select("venenatis");
+    await page.selectOption(".text-format-font", "Playfair Display");
+    check(await page.locator(".text-format-font").inputValue() === "Playfair Display", "the toolbar shows the font of the selection");
+  });
+  await formatText("Sample PDF", () => page.keyboard.press("Control+e"));
+  await shot("format-text");
+  const bytes = await build();
+  items = await textItems(page, bytes);
+  const item = (word) => items.find((i) => i.str.split(/\s+/).includes(word) || i.str === word);
+  check(Math.abs(item("Lorem")?.size - 14) < 0.01 && Math.abs(item("dapibus")?.size - 11) < 0.01, `Ctrl+Shift+> makes text bigger, a size at a time (${item("Lorem")?.size})`);
+  check(/Italic/.test(item("ipsum")?.font ?? "") && !/Italic/.test(item("dolor")?.font ?? ""), "Ctrl+I makes text italic");
+  check(/Bold/.test(item("dolor")?.font ?? "") && !/Bold/.test(item("amet,")?.font ?? ""), "Ctrl+B makes text bold, and Ctrl+Z in the editor undoes it");
+  check(/PlayfairDisplay/.test(item("venenatis")?.font ?? ""), `the font menu changes the font (${item("venenatis")?.font})`);
+  const heading = item("Sample");
+  check(heading && Math.abs(heading.x + heading.width / 2 - 305) < 1.5, `Ctrl+E centers a line on the page (${heading && heading.x + heading.width / 2})`);
+  const marks = await page.evaluate(async ({ bytes, integer, posuere }) => {
+    const { openPdf, pdfjs } = await import("/src/lib/pdfjs.ts");
+    const { sampleRegionColors } = await import("/src/lib/colorSample.ts");
+    const { pdf } = await openPdf(new Uint8Array(bytes));
+    const ops = await (await pdf.getPage(1)).getOperatorList();
+    const paths = ops.fnArray.filter((f) => f === pdfjs.OPS.constructPath).length;
+    const red = await sampleRegionColors(pdf, 0, integer);
+    const yellow = await sampleRegionColors(pdf, 0, posuere);
+    await pdf.loadingTask.destroy();
+    return { paths, red: red.foreground, yellow: yellow.background };
+  }, { bytes, integer: wordRect(item("Integer"), "Integer"), posuere: wordRect(item("posuere"), "posuere") });
+  const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const [r, g, b] = rgb(marks.red);
+  check(r > 150 && g < 60 && b < 60, `the font color is applied (${marks.red})`);
+  const [hr, hg, hb] = rgb(marks.yellow);
+  check(hr > 200 && hg > 170 && hb < 100, `the highlight is drawn behind the text (${marks.yellow})`);
+  check(marks.paths >= 2, `underline and highlight are drawn (${marks.paths} shapes)`);
+
+  // Opened again, the editor shows the paragraph's fonts, sizes, weights and colors as they are on the page.
+  await formatText("Lorem", async () => {
+    await page.waitForTimeout(500);
+    const shown = await page.evaluate(() => {
+      const span = (word) => [...document.querySelectorAll(".doxxta-textedit-editor span")].find((s) => s.textContent.includes(word));
+      const css = (word) => getComputedStyle(span(word));
+      return { lorem: css("Lorem").fontSize, dolor: css("dolor").fontWeight, integer: css("Integer").color, venenatis: css("venenatis").fontFamily };
+    });
+    check(shown.lorem === "14px" && shown.dolor === "700" && shown.integer === "rgb(192, 0, 0)" && /g_d\d+_f\d+/.test(shown.venenatis), `the editor shows the text's own formatting (${JSON.stringify(shown)})`);
+  }, { commit: false });
+
   // Comments made in other apps are listed.
   await open("annotated.pdf");
   await page.evaluate(() => window.__doxxta.useSettings.getState().set({ rightPanel: "comments" }));
@@ -121,6 +229,29 @@ export default async function run({ page, check, st, open, shot, build, readPdf 
   check(await page.evaluate(() => document.documentElement.dataset.theme === "dark" || document.documentElement.classList.contains("dark")), "dark theme applies");
   await shot("dark-theme");
   await page.evaluate(() => window.__doxxta.useSettings.getState().set({ theme: "light" }));
+}
+
+/** Text items of page 1 of a PDF (pdf.js): text, font name, size and position. */
+function textItems(page, bytes) {
+  return page.evaluate(async (bytes) => {
+    const { openPdf } = await import("/src/lib/pdfjs.ts");
+    const { pdf } = await openPdf(new Uint8Array(bytes));
+    const p = await pdf.getPage(1);
+    await p.getOperatorList();
+    const items = (await p.getTextContent()).items
+      .filter((it) => it.str.trim())
+      .map((it) => ({ str: it.str, font: p.commonObjs.has(it.fontName) ? (p.commonObjs.get(it.fontName).name ?? "") : "", size: Math.hypot(it.transform[0], it.transform[1]), x: it.transform[4], y: it.transform[5], width: it.width }));
+    await pdf.loadingTask.destroy();
+    return items;
+  }, bytes);
+}
+
+/** About the middle of a word of a text item (PDF coordinates), by its share of the item's characters. */
+function wordRect(it, word) {
+  const at = it.str.indexOf(word);
+  const x0 = it.x + (it.width * at) / it.str.length;
+  const w = (it.width * word.length) / it.str.length;
+  return [x0 + w * 0.25, it.y, x0 + w * 0.75, it.y + it.size * 0.6];
 }
 
 /** Lines of page 1 of a PDF (pdf.js): text, left/right edges, baseline and runs with their font weight. */

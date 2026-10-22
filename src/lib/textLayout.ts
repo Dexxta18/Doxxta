@@ -1,6 +1,7 @@
 import type { PDFDocumentProxy } from "./pdfjs";
 import { getPageTextContent } from "./pdfjs";
 import type { PdfRect } from "./geometry";
+import { parseFontName } from "./fontNames";
 
 /**
  * Reconstructs reading structure (runs → lines → blocks) from pdf.js text
@@ -18,7 +19,11 @@ export interface TextRun {
   angle: number;
   rect: PdfRect;
   fontName: string;
+  /** The font's own name, e.g. "HelveticaNeue-LightItalic" (empty when pdf.js hasn't loaded the font). */
+  psName: string;
   family: "serif" | "sans-serif" | "monospace";
+  /** 100–900. */
+  weight: number;
   bold: boolean;
   italic: boolean;
   /** Index of the pdf.js text item (for mapping back to the text layer). */
@@ -28,6 +33,8 @@ export interface TextRun {
 export interface TextLine {
   runs: TextRun[];
   text: string;
+  /** For each character of `text`, the index of its run in `runs`. */
+  runOf: number[];
   rect: PdfRect;
   baseline: number;
   size: number;
@@ -123,6 +130,8 @@ async function computeLayout(pdf: PDFDocumentProxy, pageIndex: number): Promise<
         : st.fontFamily === "monospace"
           ? "monospace"
           : "sans-serif";
+    const parsed = parseFontName(info?.name ?? "");
+    const bold = !!(info?.bold || info?.black || /bold|black|heavy|semibold|demi/.test(lname));
     runs.push({
       str: it.str,
       x: e,
@@ -132,9 +141,11 @@ async function computeLayout(pdf: PDFDocumentProxy, pageIndex: number): Promise<
       angle,
       rect: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)],
       fontName: it.fontName,
+      psName: (info?.name ?? "").replace(/^[A-Z]{6}\+/, ""),
       family,
-      bold: !!(info?.bold || info?.black || /bold|black|heavy|semibold|demi/.test(lname)),
-      italic: !!(info?.italic || /italic|oblique/.test(lname)),
+      weight: parsed.weight ?? (info?.black ? 900 : bold ? 700 : 400),
+      bold,
+      italic: !!(info?.italic || parsed.italic || /italic|oblique/.test(lname)),
       itemIndex,
     });
   });
@@ -184,16 +195,27 @@ function buildLines(runs: TextRun[]): TextLine[] {
 }
 
 function makeLine(runs: TextRun[]): TextLine {
-  let text = "";
+  // The runs' text with a space where they're apart, each character with its run.
+  const chars: { ch: string; run: number }[] = [];
   for (let i = 0; i < runs.length; i++) {
     const r = runs[i];
     if (i > 0) {
       const prev = runs[i - 1];
       const gap = r.rect[0] - prev.rect[2];
-      if (gap > Math.min(prev.size, r.size) * 0.15 && !/\s$/.test(text) && !/^\s/.test(r.str)) text += " ";
+      const last = chars[chars.length - 1]?.ch ?? "";
+      if (gap > Math.min(prev.size, r.size) * 0.15 && !/\s/.test(last) && !/^\s/.test(r.str)) chars.push({ ch: " ", run: i - 1 });
     }
-    text += r.str;
+    for (const ch of r.str) chars.push({ ch, run: i });
   }
+  // Runs of white space become one space, and the line is trimmed.
+  const kept: { ch: string; run: number }[] = [];
+  for (const c of chars) {
+    if (!/\s/.test(c.ch)) kept.push(c);
+    else if (kept.length && kept[kept.length - 1].ch !== " ") kept.push({ ch: " ", run: c.run });
+  }
+  while (kept.length && kept[kept.length - 1].ch === " ") kept.pop();
+  const text = kept.map((c) => c.ch).join("");
+  const runOf = kept.flatMap((c) => (c.ch.length > 1 ? [c.run, c.run] : [c.run]));
   const rect: PdfRect = [
     Math.min(...runs.map((r) => r.rect[0])),
     Math.min(...runs.map((r) => r.rect[1])),
@@ -201,7 +223,7 @@ function makeLine(runs: TextRun[]): TextLine {
     Math.max(...runs.map((r) => r.rect[3])),
   ];
   const size = runs.reduce((s, r) => s + r.size * r.str.length, 0) / Math.max(1, runs.reduce((s, r) => s + r.str.length, 0));
-  return { runs, text: text.replace(/\s+/g, " ").trim(), rect, baseline: runs[0].y, size, angle: runs[0].angle };
+  return { runs, text, runOf, rect, baseline: runs[0].y, size, angle: runs[0].angle };
 }
 
 /** A list bullet or dash starting a line (with the Symbol and Wingdings bullets Word uses, which are private-use characters). */

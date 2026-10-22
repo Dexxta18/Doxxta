@@ -6,7 +6,7 @@ import { PDFDocument } from "@cantoo/pdf-lib";
 import { FIXTURES, ROOT } from "./harness.mjs";
 
 /** Written by scripts/make-fixtures.mjs. */
-const MADE = ["sample.pdf", "broken-tree.pdf", "hidden-pages.pdf", "form.pdf", "annotated.pdf", "simple.pdf"];
+const MADE = ["sample.pdf", "light.pdf", "broken-tree.pdf", "hidden-pages.pdf", "form.pdf", "annotated.pdf", "simple.pdf"];
 
 export async function ensureFixtures(browser) {
   if (MADE.some((f) => !existsSync(join(FIXTURES, f)))) execFileSync(process.execPath, [join(ROOT, "scripts", "make-fixtures.mjs")], { stdio: "inherit" });

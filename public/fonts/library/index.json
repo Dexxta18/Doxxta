@@ -1,0 +1,2563 @@
+[
+ {
+  "family": "Abril Fatface",
+  "category": "display",
+  "faces": [
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/AbrilFatface/AbrilFatface-400.ttf"
+   }
+  ],
+  "license": "fonts/library/AbrilFatface/OFL.txt"
+ },
+ {
+  "family": "Anton",
+  "category": "display",
+  "faces": [
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Anton/Anton-400.ttf"
+   }
+  ],
+  "license": "fonts/library/Anton/OFL.txt"
+ },
+ {
+  "family": "Archivo",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/Archivo/Archivo-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Archivo/Archivo-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Archivo/Archivo-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Archivo/Archivo-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/Archivo/Archivo-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/Archivo/Archivo-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/Archivo/Archivo-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/Archivo/Archivo-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/Archivo/OFL.txt"
+ },
+ {
+  "family": "Arvo",
+  "category": "serif",
+  "faces": [
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Arvo/Arvo-400.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Arvo/Arvo-700.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/Arvo/Arvo-400i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/Arvo/Arvo-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/Arvo/OFL.txt"
+ },
+ {
+  "family": "Barlow",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/Barlow/Barlow-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Barlow/Barlow-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Barlow/Barlow-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Barlow/Barlow-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/Barlow/Barlow-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/Barlow/Barlow-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/Barlow/Barlow-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/Barlow/Barlow-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/Barlow/OFL.txt"
+ },
+ {
+  "family": "Bebas Neue",
+  "category": "display",
+  "faces": [
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/BebasNeue/BebasNeue-400.ttf"
+   }
+  ],
+  "license": "fonts/library/BebasNeue/OFL.txt"
+ },
+ {
+  "family": "Bitter",
+  "category": "serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/Bitter/Bitter-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Bitter/Bitter-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Bitter/Bitter-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Bitter/Bitter-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/Bitter/Bitter-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/Bitter/Bitter-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/Bitter/Bitter-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/Bitter/Bitter-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/Bitter/OFL.txt"
+ },
+ {
+  "family": "Cabin",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Cabin/Cabin-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Cabin/Cabin-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Cabin/Cabin-700.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/Cabin/Cabin-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/Cabin/Cabin-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/Cabin/Cabin-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/Cabin/OFL.txt"
+ },
+ {
+  "family": "Caveat",
+  "category": "handwriting",
+  "faces": [
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Caveat/Caveat-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Caveat/Caveat-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Caveat/Caveat-700.ttf"
+   }
+  ],
+  "license": "fonts/library/Caveat/OFL.txt"
+ },
+ {
+  "family": "Comic Neue",
+  "category": "handwriting",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/ComicNeue/ComicNeue-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/ComicNeue/ComicNeue-400.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/ComicNeue/ComicNeue-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/ComicNeue/ComicNeue-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/ComicNeue/ComicNeue-400i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/ComicNeue/ComicNeue-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/ComicNeue/OFL.txt"
+ },
+ {
+  "family": "Cormorant Garamond",
+  "category": "serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/CormorantGaramond/CormorantGaramond-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/CormorantGaramond/CormorantGaramond-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/CormorantGaramond/CormorantGaramond-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/CormorantGaramond/CormorantGaramond-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/CormorantGaramond/CormorantGaramond-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/CormorantGaramond/CormorantGaramond-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/CormorantGaramond/CormorantGaramond-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/CormorantGaramond/CormorantGaramond-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/CormorantGaramond/OFL.txt"
+ },
+ {
+  "family": "Crimson Pro",
+  "category": "serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/CrimsonPro/CrimsonPro-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/CrimsonPro/CrimsonPro-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/CrimsonPro/CrimsonPro-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/CrimsonPro/CrimsonPro-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/CrimsonPro/CrimsonPro-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/CrimsonPro/CrimsonPro-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/CrimsonPro/CrimsonPro-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/CrimsonPro/CrimsonPro-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/CrimsonPro/OFL.txt"
+ },
+ {
+  "family": "DM Sans",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/DMSans/DMSans-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/DMSans/DMSans-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/DMSans/DMSans-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/DMSans/DMSans-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/DMSans/DMSans-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/DMSans/DMSans-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/DMSans/DMSans-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/DMSans/DMSans-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/DMSans/OFL.txt"
+ },
+ {
+  "family": "DM Serif Display",
+  "category": "serif",
+  "faces": [
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/DMSerifDisplay/DMSerifDisplay-400.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/DMSerifDisplay/DMSerifDisplay-400i.ttf"
+   }
+  ],
+  "license": "fonts/library/DMSerifDisplay/OFL.txt"
+ },
+ {
+  "family": "Dancing Script",
+  "category": "handwriting",
+  "faces": [
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/DancingScript/DancingScript-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/DancingScript/DancingScript-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/DancingScript/DancingScript-700.ttf"
+   }
+  ],
+  "license": "fonts/library/DancingScript/OFL.txt"
+ },
+ {
+  "family": "EB Garamond",
+  "category": "serif",
+  "faces": [
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/EBGaramond/EBGaramond-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/EBGaramond/EBGaramond-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/EBGaramond/EBGaramond-700.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/EBGaramond/EBGaramond-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/EBGaramond/EBGaramond-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/EBGaramond/EBGaramond-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/EBGaramond/OFL.txt"
+ },
+ {
+  "family": "Figtree",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/Figtree/Figtree-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Figtree/Figtree-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Figtree/Figtree-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Figtree/Figtree-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/Figtree/Figtree-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/Figtree/Figtree-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/Figtree/Figtree-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/Figtree/Figtree-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/Figtree/OFL.txt"
+ },
+ {
+  "family": "Fira Sans",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/FiraSans/FiraSans-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/FiraSans/FiraSans-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/FiraSans/FiraSans-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/FiraSans/FiraSans-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/FiraSans/FiraSans-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/FiraSans/FiraSans-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/FiraSans/FiraSans-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/FiraSans/FiraSans-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/FiraSans/OFL.txt"
+ },
+ {
+  "family": "Gelasio",
+  "category": "serif",
+  "faces": [
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Gelasio/Gelasio-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Gelasio/Gelasio-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Gelasio/Gelasio-700.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/Gelasio/Gelasio-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/Gelasio/Gelasio-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/Gelasio/Gelasio-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/Gelasio/OFL.txt"
+ },
+ {
+  "family": "Great Vibes",
+  "category": "handwriting",
+  "faces": [
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/GreatVibes/GreatVibes-400.ttf"
+   }
+  ],
+  "license": "fonts/library/GreatVibes/OFL.txt"
+ },
+ {
+  "family": "IBM Plex Mono",
+  "category": "monospace",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/IBMPlexMono/IBMPlexMono-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/IBMPlexMono/IBMPlexMono-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/IBMPlexMono/IBMPlexMono-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/IBMPlexMono/IBMPlexMono-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/IBMPlexMono/IBMPlexMono-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/IBMPlexMono/IBMPlexMono-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/IBMPlexMono/IBMPlexMono-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/IBMPlexMono/IBMPlexMono-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/IBMPlexMono/OFL.txt"
+ },
+ {
+  "family": "IBM Plex Sans",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/IBMPlexSans/IBMPlexSans-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/IBMPlexSans/IBMPlexSans-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/IBMPlexSans/IBMPlexSans-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/IBMPlexSans/IBMPlexSans-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/IBMPlexSans/IBMPlexSans-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/IBMPlexSans/IBMPlexSans-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/IBMPlexSans/IBMPlexSans-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/IBMPlexSans/IBMPlexSans-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/IBMPlexSans/OFL.txt"
+ },
+ {
+  "family": "Inconsolata",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/Inconsolata/Inconsolata-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Inconsolata/Inconsolata-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Inconsolata/Inconsolata-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Inconsolata/Inconsolata-700.ttf"
+   }
+  ],
+  "license": "fonts/library/Inconsolata/OFL.txt"
+ },
+ {
+  "family": "Inter",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/Inter/Inter-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Inter/Inter-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Inter/Inter-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Inter/Inter-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/Inter/Inter-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/Inter/Inter-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/Inter/Inter-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/Inter/Inter-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/Inter/OFL.txt"
+ },
+ {
+  "family": "JetBrains Mono",
+  "category": "monospace",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/JetBrainsMono/JetBrainsMono-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/JetBrainsMono/JetBrainsMono-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/JetBrainsMono/JetBrainsMono-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/JetBrainsMono/JetBrainsMono-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/JetBrainsMono/JetBrainsMono-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/JetBrainsMono/JetBrainsMono-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/JetBrainsMono/JetBrainsMono-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/JetBrainsMono/JetBrainsMono-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/JetBrainsMono/OFL.txt"
+ },
+ {
+  "family": "Josefin Sans",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/JosefinSans/JosefinSans-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/JosefinSans/JosefinSans-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/JosefinSans/JosefinSans-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/JosefinSans/JosefinSans-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/JosefinSans/JosefinSans-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/JosefinSans/JosefinSans-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/JosefinSans/JosefinSans-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/JosefinSans/JosefinSans-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/JosefinSans/OFL.txt"
+ },
+ {
+  "family": "Jost",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/Jost/Jost-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Jost/Jost-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Jost/Jost-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Jost/Jost-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/Jost/Jost-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/Jost/Jost-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/Jost/Jost-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/Jost/Jost-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/Jost/OFL.txt"
+ },
+ {
+  "family": "Karla",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/Karla/Karla-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Karla/Karla-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Karla/Karla-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Karla/Karla-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/Karla/Karla-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/Karla/Karla-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/Karla/Karla-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/Karla/Karla-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/Karla/OFL.txt"
+ },
+ {
+  "family": "Lato",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/Lato/Lato-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Lato/Lato-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Lato/Lato-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Lato/Lato-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/Lato/Lato-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/Lato/Lato-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/Lato/Lato-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/Lato/Lato-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/Lato/OFL.txt"
+ },
+ {
+  "family": "Lexend",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/Lexend/Lexend-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Lexend/Lexend-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Lexend/Lexend-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Lexend/Lexend-700.ttf"
+   }
+  ],
+  "license": "fonts/library/Lexend/OFL.txt"
+ },
+ {
+  "family": "Libre Baskerville",
+  "category": "serif",
+  "faces": [
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/LibreBaskerville/LibreBaskerville-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/LibreBaskerville/LibreBaskerville-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/LibreBaskerville/LibreBaskerville-700.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/LibreBaskerville/LibreBaskerville-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/LibreBaskerville/LibreBaskerville-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/LibreBaskerville/LibreBaskerville-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/LibreBaskerville/OFL.txt"
+ },
+ {
+  "family": "Libre Franklin",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/LibreFranklin/LibreFranklin-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/LibreFranklin/LibreFranklin-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/LibreFranklin/LibreFranklin-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/LibreFranklin/LibreFranklin-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/LibreFranklin/LibreFranklin-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/LibreFranklin/LibreFranklin-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/LibreFranklin/LibreFranklin-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/LibreFranklin/LibreFranklin-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/LibreFranklin/OFL.txt"
+ },
+ {
+  "family": "Lobster",
+  "category": "display",
+  "faces": [
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Lobster/Lobster-400.ttf"
+   }
+  ],
+  "license": "fonts/library/Lobster/OFL.txt"
+ },
+ {
+  "family": "Lora",
+  "category": "serif",
+  "faces": [
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Lora/Lora-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Lora/Lora-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Lora/Lora-700.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/Lora/Lora-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/Lora/Lora-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/Lora/Lora-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/Lora/OFL.txt"
+ },
+ {
+  "family": "Manrope",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/Manrope/Manrope-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Manrope/Manrope-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Manrope/Manrope-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Manrope/Manrope-700.ttf"
+   }
+  ],
+  "license": "fonts/library/Manrope/OFL.txt"
+ },
+ {
+  "family": "Merriweather",
+  "category": "serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/Merriweather/Merriweather-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Merriweather/Merriweather-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Merriweather/Merriweather-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Merriweather/Merriweather-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/Merriweather/Merriweather-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/Merriweather/Merriweather-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/Merriweather/Merriweather-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/Merriweather/Merriweather-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/Merriweather/OFL.txt"
+ },
+ {
+  "family": "Montserrat",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/Montserrat/Montserrat-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Montserrat/Montserrat-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Montserrat/Montserrat-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Montserrat/Montserrat-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/Montserrat/Montserrat-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/Montserrat/Montserrat-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/Montserrat/Montserrat-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/Montserrat/Montserrat-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/Montserrat/OFL.txt"
+ },
+ {
+  "family": "Mulish",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/Mulish/Mulish-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Mulish/Mulish-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Mulish/Mulish-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Mulish/Mulish-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/Mulish/Mulish-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/Mulish/Mulish-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/Mulish/Mulish-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/Mulish/Mulish-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/Mulish/OFL.txt"
+ },
+ {
+  "family": "Noto Sans",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/NotoSans/NotoSans-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/NotoSans/NotoSans-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/NotoSans/NotoSans-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/NotoSans/NotoSans-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/NotoSans/NotoSans-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/NotoSans/NotoSans-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/NotoSans/NotoSans-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/NotoSans/NotoSans-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/NotoSans/OFL.txt"
+ },
+ {
+  "family": "Noto Serif",
+  "category": "serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/NotoSerif/NotoSerif-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/NotoSerif/NotoSerif-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/NotoSerif/NotoSerif-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/NotoSerif/NotoSerif-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/NotoSerif/NotoSerif-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/NotoSerif/NotoSerif-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/NotoSerif/NotoSerif-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/NotoSerif/NotoSerif-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/NotoSerif/OFL.txt"
+ },
+ {
+  "family": "Nunito",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/Nunito/Nunito-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Nunito/Nunito-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Nunito/Nunito-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Nunito/Nunito-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/Nunito/Nunito-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/Nunito/Nunito-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/Nunito/Nunito-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/Nunito/Nunito-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/Nunito/OFL.txt"
+ },
+ {
+  "family": "Nunito Sans",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/NunitoSans/NunitoSans-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/NunitoSans/NunitoSans-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/NunitoSans/NunitoSans-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/NunitoSans/NunitoSans-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/NunitoSans/NunitoSans-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/NunitoSans/NunitoSans-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/NunitoSans/NunitoSans-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/NunitoSans/NunitoSans-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/NunitoSans/OFL.txt"
+ },
+ {
+  "family": "Open Sans",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/OpenSans/OpenSans-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/OpenSans/OpenSans-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/OpenSans/OpenSans-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/OpenSans/OpenSans-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/OpenSans/OpenSans-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/OpenSans/OpenSans-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/OpenSans/OpenSans-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/OpenSans/OpenSans-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/OpenSans/OFL.txt"
+ },
+ {
+  "family": "Oswald",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/Oswald/Oswald-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Oswald/Oswald-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Oswald/Oswald-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Oswald/Oswald-700.ttf"
+   }
+  ],
+  "license": "fonts/library/Oswald/OFL.txt"
+ },
+ {
+  "family": "Outfit",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/Outfit/Outfit-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Outfit/Outfit-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Outfit/Outfit-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Outfit/Outfit-700.ttf"
+   }
+  ],
+  "license": "fonts/library/Outfit/OFL.txt"
+ },
+ {
+  "family": "PT Sans",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/PTSans/PTSans-400.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/PTSans/PTSans-700.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/PTSans/PTSans-400i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/PTSans/PTSans-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/PTSans/OFL.txt"
+ },
+ {
+  "family": "PT Serif",
+  "category": "serif",
+  "faces": [
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/PTSerif/PTSerif-400.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/PTSerif/PTSerif-700.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/PTSerif/PTSerif-400i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/PTSerif/PTSerif-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/PTSerif/OFL.txt"
+ },
+ {
+  "family": "Pacifico",
+  "category": "handwriting",
+  "faces": [
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Pacifico/Pacifico-400.ttf"
+   }
+  ],
+  "license": "fonts/library/Pacifico/OFL.txt"
+ },
+ {
+  "family": "Playfair Display",
+  "category": "serif",
+  "faces": [
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/PlayfairDisplay/PlayfairDisplay-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/PlayfairDisplay/PlayfairDisplay-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/PlayfairDisplay/PlayfairDisplay-700.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/PlayfairDisplay/PlayfairDisplay-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/PlayfairDisplay/PlayfairDisplay-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/PlayfairDisplay/PlayfairDisplay-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/PlayfairDisplay/OFL.txt"
+ },
+ {
+  "family": "Plus Jakarta Sans",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/PlusJakartaSans/PlusJakartaSans-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/PlusJakartaSans/PlusJakartaSans-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/PlusJakartaSans/PlusJakartaSans-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/PlusJakartaSans/PlusJakartaSans-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/PlusJakartaSans/PlusJakartaSans-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/PlusJakartaSans/PlusJakartaSans-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/PlusJakartaSans/PlusJakartaSans-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/PlusJakartaSans/PlusJakartaSans-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/PlusJakartaSans/OFL.txt"
+ },
+ {
+  "family": "Poppins",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/Poppins/Poppins-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Poppins/Poppins-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Poppins/Poppins-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Poppins/Poppins-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/Poppins/Poppins-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/Poppins/Poppins-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/Poppins/Poppins-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/Poppins/Poppins-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/Poppins/OFL.txt"
+ },
+ {
+  "family": "Questrial",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Questrial/Questrial-400.ttf"
+   }
+  ],
+  "license": "fonts/library/Questrial/OFL.txt"
+ },
+ {
+  "family": "Quicksand",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/Quicksand/Quicksand-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Quicksand/Quicksand-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Quicksand/Quicksand-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Quicksand/Quicksand-700.ttf"
+   }
+  ],
+  "license": "fonts/library/Quicksand/OFL.txt"
+ },
+ {
+  "family": "Raleway",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/Raleway/Raleway-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Raleway/Raleway-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Raleway/Raleway-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Raleway/Raleway-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/Raleway/Raleway-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/Raleway/Raleway-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/Raleway/Raleway-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/Raleway/Raleway-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/Raleway/OFL.txt"
+ },
+ {
+  "family": "Roboto",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/Roboto/Roboto-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Roboto/Roboto-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Roboto/Roboto-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Roboto/Roboto-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/Roboto/Roboto-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/Roboto/Roboto-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/Roboto/Roboto-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/Roboto/Roboto-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/Roboto/OFL.txt"
+ },
+ {
+  "family": "Roboto Condensed",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/RobotoCondensed/RobotoCondensed-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/RobotoCondensed/RobotoCondensed-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/RobotoCondensed/RobotoCondensed-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/RobotoCondensed/RobotoCondensed-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/RobotoCondensed/RobotoCondensed-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/RobotoCondensed/RobotoCondensed-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/RobotoCondensed/RobotoCondensed-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/RobotoCondensed/RobotoCondensed-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/RobotoCondensed/OFL.txt"
+ },
+ {
+  "family": "Roboto Mono",
+  "category": "monospace",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/RobotoMono/RobotoMono-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/RobotoMono/RobotoMono-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/RobotoMono/RobotoMono-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/RobotoMono/RobotoMono-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/RobotoMono/RobotoMono-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/RobotoMono/RobotoMono-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/RobotoMono/RobotoMono-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/RobotoMono/RobotoMono-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/RobotoMono/OFL.txt"
+ },
+ {
+  "family": "Roboto Slab",
+  "category": "serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/RobotoSlab/RobotoSlab-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/RobotoSlab/RobotoSlab-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/RobotoSlab/RobotoSlab-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/RobotoSlab/RobotoSlab-700.ttf"
+   }
+  ],
+  "license": "fonts/library/RobotoSlab/LICENSE.txt"
+ },
+ {
+  "family": "Rubik",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/Rubik/Rubik-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Rubik/Rubik-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/Rubik/Rubik-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Rubik/Rubik-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/Rubik/Rubik-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/Rubik/Rubik-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/Rubik/Rubik-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/Rubik/Rubik-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/Rubik/OFL.txt"
+ },
+ {
+  "family": "Source Code Pro",
+  "category": "monospace",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/SourceCodePro/SourceCodePro-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/SourceCodePro/SourceCodePro-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/SourceCodePro/SourceCodePro-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/SourceCodePro/SourceCodePro-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/SourceCodePro/SourceCodePro-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/SourceCodePro/SourceCodePro-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/SourceCodePro/SourceCodePro-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/SourceCodePro/SourceCodePro-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/SourceCodePro/OFL.txt"
+ },
+ {
+  "family": "Source Sans 3",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/SourceSans3/SourceSans3-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/SourceSans3/SourceSans3-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/SourceSans3/SourceSans3-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/SourceSans3/SourceSans3-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/SourceSans3/SourceSans3-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/SourceSans3/SourceSans3-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/SourceSans3/SourceSans3-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/SourceSans3/SourceSans3-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/SourceSans3/OFL.txt"
+ },
+ {
+  "family": "Source Serif 4",
+  "category": "serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/SourceSerif4/SourceSerif4-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/SourceSerif4/SourceSerif4-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/SourceSerif4/SourceSerif4-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/SourceSerif4/SourceSerif4-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/SourceSerif4/SourceSerif4-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/SourceSerif4/SourceSerif4-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/SourceSerif4/SourceSerif4-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/SourceSerif4/SourceSerif4-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/SourceSerif4/OFL.txt"
+ },
+ {
+  "family": "Space Grotesk",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/SpaceGrotesk/SpaceGrotesk-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/SpaceGrotesk/SpaceGrotesk-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/SpaceGrotesk/SpaceGrotesk-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/SpaceGrotesk/SpaceGrotesk-700.ttf"
+   }
+  ],
+  "license": "fonts/library/SpaceGrotesk/OFL.txt"
+ },
+ {
+  "family": "Space Mono",
+  "category": "monospace",
+  "faces": [
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/SpaceMono/SpaceMono-400.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/SpaceMono/SpaceMono-700.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/SpaceMono/SpaceMono-400i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/SpaceMono/SpaceMono-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/SpaceMono/OFL.txt"
+ },
+ {
+  "family": "Titillium Web",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/TitilliumWeb/TitilliumWeb-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/TitilliumWeb/TitilliumWeb-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/TitilliumWeb/TitilliumWeb-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/TitilliumWeb/TitilliumWeb-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/TitilliumWeb/TitilliumWeb-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/TitilliumWeb/TitilliumWeb-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/TitilliumWeb/TitilliumWeb-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/TitilliumWeb/TitilliumWeb-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/TitilliumWeb/OFL.txt"
+ },
+ {
+  "family": "Ubuntu",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/Ubuntu/Ubuntu-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/Ubuntu/Ubuntu-400.ttf"
+   },
+   {
+    "weight": 500,
+    "italic": false,
+    "file": "fonts/library/Ubuntu/Ubuntu-500.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/Ubuntu/Ubuntu-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/Ubuntu/Ubuntu-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/Ubuntu/Ubuntu-400i.ttf"
+   },
+   {
+    "weight": 500,
+    "italic": true,
+    "file": "fonts/library/Ubuntu/Ubuntu-500i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/Ubuntu/Ubuntu-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/Ubuntu/UFL.txt"
+ },
+ {
+  "family": "Work Sans",
+  "category": "sans-serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/WorkSans/WorkSans-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/WorkSans/WorkSans-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/WorkSans/WorkSans-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/WorkSans/WorkSans-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/WorkSans/WorkSans-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/WorkSans/WorkSans-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/WorkSans/WorkSans-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/WorkSans/WorkSans-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/WorkSans/OFL.txt"
+ },
+ {
+  "family": "Zilla Slab",
+  "category": "serif",
+  "faces": [
+   {
+    "weight": 300,
+    "italic": false,
+    "file": "fonts/library/ZillaSlab/ZillaSlab-300.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": false,
+    "file": "fonts/library/ZillaSlab/ZillaSlab-400.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": false,
+    "file": "fonts/library/ZillaSlab/ZillaSlab-600.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": false,
+    "file": "fonts/library/ZillaSlab/ZillaSlab-700.ttf"
+   },
+   {
+    "weight": 300,
+    "italic": true,
+    "file": "fonts/library/ZillaSlab/ZillaSlab-300i.ttf"
+   },
+   {
+    "weight": 400,
+    "italic": true,
+    "file": "fonts/library/ZillaSlab/ZillaSlab-400i.ttf"
+   },
+   {
+    "weight": 600,
+    "italic": true,
+    "file": "fonts/library/ZillaSlab/ZillaSlab-600i.ttf"
+   },
+   {
+    "weight": 700,
+    "italic": true,
+    "file": "fonts/library/ZillaSlab/ZillaSlab-700i.ttf"
+   }
+  ],
+  "license": "fonts/library/ZillaSlab/OFL.txt"
+ }
+]

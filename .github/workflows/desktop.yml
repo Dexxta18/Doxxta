@@ -1,10 +1,16 @@
-# Builds the desktop installers on each operating system.
-# Run it from the Actions tab ("Run workflow") to get them as downloads on the run's page,
-# or push a tag such as v0.1.0 to also publish them on the repository's Releases page.
+# Builds the desktop installers on each operating system and publishes them on the
+# repository's Releases page: run it from the Actions tab ("Run workflow"), which names the
+# release after the version in package.json, or push a tag such as v0.2.0. A manual run
+# with "Publish a release" unticked only leaves the installers as downloads on the run's page.
 name: Desktop installers
 
 on:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish a release named after the version in package.json
+        type: boolean
+        default: true
   push:
     tags: ["v*"]
 
@@ -41,11 +47,12 @@ jobs:
 
   release:
     needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.publish
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: installers
@@ -53,8 +60,16 @@ jobs:
       - name: Publish the installers
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
-          gh release create "$GITHUB_REF_NAME" installers/* \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "Doxxta $GITHUB_REF_NAME" \
-            --notes "Windows: Doxxta-Setup-*.exe · macOS: the .dmg for your Mac (arm64 = Apple Silicon, x64 = Intel) · Linux: the .AppImage"
+          # A tag push names the release; a manual run uses the version in package.json and creates its tag.
+          tag="$GITHUB_REF_NAME"
+          [[ "$GITHUB_REF" == refs/tags/v* ]] || tag="v$(node -p "require('./package.json').version")"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            gh release upload "$tag" installers/* --clobber
+          else
+            gh release create "$tag" installers/* \
+              --target "$GITHUB_SHA" \
+              --title "Doxxta $tag" \
+              --notes "Windows: Doxxta-Setup-*.exe · macOS: the .dmg for your Mac (arm64 = Apple Silicon, x64 = Intel) · Linux: the .AppImage"
+          fi

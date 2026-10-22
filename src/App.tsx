@@ -80,7 +80,7 @@ function useFileDrop() {
 function useLaunchFiles() {
   useEffect(() => {
     loadRecent();
-    // Installed PWA: files opened with Quillmark from the OS.
+    // Installed PWA: files opened with Doxxta from the OS.
     const lq = (window as unknown as { launchQueue?: { setConsumer(cb: (p: { files: FileSystemFileHandle[] }) => void): void } }).launchQueue;
     lq?.setConsumer(async (params) => {
       for (const h of params.files ?? []) await openFile(await h.getFile(), { fileHandle: h });
@@ -107,7 +107,7 @@ function useLaunchFiles() {
 function useDocumentTitle() {
   const title = useApp((s) => {
     const d = s.activeId ? s.docs[s.activeId] : undefined;
-    return d ? `${d.dirty ? "• " : ""}${d.name} — Quillmark` : "Quillmark";
+    return d ? `${d.dirty ? "• " : ""}${d.name} — Doxxta` : "Doxxta";
   });
   useEffect(() => {
     document.title = title;

@@ -50,7 +50,7 @@ export async function imagesToPdf(files: Blob[], opts: ImagesToPdfOptions): Prom
       h = ih * s;
     page.drawImage(embedded, { x: (pw - w) / 2, y: (ph - h) / 2, width: w, height: h });
   }
-  doc.setCreator("Quillmark");
+  doc.setCreator("Doxxta");
   return doc.save();
 }
 
@@ -111,7 +111,7 @@ export async function textToPdf(text: string, opts: TextToPdfOptions): Promise<U
       if (l) page.drawText(l, { x: opts.margin, y: ph - opts.margin - opts.size - k * lh, size: opts.size, font, color: rgb(0.08, 0.08, 0.1) });
     });
   }
-  doc.setCreator("Quillmark");
+  doc.setCreator("Doxxta");
   return doc.save();
 }
 
@@ -120,7 +120,7 @@ export async function blankPdf(paper: string, count: number, orientation: "portr
   let [w, h] = PAPER[paper] ?? PAPER.Letter;
   if (orientation === "landscape") [w, h] = [h, w];
   for (let i = 0; i < Math.max(1, count); i++) doc.addPage([w, h]);
-  doc.setCreator("Quillmark");
+  doc.setCreator("Doxxta");
   return doc.save();
 }
 

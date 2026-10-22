@@ -230,11 +230,11 @@ export function ShortcutsDialog({ close }: DialogProps) {
 
 export function AboutDialog({ close }: DialogProps) {
   return (
-    <Dialog title="About Quillmark" icon={<Info size={18} />} onClose={close} width={460} footer={<Button onClick={close}>Close</Button>}>
+    <Dialog title="About Doxxta" icon={<Info size={18} />} onClose={close} width={460} footer={<Button onClick={close}>Close</Button>}>
       <div className="row" style={{ gap: 12 }}>
         <Logo />
         <div className="col" style={{ gap: 2 }}>
-          <strong>Quillmark</strong>
+          <strong>Doxxta</strong>
           <span className="muted">Version {__APP_VERSION__}</span>
         </div>
       </div>

@@ -243,7 +243,7 @@ export async function openBytes(bytes: Uint8Array, name: string, opts: OpenOptio
       addRecentFile({ name, bytes, fileHandle: opts.fileHandle ?? null, pageCount: pages.length, pdf }).catch((e) => console.warn("recent", e));
     }
     if (pages.length > statedPages) {
-      toast(`“${name}” has ${pages.length} pages, but its page list was damaged and counted only ${statedPages} (other apps may show only those). Quillmark repaired it: save the file to keep the repair.`, "info", { timeout: 12000 });
+      toast(`“${name}” has ${pages.length} pages, but its page list was damaged and counted only ${statedPages} (other apps may show only those). Doxxta repaired it: save the file to keep the repair.`, "info", { timeout: 12000 });
     }
     return id;
   } catch (e) {

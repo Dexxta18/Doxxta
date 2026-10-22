@@ -42,7 +42,7 @@ const findCount = async (text) => {
 
 try {
   console.log("\nProduction build");
-  check(!(await page.evaluate(() => "__quillmark" in window)), "no development hooks in the build");
+  check(!(await page.evaluate(() => "__doxxta" in window)), "no development hooks in the build");
   await open("sample.pdf");
   check(true, "opens a PDF with the Open command (Ctrl+O)");
 

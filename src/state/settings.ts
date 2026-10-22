@@ -140,6 +140,7 @@ export const useSettings = create<SettingsState>()(
         set((s) => ({ toolStyles: { ...s.toolStyles, [tool]: { ...s.toolStyles[tool], ...patch } } })),
     }),
     {
+      // Stored under the app's former name, Quillmark, so settings and signatures saved then carry over.
       name: "quillmark-settings",
       version: 1,
       partialize: (s) => {

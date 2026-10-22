@@ -68,7 +68,7 @@ export async function dropFile(page, name, mime = "application/pdf") {
 export async function waitForPages(page) {
   await page.waitForFunction(
     () => {
-      const s = window.__quillmark?.useApp.getState();
+      const s = window.__doxxta?.useApp.getState();
       const d = s?.activeId && s.docs[s.activeId];
       return d && d.status === "ready" && document.querySelector('.pdfViewer .page[data-loaded="true"]');
     },

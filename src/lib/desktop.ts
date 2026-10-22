@@ -27,7 +27,7 @@ interface DesktopBridge {
 }
 
 /** The desktop bridge, or null in a browser. */
-export const desktop: DesktopBridge | null = (window as unknown as { quillmarkDesktop?: DesktopBridge }).quillmarkDesktop ?? null;
+export const desktop: DesktopBridge | null = (window as unknown as { doxxtaDesktop?: DesktopBridge }).doxxtaDesktop ?? null;
 
 const baseName = (p: string) => p.split(/[\\/]/).pop() || p;
 

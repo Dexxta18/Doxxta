@@ -113,7 +113,7 @@ export function TopBar() {
     <header className="topbar">
       <div className="topbar-brand">
         <Logo />
-        <span>Quillmark</span>
+        <span>Doxxta</span>
       </div>
       <MenuBar />
       <Tabs />

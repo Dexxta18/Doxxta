@@ -179,7 +179,7 @@ export async function applyRedactions(docId: string, opts: { ids?: string[]; san
     } finally {
       await source?.loadingTask.destroy();
     }
-    // Comments and fields (in Quillmark's model) inside redacted areas go too.
+    // Comments and fields (in Doxxta's model) inside redacted areas go too.
     const applied = new Set(marks.map((m) => m.id));
     const kept = annotations.filter((a) => {
       if (applied.has(a.id)) return false;

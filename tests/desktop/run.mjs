@@ -1,8 +1,8 @@
 // Desktop app tests: npm run test:desktop (needs a display; on Linux servers run it under xvfb-run).
-// Set QUILLMARK_APP to a packaged executable to test an installer's build.
+// Set DOXXTA_APP to a packaged executable to test an installer's build.
 // Native dialogs are replaced in the main process with answers chosen by the test.
 import { spawnSync } from "node:child_process";
-import { copyFileSync, mkdtempSync, readFileSync, statSync, existsSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, statSync, existsSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -22,21 +22,27 @@ if (!["sample.pdf", "simple.pdf", "scanned.pdf"].every((f) => existsSync(join(FI
 }
 
 // Work on copies, since the app saves into them.
-const dir = mkdtempSync(join(tmpdir(), "quillmark-desktop-"));
-const userData = mkdtempSync(join(tmpdir(), "quillmark-profile-"));
+const dir = mkdtempSync(join(tmpdir(), "doxxta-desktop-"));
+const userData = mkdtempSync(join(tmpdir(), "doxxta-profile-"));
 for (const f of ["sample.pdf", "simple.pdf", "scanned.pdf"]) copyFileSync(join(FIXTURES, f), join(dir, f));
 copyFileSync(join(ROOT, "tests", "assets", "cv.pdf"), join(dir, "cv.pdf"));
 const file = (name) => join(dir, name);
+// The app was called Quillmark: its profile is carried over on first run. On Linux the
+// profiles' parent folder is $XDG_CONFIG_HOME, so the test gives the app one of its own.
+const config = mkdtempSync(join(tmpdir(), "doxxta-config-"));
+mkdirSync(join(config, "Quillmark"));
+writeFileSync(join(config, "Quillmark", "carried-over.txt"), "from Quillmark");
 
 const { results, check } = recorder("desktop");
 const errors = [];
 const cspViolations = [];
 // Root can't use Chromium's sandbox (CI containers); a normal user's app always runs with it.
 const flags = [...(process.getuid?.() === 0 ? ["--no-sandbox"] : []), "--disable-gpu", `--user-data-dir=${userData}`];
-// QUILLMARK_APP tests a packaged build instead, e.g. QUILLMARK_APP=release/linux-unpacked/quillmark
-const packaged = process.env.QUILLMARK_APP;
+// DOXXTA_APP tests a packaged build instead, e.g. DOXXTA_APP=release/linux-unpacked/doxxta
+const packaged = process.env.DOXXTA_APP;
+const env = { ...process.env, XDG_CONFIG_HOME: config };
 const app = await electron.launch(
-  packaged ? { executablePath: packaged, args: [...flags, file("sample.pdf")] } : { executablePath: require("electron"), args: [...flags, stage, file("sample.pdf")], cwd: ROOT },
+  packaged ? { executablePath: packaged, args: [...flags, file("sample.pdf")], env } : { executablePath: require("electron"), args: [...flags, stage, file("sample.pdf")], cwd: ROOT, env },
 );
 const win = await app.firstWindow();
 win.on("pageerror", (e) => errors.push(e.message));
@@ -57,7 +63,8 @@ try {
   console.log("\nDesktop app");
   await win.waitForSelector(".app");
   check(win.url().startsWith("app://quillmark/"), "the app is served from inside the desktop app");
-  check(await waitTitle(/^sample\.pdf — Quillmark$/), `a PDF passed on the command line (Open with) opens: "${await title()}"`);
+  if (process.platform === "linux") check(existsSync(join(userData, "carried-over.txt")), "the profile of Quillmark (the app's former name) is carried over");
+  check(await waitTitle(/^sample\.pdf — Doxxta$/), `a PDF passed on the command line (Open with) opens: "${await title()}"`);
   await loaded();
 
   // Draw a rectangle, then Ctrl+S writes back to the same file.
@@ -72,7 +79,7 @@ try {
   check(await waitTitle(/^• sample\.pdf/), "unsaved changes show in the window title");
   await win.keyboard.press("Escape");
   await win.keyboard.press("Control+s");
-  check(await waitTitle(/^sample\.pdf — Quillmark$/), "Ctrl+S saves (the title loses its unsaved mark)");
+  check(await waitTitle(/^sample\.pdf — Doxxta$/), "Ctrl+S saves (the title loses its unsaved mark)");
   check(statSync(file("sample.pdf")).size !== before && (await annotTypes("sample.pdf")).includes("Square"), "the rectangle is saved into the original file on disk");
 
   // Ctrl+O shows the native Open dialog.
@@ -80,7 +87,7 @@ try {
     dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [path] });
   }, file("simple.pdf"));
   await win.keyboard.press("Control+o");
-  check(await waitTitle(/^simple\.pdf — Quillmark$/), "Ctrl+O opens the file chosen in the Open dialog");
+  check(await waitTitle(/^simple\.pdf — Doxxta$/), "Ctrl+O opens the file chosen in the Open dialog");
   await loaded();
 
   // Save As writes a new file through the native Save dialog, and Save then goes there.
@@ -91,14 +98,14 @@ try {
   await win.click(".menu-item:has-text('Save as')");
   await win.waitForSelector(".dialog-title:has-text('Save')");
   await win.click(".dialog-footer .btn-primary");
-  check(await waitTitle(/^copy\.pdf — Quillmark$/), "Save As switches the document to the new file");
+  check(await waitTitle(/^copy\.pdf — Doxxta$/), "Save As switches the document to the new file");
   check(existsSync(file("copy.pdf")) && readFileSync(file("copy.pdf")).subarray(0, 5).toString() === "%PDF-", "Save As writes a PDF where the dialog said");
 
   // A file sent by the OS while the app is open (second launch, or macOS "open-file").
   await main(({ app }, path) => {
     app.emit("second-instance", {}, [process.execPath, ".", path]);
   }, file("scanned.pdf"));
-  check(await waitTitle(/^scanned\.pdf — Quillmark$/), "a PDF opened from the OS while running opens in a new tab");
+  check(await waitTitle(/^scanned\.pdf — Doxxta$/), "a PDF opened from the OS while running opens in a new tab");
   await loaded();
 
   // OCR: WebAssembly and workers run under the app's security policy.
@@ -130,7 +137,7 @@ try {
   check(/no file at that address/.test(await win.locator(".dialog .field-error").textContent()), "a wrong web address says there's no file there");
   await win.fill(".dialog input", `${site.url}/nocors/download`);
   await win.click(".dialog-footer .btn-primary");
-  check(await waitTitle(/^Quarterly report\.pdf — Quillmark$/), "Open from URL works even when the site doesn't allow downloads by other sites");
+  check(await waitTitle(/^Quarterly report\.pdf — Doxxta$/), "Open from URL works even when the site doesn't allow downloads by other sites");
   await loaded();
   await site.close();
 
@@ -138,7 +145,7 @@ try {
   await main(({ app }, path) => {
     app.emit("second-instance", {}, [process.execPath, ".", path]);
   }, file("cv.pdf"));
-  await waitTitle(/^cv\.pdf — Quillmark$/);
+  await waitTitle(/^cv\.pdf — Doxxta$/);
   await loaded();
   // The text layer nests spans: the one that holds the text has a width.
   const spans = win.locator('.pdfViewer .page[data-page-number="1"] .textLayer span', { hasText: "PROFESSIONAL EXPERIENCE" });
@@ -149,15 +156,15 @@ try {
   }
   await win.click('button.tools-item:has-text("Edit PDF")');
   await win.click('.context-toolbar button[aria-label="Edit text"]').catch(() => {});
-  await win.waitForSelector(".quillmark-text-block", { timeout: 15000 });
+  await win.waitForSelector(".doxxta-text-block", { timeout: 15000 });
   await win.mouse.click(heading.x + 4, heading.y + heading.height / 2);
-  await win.waitForSelector(".quillmark-textedit-editor");
+  await win.waitForSelector(".doxxta-textedit-editor");
   await win.keyboard.press("End");
   await win.keyboard.type(" & SKILLS");
   await win.keyboard.press("Control+Enter");
   await waitTitle(/^• cv\.pdf/);
   await win.keyboard.press("Control+s");
-  await waitTitle(/^cv\.pdf — Quillmark$/);
+  await waitTitle(/^cv\.pdf — Doxxta$/);
   const cv = await PDFDocument.load(readFileSync(file("cv.pdf")));
   const fonts = cv.getPage(0).node.Resources().lookup(PDFName.of("Font"), PDFDict);
   const baseFonts = fonts.keys().map((k) => cv.context.lookup(fonts.get(k), PDFDict).get(PDFName.of("BaseFont"))?.toString() ?? "");
@@ -181,7 +188,7 @@ try {
 
   // Closing with unsaved changes asks first.
   await win.click(".recent-card:has-text('simple.pdf')");
-  check(await waitTitle(/simple\.pdf — Quillmark$/), "a recent file reopens from disk");
+  check(await waitTitle(/simple\.pdf — Doxxta$/), "a recent file reopens from disk");
   await loaded();
   await win.click('button.tools-item:has-text("Add comments")');
   await win.click('button[aria-label="Rectangle"]');

@@ -1,6 +1,6 @@
 {
-  "name": "Quillmark",
-  "short_name": "Quillmark",
+  "name": "Doxxta",
+  "short_name": "Doxxta",
   "description": "Read, annotate, sign, organize, convert and protect PDFs in your browser.",
   "start_url": "./",
   "display": "standalone",

@@ -46,186 +46,186 @@
 }
 
 /* ---------- Annotation overlay ---------- */
-.quillmark-overlay-host {
+.doxxta-overlay-host {
   position: absolute;
   inset: 0;
   z-index: 6;
   pointer-events: none;
 }
-.quillmark-overlay {
+.doxxta-overlay {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
-.quillmark-overlay.is-creating {
+.doxxta-overlay.is-creating {
   pointer-events: auto;
   cursor: crosshair;
   touch-action: none;
 }
-.quillmark-overlay.tool-freetext.is-creating,
-.quillmark-overlay.tool-fs-text.is-creating,
-.quillmark-overlay.tool-add-text.is-creating {
+.doxxta-overlay.tool-freetext.is-creating,
+.doxxta-overlay.tool-fs-text.is-creating,
+.doxxta-overlay.tool-add-text.is-creating {
   cursor: text;
 }
-.quillmark-overlay.tool-eraser.is-creating {
+.doxxta-overlay.tool-eraser.is-creating {
   cursor: cell;
 }
-.quillmark-overlay.tool-marquee-zoom.is-creating {
+.doxxta-overlay.tool-marquee-zoom.is-creating {
   cursor: zoom-in;
 }
-.quillmark-overlay.tool-note.is-creating,
-.quillmark-overlay.tool-stamp.is-creating,
-.quillmark-overlay.tool-signature.is-creating,
-.quillmark-overlay.tool-initials.is-creating {
+.doxxta-overlay.tool-note.is-creating,
+.doxxta-overlay.tool-stamp.is-creating,
+.doxxta-overlay.tool-signature.is-creating,
+.doxxta-overlay.tool-initials.is-creating {
   cursor: copy;
 }
-.quillmark-stage {
+.doxxta-stage {
   position: absolute;
   left: 0;
   top: 0;
   transform-origin: 0 0;
   transform: scale(var(--total-scale-factor, 1));
 }
-.quillmark-svg,
-.quillmark-ui {
+.doxxta-svg,
+.doxxta-ui {
   position: absolute;
   left: 0;
   top: 0;
   overflow: visible;
 }
 /* Layers above the annotations only take events on their interactive children. */
-.quillmark-ui {
+.doxxta-ui {
   pointer-events: none;
 }
-.quillmark-html {
+.doxxta-html {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
-.quillmark-annot {
+.doxxta-annot {
   pointer-events: auto;
   cursor: default;
 }
-.quillmark-overlay.is-creating .quillmark-annot {
+.doxxta-overlay.is-creating .doxxta-annot {
   pointer-events: none;
 }
-.quillmark-overlay.is-creating .quillmark-annot.is-editing {
+.doxxta-overlay.is-creating .doxxta-annot.is-editing {
   pointer-events: auto;
 }
-.quillmark-overlay.tool-select .quillmark-annot,
-.quillmark-overlay.tool-hand .quillmark-annot {
+.doxxta-overlay.tool-select .doxxta-annot,
+.doxxta-overlay.tool-hand .doxxta-annot {
   cursor: move;
 }
-g.quillmark-annot {
+g.doxxta-annot {
   pointer-events: visiblePainted;
 }
-.quillmark-hit {
+.doxxta-hit {
   fill: transparent;
   stroke: transparent;
   pointer-events: all;
 }
-path.quillmark-hit {
+path.doxxta-hit {
   fill: none;
   stroke: transparent;
   stroke-linecap: round;
   pointer-events: stroke;
 }
-path.quillmark-hit[d$="Z"] {
+path.doxxta-hit[d$="Z"] {
   fill: transparent;
   pointer-events: all;
 }
-.quillmark-hit-stroke {
+.doxxta-hit-stroke {
   pointer-events: stroke;
 }
-g.quillmark-annot:hover {
+g.doxxta-annot:hover {
   filter: drop-shadow(0 0 1.5px rgb(47 91 234 / 0.7));
 }
-.quillmark-annot-highlight:hover {
+.doxxta-annot-highlight:hover {
   filter: brightness(0.95);
 }
-.quillmark-redact-mark {
+.doxxta-redact-mark {
   fill-opacity: 0.18;
 }
-.quillmark-annot-redact:hover .quillmark-redact-mark {
+.doxxta-annot-redact:hover .doxxta-redact-mark {
   fill-opacity: 0.85;
 }
-.quillmark-link-box {
+.doxxta-link-box {
   opacity: 0;
 }
-.quillmark-link-box.is-editing,
-.quillmark-overlay.tool-link .quillmark-link-box,
-.quillmark-annot-link:hover .quillmark-link-box {
+.doxxta-link-box.is-editing,
+.doxxta-overlay.tool-link .doxxta-link-box,
+.doxxta-annot-link:hover .doxxta-link-box {
   opacity: 1;
 }
-.quillmark-overlay.links-follow .quillmark-annot-link {
+.doxxta-overlay.links-follow .doxxta-annot-link {
   cursor: pointer;
 }
-.quillmark-overlay.links-follow .quillmark-annot-link:hover .quillmark-link-box {
+.doxxta-overlay.links-follow .doxxta-annot-link:hover .doxxta-link-box {
   opacity: 0;
 }
-.quillmark-overlay.tool-link .quillmark-annot-link {
+.doxxta-overlay.tool-link .doxxta-annot-link {
   pointer-events: auto;
   cursor: move;
 }
-.quillmark-field-box {
+.doxxta-field-box {
   fill-opacity: 1;
 }
-.quillmark-sel-outline {
+.doxxta-sel-outline {
   fill: none;
   stroke: var(--selection);
   stroke-width: 1.4;
   stroke-dasharray: 4 3;
   pointer-events: none;
 }
-.quillmark-handle {
+.doxxta-handle {
   fill: #ffffff;
   stroke: var(--selection);
   stroke-width: 1.4;
   pointer-events: all;
 }
-.quillmark-handle-nw,
-.quillmark-handle-se {
+.doxxta-handle-nw,
+.doxxta-handle-se {
   cursor: nwse-resize;
 }
-.quillmark-handle-ne,
-.quillmark-handle-sw {
+.doxxta-handle-ne,
+.doxxta-handle-sw {
   cursor: nesw-resize;
 }
-.quillmark-handle-n,
-.quillmark-handle-s {
+.doxxta-handle-n,
+.doxxta-handle-s {
   cursor: ns-resize;
 }
-.quillmark-handle-e,
-.quillmark-handle-w {
+.doxxta-handle-e,
+.doxxta-handle-w {
   cursor: ew-resize;
 }
-.quillmark-handle-vertex {
+.doxxta-handle-vertex {
   cursor: move;
   fill: var(--selection);
   stroke: #fff;
 }
-.quillmark-draft-marquee {
+.doxxta-draft-marquee {
   fill: rgb(47 91 234 / 0.08);
   stroke: var(--selection);
   stroke-width: 1;
   stroke-dasharray: 4 3;
 }
-.quillmark-draft-redact {
+.doxxta-draft-redact {
   fill: rgb(0 0 0 / 0.25);
   stroke: #e5383b;
   stroke-width: 1.2;
 }
-.quillmark-draft-highlight {
+.doxxta-draft-highlight {
   fill: rgb(255 212 0 / 0.4);
   stroke: rgb(220 170 0);
   stroke-width: 1;
 }
-.quillmark-eraser-cursor {
+.doxxta-eraser-cursor {
   fill: rgb(255 255 255 / 0.4);
   stroke: #333;
   stroke-width: 1;
 }
-.quillmark-vertex-dot {
+.doxxta-vertex-dot {
   fill: #fff;
   stroke: var(--selection);
   stroke-width: 1.2;
@@ -233,18 +233,18 @@ g.quillmark-annot:hover {
 }
 
 /* Free text */
-.quillmark-freetext {
+.doxxta-freetext {
   white-space: pre;
   overflow: hidden;
   word-break: normal;
 }
-.quillmark-freetext-line {
+.doxxta-freetext-line {
   white-space: pre;
 }
-.quillmark-freetext.is-plain:hover {
+.doxxta-freetext.is-plain:hover {
   outline: 1px dashed rgb(47 91 234 / 0.5);
 }
-.quillmark-freetext.is-editing {
+.doxxta-freetext.is-editing {
   overflow: visible;
   outline: 1.5px solid var(--selection);
   background: rgb(255 255 255 / 0.85) !important;
@@ -252,7 +252,7 @@ g.quillmark-annot:hover {
   min-height: 1.4em;
   z-index: 5;
 }
-.quillmark-freetext-editor {
+.doxxta-freetext-editor {
   outline: none;
   white-space: pre-wrap;
   word-break: break-word;
@@ -262,32 +262,32 @@ g.quillmark-annot:hover {
 }
 
 /* Edit text */
-.quillmark-textedit-layer {
+.doxxta-textedit-layer {
   pointer-events: none;
   z-index: 3;
 }
-.quillmark-text-block {
+.doxxta-text-block {
   position: absolute;
   pointer-events: auto;
   cursor: text;
   border: 1px solid transparent;
   border-radius: 2px;
 }
-.quillmark-text-block:hover {
+.doxxta-text-block:hover {
   border-color: rgb(47 91 234 / 0.7);
   background: rgb(47 91 234 / 0.05);
 }
-.quillmark-text-block.is-edited {
+.doxxta-text-block.is-edited {
   border-color: rgb(25 135 84 / 0.5);
 }
-.quillmark-textedit-cover {
+.doxxta-textedit-cover {
   pointer-events: none;
 }
-.quillmark-textedit-cover.is-live {
+.doxxta-textedit-cover.is-live {
   position: absolute;
   background: #fff;
 }
-.quillmark-textedit-editor {
+.doxxta-textedit-editor {
   position: absolute;
   pointer-events: auto;
   outline: 1.5px solid var(--selection);
@@ -299,7 +299,7 @@ g.quillmark-annot:hover {
   padding: 1px;
   z-index: 4;
 }
-.quillmark-textedit-loading {
+.doxxta-textedit-loading {
   position: absolute;
   top: 8px;
   left: 8px;

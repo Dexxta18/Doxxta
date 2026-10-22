@@ -22,7 +22,7 @@ import { pdfDateToIso } from "../lib/pdfjs";
 import { invert, normRect, stageTransform, type PdfRect, type Point, type Quad } from "../lib/geometry";
 import { nowIso, uid } from "../lib/util";
 import { computeRect } from "./geometry";
-import { QUILLMARK_KEY } from "./writer";
+import { DATA_KEY, OLD_DATA_KEY } from "./writer";
 
 export interface ImportResult {
   bytes: Uint8Array;
@@ -40,7 +40,7 @@ const get = (d: PDFDict, k: string) => d.get(PDFName.of(k));
 const lookup = (doc: PDFDocument, o: PDFObject | undefined) => (o instanceof PDFRef ? doc.context.lookup(o) : o);
 
 /**
- * Lifts editable annotations out of a PDF into the Quillmark model and returns
+ * Lifts editable annotations out of a PDF into the Doxxta model and returns
  * the document without them (so pdf.js doesn't draw them a second time).
  * Decrypts the document when a password is given.
  */
@@ -111,7 +111,7 @@ export async function importAnnotations(bytes: Uint8Array, password?: string): P
         parent.status = state;
       } else if (stateModel !== "Marked") {
         const replyId = decodeText(get(e.dict, "NM")) || uid("r");
-        // Quillmark-written parents already carry their thread in the private data.
+        // Doxxta-written parents already carry their thread in the private data.
         if (parent.replies.some((r) => r.id === replyId)) {
           removed.add(e.ref);
           continue;
@@ -258,7 +258,7 @@ function pointsOf(arr: number[]): Point[] {
 }
 
 function convert(doc: PDFDocument, d: PDFDict, subtype: string, pageRotation: number, view: number[]): Annotation | null {
-  const stored = readQuillmarkData(doc, d);
+  const stored = readDoxxtaData(doc, d);
   if (stored) return stored;
 
   const now = nowIso();
@@ -423,9 +423,9 @@ function convert(doc: PDFDocument, d: PDFDict, subtype: string, pageRotation: nu
   }
 }
 
-/** Restores an annotation written by Quillmark when it hasn't been changed by another app. */
-export function readQuillmarkData(doc: PDFDocument, d: PDFDict): Annotation | null {
-  const raw = decodeText(get(d, QUILLMARK_KEY));
+/** Restores an annotation written by Doxxta when it hasn't been changed by another app. */
+export function readDoxxtaData(doc: PDFDocument, d: PDFDict): Annotation | null {
+  const raw = decodeText(get(d, DATA_KEY) ?? get(d, OLD_DATA_KEY));
   if (!raw) return null;
   let data: Annotation & { v?: number };
   try {

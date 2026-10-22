@@ -142,15 +142,15 @@ export function TextEditLayer({ docId, pageIndex, ctx, geo }: { docId: string; p
   }, [editing?.annotId, editing?.block]);
 
   return (
-    <div className="quillmark-stage quillmark-textedit-layer" style={{ width: geo.width, height: geo.height }}>
-      {blocks === null && <div className="quillmark-textedit-loading">Analyzing text…</div>}
+    <div className="doxxta-stage doxxta-textedit-layer" style={{ width: geo.width, height: geo.height }}>
+      {blocks === null && <div className="doxxta-textedit-loading">Analyzing text…</div>}
       {visibleBlocks.map((b, i) => {
         const box = stageBox(ctx.m, b.rect);
         if (editing?.block === b) return null;
         return (
           <div
             key={i}
-            className="quillmark-text-block"
+            className="doxxta-text-block"
             style={{ left: box.x - 2, top: box.y - 2, width: box.w + 4, height: box.h + 4 }}
             onPointerDown={(e) => {
               e.stopPropagation();
@@ -167,7 +167,7 @@ export function TextEditLayer({ docId, pageIndex, ctx, geo }: { docId: string; p
         return (
           <div
             key={a.id}
-            className="quillmark-text-block is-edited"
+            className="doxxta-text-block is-edited"
             style={{ left: box.x - 2, top: box.y - 2, width: box.w + 4, height: box.h + 4 }}
             onPointerDown={(e) => {
               e.stopPropagation();
@@ -205,10 +205,10 @@ function EditorBox({ editing, ctx, editorRef, onCommit, onCancel }: { editing: E
   const room = stageBox(ctx.m, [editing.rect[0], editing.rect[1], Math.max(editing.rect[2], editing.maxRight), editing.rect[3]]);
   return (
     <>
-      <div className="quillmark-textedit-cover is-live" style={{ left: box.x - 1, top: box.y - 1, width: box.w + 2, height: box.h + 2 }} />
+      <div className="doxxta-textedit-cover is-live" style={{ left: box.x - 1, top: box.y - 1, width: box.w + 2, height: box.h + 2 }} />
       <div
         ref={editorRef}
-        className="quillmark-textedit-editor"
+        className="doxxta-textedit-editor"
         contentEditable="plaintext-only"
         suppressContentEditableWarning
         spellCheck

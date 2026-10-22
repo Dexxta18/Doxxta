@@ -32,7 +32,7 @@ jobs:
       - run: node scripts/desktop.mjs dist ${{ matrix.target }}
       - uses: actions/upload-artifact@v4
         with:
-          name: quillmark-${{ runner.os }}
+          name: doxxta-${{ runner.os }}
           path: |
             release/*.exe
             release/*.dmg
@@ -56,5 +56,5 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" installers/* \
             --repo "$GITHUB_REPOSITORY" \
-            --title "Quillmark $GITHUB_REF_NAME" \
-            --notes "Windows: Quillmark-Setup-*.exe · macOS: the .dmg for your Mac (arm64 = Apple Silicon, x64 = Intel) · Linux: the .AppImage"
+            --title "Doxxta $GITHUB_REF_NAME" \
+            --notes "Windows: Doxxta-Setup-*.exe · macOS: the .dmg for your Mac (arm64 = Apple Silicon, x64 = Intel) · Linux: the .AppImage"

@@ -13,7 +13,7 @@ export interface BuildOptions {
   flattenAnnotations?: boolean;
   /** Draw form fields into the page content. */
   flattenForms?: boolean;
-  /** Leave Quillmark annotations out entirely (e.g. "print document only"). */
+  /** Leave Doxxta annotations out entirely (e.g. "print document only"). */
   omitAnnotations?: boolean;
   /** Keep only these pages (0-based, in this order). */
   pageIndices?: number[];
@@ -89,7 +89,7 @@ export async function buildPdf(docId: string, opts: BuildOptions = {}): Promise<
     setPageOrder(pdfDoc, opts.pageIndices.filter((i, n, arr) => arr.indexOf(i) === n && pages[i]).map((i) => pages[i]));
   }
   pdfDoc.setModificationDate(new Date());
-  if (!pdfDoc.getProducer()) pdfDoc.setProducer("Quillmark");
+  if (!pdfDoc.getProducer()) pdfDoc.setProducer("Doxxta");
 
   await applySecurity(pdfDoc, docId, doc.security, opts.security ?? "keep");
   return savePdf(pdfDoc);

@@ -18,7 +18,7 @@ import { installDesktop } from "./lib/desktop";
 
 if (import.meta.env.DEV) {
   // Debug handle for automated browser tests.
-  (window as unknown as { __quillmark: unknown }).__quillmark = { useApp, useSettings, runtimes, runCommand };
+  (window as unknown as { __doxxta: unknown }).__doxxta = { useApp, useSettings, runtimes, runCommand };
 }
 
 installDesktop();

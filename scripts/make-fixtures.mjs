@@ -27,10 +27,10 @@ function wrap(text, font, size, width) {
 
 async function sample() {
   const doc = await PDFDocument.create();
-  doc.setTitle("Quillmark sample document");
-  doc.setAuthor("Quillmark test suite");
+  doc.setTitle("Doxxta sample document");
+  doc.setAuthor("Doxxta test suite");
   doc.setSubject("Fixture for testing");
-  doc.setKeywords(["pdf", "test", "quillmark"]);
+  doc.setKeywords(["pdf", "test", "doxxta"]);
   const helv = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const times = await doc.embedFont(StandardFonts.TimesRoman);

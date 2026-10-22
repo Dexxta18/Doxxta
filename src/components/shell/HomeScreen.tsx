@@ -90,7 +90,7 @@ export function HomeScreen() {
           <div className="home-hero-text">
             <div className="home-brand">
               <Logo />
-              <span>Quillmark</span>
+              <span>Doxxta</span>
             </div>
             <h1>Everything you need to work with PDFs.</h1>
             <p className="muted">

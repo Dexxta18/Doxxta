@@ -4,7 +4,7 @@ export const title = "Passwords and permissions";
 export default async function run({ page, check, st, open, build, readPdf }) {
   const addNote = (text) =>
     st(async (text) => {
-      const s = window.__quillmark.useApp.getState();
+      const s = window.__doxxta.useApp.getState();
       const d = s.docs[s.activeId];
       const { createNote } = await import("/src/annotations/factory.ts");
       const { addAnnotations } = await import("/src/state/annotActions.ts");
@@ -16,7 +16,7 @@ export default async function run({ page, check, st, open, build, readPdf }) {
   // Protect with an open password and a permissions password that blocks printing.
   await open("sample.pdf");
   await addNote("Secret note é ✓");
-  await page.evaluate(() => window.__quillmark.runCommand("tool.protect"));
+  await page.evaluate(() => window.__doxxta.runCommand("tool.protect"));
   await page.waitForSelector(".dialog-title:has-text('Protect with password')");
   const pw = page.locator(".dialog input[type=password]");
   await pw.nth(0).fill("open-Pass1");
@@ -45,11 +45,11 @@ export default async function run({ page, check, st, open, build, readPdf }) {
   check(!(await readPdf(again, "owner")).needsPassword, "original owner password still works");
 
   // Restricted actions ask for the permissions password first.
-  await page.evaluate(() => window.__quillmark.runCommand("mode.edit"));
+  await page.evaluate(() => window.__doxxta.runCommand("mode.edit"));
   await page.waitForTimeout(500);
-  const gate = await st(() => { const s = window.__quillmark.useApp.getState(); return { dialogs: s.dialogs.map((d) => d.id), mode: s.docs[s.activeId].mode }; });
+  const gate = await st(() => { const s = window.__doxxta.useApp.getState(); return { dialogs: s.dialogs.map((d) => d.id), mode: s.docs[s.activeId].mode }; });
   check(gate.dialogs.includes("permissions-password") && gate.mode !== "edit", "editing a restricted file asks for the permissions password");
   await page.fill(".dialog input[type=password]", "owner");
   await page.click(".dialog-footer .btn-primary");
-  check(await page.waitForFunction(() => { const s = window.__quillmark.useApp.getState(); return s.docs[s.activeId].mode === "edit"; }, null, { timeout: 5000 }).then(() => true, () => false), "the owner password unlocks editing");
+  check(await page.waitForFunction(() => { const s = window.__doxxta.useApp.getState(); return s.docs[s.activeId].mode === "edit"; }, null, { timeout: 5000 }).then(() => true, () => false), "the owner password unlocks editing");
 }

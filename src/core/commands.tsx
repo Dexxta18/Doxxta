@@ -259,7 +259,7 @@ const commands: Command[] = [
   { id: "tool.importFormData", perm: "fillForms", label: "Import form data…", needsDoc: true, run: () => openDialog("form-data", { docId: activeId(), mode: "import" }) },
   { id: "tool.resetForm", perm: "fillForms", label: "Clear form", needsDoc: true, run: async () => (await import("../ops/forms")).resetForm(activeId()!) },
   { id: "help.shortcuts", label: "Keyboard shortcuts", icon: ic(Keyboard), shortcut: "Shift+?", run: () => openDialog("shortcuts") },
-  { id: "help.about", label: "About Quillmark", icon: ic(Info), run: () => openDialog("about") },
+  { id: "help.about", label: "About Doxxta", icon: ic(Info), run: () => openDialog("about") },
 ];
 
 function setLayout(scroll: number, spread: number) {

@@ -54,8 +54,10 @@ import { isoToPdfDate } from "../lib/pdfjs";
 import { dataUrlToBytes } from "../lib/util";
 import { wrapText } from "../lib/fontMetrics";
 
-/** Key under which the full Quillmark model is stored, so annotations round-trip exactly. */
-export const QUILLMARK_KEY = "QuillmarkData";
+/** Key under which the full Doxxta model is stored, so annotations round-trip exactly. */
+export const DATA_KEY = "DoxxtaData";
+/** The same, as written by Quillmark (the app's former name). */
+export const OLD_DATA_KEY = "QuillmarkData";
 
 const SUBTYPE: Partial<Record<Annotation["kind"], string>> = {
   highlight: "Highlight",
@@ -437,8 +439,8 @@ function appearanceStream(ctx: Ctx, ap: Appearance, bbox: PdfRect): PDFRef {
   return ctx.doc.context.register(stream);
 }
 
-/** Quillmark-only fields are stored as JSON so the annotation can be restored exactly. */
-function quillmarkData(a: Annotation): string {
+/** Doxxta-only fields are stored as JSON so the annotation can be restored exactly. */
+function doxxtaData(a: Annotation): string {
   const { ...copy } = a as Annotation & { src?: string };
   if (a.kind === "image") delete (copy as { src?: string }).src; // image lives in the appearance stream
   return JSON.stringify({ v: 1, ...copy });
@@ -575,7 +577,7 @@ export interface WriteOptions {
 }
 
 /**
- * Writes Quillmark annotations into the document. `pageIds[i]` is the id of the
+ * Writes Doxxta annotations into the document. `pageIds[i]` is the id of the
  * i-th page. Text edits, redactions marks and form fields are handled by
  * their own writers.
  */
@@ -604,7 +606,7 @@ export async function writeAnnotations(doc: PDFDocument, annots: Annotation[], p
     const apRef = appearanceStream(ctx, ap, rect);
     const dict = toPdfObjects(doc, { ...commonEntries(a, ctx.pageRefs.get(a.pageId)), ...specificEntries(a) });
     dict.set(PDFName.of("AP"), doc.context.obj({ N: apRef }));
-    dict.set(PDFName.of(QUILLMARK_KEY), pdfText(quillmarkData(a)));
+    dict.set(PDFName.of(DATA_KEY), pdfText(doxxtaData(a)));
     const ref = doc.context.register(dict);
     refs.set(a.id, ref);
     addAnnotRef(page, ref);
@@ -619,7 +621,7 @@ function flattenAppearance(doc: PDFDocument, page: PDFPage, ap: Appearance, bbox
   const form = ctx.register(
     ctx.flateStream(ap.ops, { Type: "XObject", Subtype: "Form", BBox: bbox, Resources: ap.resources } as never),
   );
-  const name = addPageResource(page, "XObject", "QuillmarkFl", form);
+  const name = addPageResource(page, "XObject", "DoxxtaFl", form);
   addPageContent(doc, page, `q /${name} Do Q`);
 }
 
@@ -722,7 +724,7 @@ function writeLink(doc: PDFDocument, a: LinkAnnot, ctx: Ctx): PDFRef {
     }
   }
   const dict = doc.context.obj(entries as never) as unknown as PDFDict;
-  dict.set(PDFName.of(QUILLMARK_KEY), pdfText(quillmarkData(a)));
+  dict.set(PDFName.of(DATA_KEY), pdfText(doxxtaData(a)));
   return doc.context.register(dict);
 }
 

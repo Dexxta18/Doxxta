@@ -38,7 +38,7 @@ export async function applyTextEdits(doc: PDFDocument, edits: TextEditAnnot[], p
       const font = await fonts.forText(key, e.text);
       let fname = fontNames.get(font);
       if (!fname) {
-        fname = addPageResource(page, "Font", "QuillmarkTE", font.ref);
+        fname = addPageResource(page, "Font", "DoxxtaTE", font.ref);
         fontNames.set(font, fname);
       }
       const width = e.rect[2] - e.rect[0];

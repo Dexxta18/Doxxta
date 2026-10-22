@@ -9,7 +9,7 @@ export default async function run({ page, check, open }) {
     page.evaluate(
       async ({ format, opts }) => {
         const { exportDocument, EXPORT_DEFAULTS } = await import("/src/ops/export/index.ts");
-        const res = await exportDocument(window.__quillmark.useApp.getState().activeId, format, { ...EXPORT_DEFAULTS, ...opts });
+        const res = await exportDocument(window.__doxxta.useApp.getState().activeId, format, { ...EXPORT_DEFAULTS, ...opts });
         return { name: res.name, bytes: Array.from(res.bytes) };
       },
       { format, opts },

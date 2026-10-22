@@ -178,7 +178,7 @@ function addTextLayer(doc: PDFDocument, page: PDFPage, r: PageResult) {
     const map = new Map<string, number>();
     const names: PDFName[] = [];
     const procs: Record<string, PDFRef> = {};
-    let cmap = "/CIDInit /ProcSet findresource begin 12 dict begin begincmap /CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def /CMapName /Quillmark-OCR def /CMapType 2 def 1 begincodespacerange <01> <FF> endcodespacerange\n";
+    let cmap = "/CIDInit /ProcSet findresource begin 12 dict begin begincmap /CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def /CMapName /Doxxta-OCR def /CMapType 2 def 1 begincodespacerange <01> <FF> endcodespacerange\n";
     const entries: string[] = [];
     slice.forEach((ch, k) => {
       const code = k + 1;
@@ -209,7 +209,7 @@ function addTextLayer(doc: PDFDocument, page: PDFPage, r: PageResult) {
       Resources: {},
       ToUnicode: toUnicode,
     } as never);
-    const name = addPageResource(page, "Font", "QuillmarkOCR", ctx.register(font));
+    const name = addPageResource(page, "Font", "DoxxtaOCR", ctx.register(font));
     fonts.push({ name, map });
   }
   const fontFor = (ch: string) => fonts.find((f) => f.map.has(ch))!;

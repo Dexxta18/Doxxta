@@ -451,7 +451,7 @@ function PageOverlayInner({ docId, pageIndex }: { docId: string; pageIndex: numb
     }
 
     const annotEl = target.closest<HTMLElement>("[data-annot-id]");
-    const editingLink = tool === "link" && annotEl?.classList.contains("quillmark-annot-link");
+    const editingLink = tool === "link" && annotEl?.classList.contains("doxxta-annot-link");
     if (TEXT_TOOLS.has(tool) || mode === "organize" || editingLink) {
       if (annotEl && (tool === "select" || tool === "hand" || editingLink) && !annotEl.classList.contains("is-editing")) {
         const id = annotEl.dataset.annotId!;
@@ -569,7 +569,7 @@ function PageOverlayInner({ docId, pageIndex }: { docId: string; pageIndex: numb
 
   return (
     <div
-      className={`quillmark-overlay${isCreateTool ? " is-creating" : ""} tool-${tool}${followLinks ? " links-follow" : ""}`}
+      className={`doxxta-overlay${isCreateTool ? " is-creating" : ""} tool-${tool}${followLinks ? " links-follow" : ""}`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onContextMenu={(e) => {
@@ -582,8 +582,8 @@ function PageOverlayInner({ docId, pageIndex }: { docId: string; pageIndex: numb
         }
       }}
     >
-      <div ref={stageRef} className="quillmark-stage" style={{ width: geo.width, height: geo.height }}>
-        <svg className="quillmark-svg" width={geo.width} height={geo.height} viewBox={`0 0 ${geo.width} ${geo.height}`}>
+      <div ref={stageRef} className="doxxta-stage" style={{ width: geo.width, height: geo.height }}>
+        <svg className="doxxta-svg" width={geo.width} height={geo.height} viewBox={`0 0 ${geo.width} ${geo.height}`}>
           {draftAnnots.map((a) =>
             a.kind === "freetext" ? (
               a.callout?.length ? <CalloutLine key={a.id} a={a} ctx={ctx} /> : null
@@ -594,7 +594,7 @@ function PageOverlayInner({ docId, pageIndex }: { docId: string; pageIndex: numb
           {drag && <DragPreview drag={drag} ctx={ctx} />}
           {poly && <PolyPreview poly={poly} ctx={ctx} />}
         </svg>
-        <div className="quillmark-html">
+        <div className="doxxta-html">
           {draftAnnots.map((a) =>
             a.kind === "freetext" ? (
               <FreeTextView
@@ -613,7 +613,7 @@ function PageOverlayInner({ docId, pageIndex }: { docId: string; pageIndex: numb
             ) : null,
           )}
         </div>
-        <svg className="quillmark-ui" width={geo.width} height={geo.height} viewBox={`0 0 ${geo.width} ${geo.height}`}>
+        <svg className="doxxta-ui" width={geo.width} height={geo.height} viewBox={`0 0 ${geo.width} ${geo.height}`}>
           {draftAnnots
             .filter((a) => selSet.has(a.id))
             .map((a) => (
@@ -774,8 +774,8 @@ function CalloutLine({ a, ctx }: { a: FreeTextAnnot; ctx: RenderCtx }) {
     { x: tip.x - ux * size - -uy * size * 0.45, y: tip.y - uy * size - ux * size * 0.45 },
   ];
   return (
-    <g data-annot-id={a.id} className="quillmark-annot quillmark-annot-callout" opacity={a.opacity}>
-      <path className="quillmark-hit" d={toSvg(polylinePath(pts), ctx.m)} strokeWidth={8 / ctx.scale} />
+    <g data-annot-id={a.id} className="doxxta-annot doxxta-annot-callout" opacity={a.opacity}>
+      <path className="doxxta-hit" d={toSvg(polylinePath(pts), ctx.m)} strokeWidth={8 / ctx.scale} />
       <path d={toSvg(polylinePath(pts), ctx.m)} stroke={a.borderColor ?? a.color} strokeWidth={Math.max(1, a.borderWidth)} fill="none" />
       <path d={toSvg(polylinePath(head), ctx.m)} stroke={a.borderColor ?? a.color} strokeWidth={Math.max(1, a.borderWidth)} fill="none" />
     </g>
@@ -793,7 +793,7 @@ function DragPreview({ drag, ctx }: { drag: Drag; ctx: RenderCtx }) {
         return <ellipse cx={b.x + b.w / 2} cy={b.y + b.h / 2} rx={b.w / 2} ry={b.h / 2} fill={style.fillColor ?? "none"} stroke={style.color} strokeWidth={style.strokeWidth} opacity={style.opacity} />;
       if (drag.tool === "rect")
         return <rect x={b.x} y={b.y} width={b.w} height={b.h} fill={style.fillColor ?? "none"} stroke={style.color} strokeWidth={style.strokeWidth} opacity={style.opacity} />;
-      const cls = drag.tool === "redact-area" ? "quillmark-draft-redact" : drag.tool === "area-highlight" ? "quillmark-draft-highlight" : "quillmark-draft-marquee";
+      const cls = drag.tool === "redact-area" ? "doxxta-draft-redact" : drag.tool === "area-highlight" ? "doxxta-draft-highlight" : "doxxta-draft-marquee";
       return <rect x={b.x} y={b.y} width={b.w} height={b.h} className={cls} vectorEffect="non-scaling-stroke" />;
     }
     case "line": {
@@ -825,7 +825,7 @@ function DragPreview({ drag, ctx }: { drag: Drag; ctx: RenderCtx }) {
     case "erase": {
       const p = drag.points[drag.points.length - 1];
       const c = apply(m, p.x, p.y);
-      return <circle cx={c.x} cy={c.y} r={6 / ctx.scale} className="quillmark-eraser-cursor" vectorEffect="non-scaling-stroke" />;
+      return <circle cx={c.x} cy={c.y} r={6 / ctx.scale} className="doxxta-eraser-cursor" vectorEffect="non-scaling-stroke" />;
     }
     default:
       return null;
@@ -841,7 +841,7 @@ function PolyPreview({ poly, ctx }: { poly: { tool: ToolId; vertices: Point[]; h
       <path d={toSvg(polylinePath(pts, closed && pts.length > 2), ctx.m)} fill={closed && style.fillColor ? style.fillColor : "none"} fillOpacity={0.15} stroke={style.color} strokeWidth={style.strokeWidth} strokeDasharray={poly.tool === "cloud" ? "4 3" : undefined} />
       {poly.vertices.map((v, i) => {
         const s = apply(ctx.m, v.x, v.y);
-        return <circle key={i} cx={s.x} cy={s.y} r={3 / ctx.scale} className="quillmark-vertex-dot" />;
+        return <circle key={i} cx={s.x} cy={s.y} r={3 / ctx.scale} className="doxxta-vertex-dot" />;
       })}
     </g>
   );
@@ -860,7 +860,7 @@ function SelectionHandles({ a, ctx, single }: { a: Annotation; ctx: RenderCtx; s
       y={box.y - pad}
       width={box.w + pad * 2}
       height={box.h + pad * 2}
-      className="quillmark-sel-outline"
+      className="doxxta-sel-outline"
       vectorEffect="non-scaling-stroke"
     />
   );
@@ -872,7 +872,7 @@ function SelectionHandles({ a, ctx, single }: { a: Annotation; ctx: RenderCtx; s
         {a.kind !== "line" && outline}
         {pts.map((p, i) => {
           const s = apply(ctx.m, p.x, p.y);
-          return <circle key={i} data-handle={`v${i}`} data-annot={a.id} cx={s.x} cy={s.y} r={hs / 2 + 1 / ctx.scale} className="quillmark-handle quillmark-handle-vertex" vectorEffect="non-scaling-stroke" />;
+          return <circle key={i} data-handle={`v${i}`} data-annot={a.id} cx={s.x} cy={s.y} r={hs / 2 + 1 / ctx.scale} className="doxxta-handle doxxta-handle-vertex" vectorEffect="non-scaling-stroke" />;
         })}
       </g>
     );
@@ -901,14 +901,14 @@ function SelectionHandles({ a, ctx, single }: { a: Annotation; ctx: RenderCtx; s
           width={hs}
           height={hs}
           rx={1.5 / ctx.scale}
-          className={`quillmark-handle quillmark-handle-${h}`}
+          className={`doxxta-handle doxxta-handle-${h}`}
           vectorEffect="non-scaling-stroke"
         />
       ))}
       {a.kind === "freetext" &&
         a.callout?.slice(0, 2).map((p, i) => {
           const s = apply(ctx.m, p.x, p.y);
-          return <circle key={`c${i}`} data-handle={`v${i}`} data-annot={a.id} cx={s.x} cy={s.y} r={hs / 2} className="quillmark-handle quillmark-handle-vertex" vectorEffect="non-scaling-stroke" />;
+          return <circle key={`c${i}`} data-handle={`v${i}`} data-annot={a.id} cx={s.x} cy={s.y} r={hs / 2} className="doxxta-handle doxxta-handle-vertex" vectorEffect="non-scaling-stroke" />;
         })}
     </g>
   );

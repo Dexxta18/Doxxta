@@ -272,7 +272,7 @@ export async function editPageText(doc: PDFDocument, req: TextEditRequest, fonts
     let name = names.get(key);
     if (!name) {
       const ref = key instanceof PDFRef ? key : key instanceof PDFDict ? doc.context.register(key) : (key as PDFFont).ref;
-      name = addPageResource(page, "Font", "QmEd", ref);
+      name = addPageResource(page, "Font", "DxEd", ref);
       names.set(key, name);
     }
     return name;
@@ -555,7 +555,7 @@ async function cover(doc: PDFDocument, page: PDFPage, req: TextEditRequest, font
   const f = req.fallback;
   const key = fontKeyFor(f.family, f.bold, f.italic);
   const font = await fonts.forText(key, req.after);
-  const name = addPageResource(page, "Font", "QmEd", font.ref);
+  const name = addPageResource(page, "Font", "DxEd", font.ref);
   const rect: PdfRect = [Math.min(...req.lines.map((l) => l.rect[0])), Math.min(...req.lines.map((l) => l.rect[1])), Math.max(...req.lines.map((l) => l.rect[2])), Math.max(...req.lines.map((l) => l.rect[3]))];
   const [br, bg, bb] = hexToPdf(req.background);
   const [r, g, b] = hexToPdf(f.color);

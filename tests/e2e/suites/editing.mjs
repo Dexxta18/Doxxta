@@ -2,7 +2,7 @@
 export const title = "Edit text, bookmarks, properties, search, comments";
 
 export default async function run({ page, check, st, open, shot, build, readPdf }) {
-  const version = () => st(() => { const s = window.__quillmark.useApp.getState(); return s.docs[s.activeId].version; });
+  const version = () => st(() => { const s = window.__doxxta.useApp.getState(); return s.docs[s.activeId].version; });
   /** Clicks the paragraph containing `containing` in Edit text mode, changes its text and commits. */
   const editText = async (containing, change) => {
     const spans = page.locator('.pdfViewer .page[data-page-number="1"] .textLayer span', { hasText: containing });
@@ -12,17 +12,17 @@ export default async function run({ page, check, st, open, shot, build, readPdf 
       if (b && b.width > 2) box = b;
     }
     if (!box) throw new Error(`No text "${containing}" on the page`);
-    await page.evaluate(() => window.__quillmark.runCommand("mode.edit"));
+    await page.evaluate(() => window.__doxxta.runCommand("mode.edit"));
     await page.click('.context-toolbar button[aria-label="Edit text"], .context-toolbar [data-tip="Edit text"]').catch(() => {});
-    await page.waitForSelector(".quillmark-text-block", { timeout: 15000 });
+    await page.waitForSelector(".doxxta-text-block", { timeout: 15000 });
     const v0 = await version();
     await page.mouse.click(box.x + 4, box.y + box.height / 2);
-    await page.waitForSelector(".quillmark-textedit-editor");
-    await page.evaluate((text) => (document.querySelector(".quillmark-textedit-editor").innerText = text), change(await page.locator(".quillmark-textedit-editor").innerText()));
+    await page.waitForSelector(".doxxta-textedit-editor");
+    await page.evaluate((text) => (document.querySelector(".doxxta-textedit-editor").innerText = text), change(await page.locator(".doxxta-textedit-editor").innerText()));
     await page.keyboard.press("Control+Enter");
-    await page.waitForFunction((v0) => { const s = window.__quillmark.useApp.getState(); return s.docs[s.activeId].version > v0 && !s.busy; }, v0, { timeout: 30000 });
+    await page.waitForFunction((v0) => { const s = window.__doxxta.useApp.getState(); return s.docs[s.activeId].version > v0 && !s.busy; }, v0, { timeout: 30000 });
     // Leave Edit text mode, so the next paragraph is found in the refreshed text layer.
-    await page.evaluate(() => window.__quillmark.runCommand("mode.view"));
+    await page.evaluate(() => window.__doxxta.runCommand("mode.view"));
     await page.waitForTimeout(800);
   };
   await open("sample.pdf");
@@ -38,42 +38,42 @@ export default async function run({ page, check, st, open, shot, build, readPdf 
   check((await page.evaluate(() => window.__copyKeyBlocked)) === false && (await page.evaluate(() => String(document.getSelection()).length > 10)), "Ctrl+C on selected page text isn't blocked");
 
   // Rewrite the first body paragraph, typing in the editor.
-  await page.evaluate(() => window.__quillmark.runCommand("mode.edit"));
+  await page.evaluate(() => window.__doxxta.runCommand("mode.edit"));
   await page.click('.context-toolbar button[aria-label="Edit text"], .context-toolbar [data-tip="Edit text"]').catch(() => {});
-  await page.waitForSelector(".quillmark-text-block", { timeout: 15000 });
+  await page.waitForSelector(".doxxta-text-block", { timeout: 15000 });
   const v0 = await version();
-  await page.locator(".quillmark-text-block").nth(1).click();
-  await page.waitForSelector(".quillmark-textedit-editor");
+  await page.locator(".doxxta-text-block").nth(1).click();
+  await page.waitForSelector(".doxxta-textedit-editor");
   await page.keyboard.press("Control+a");
-  await page.keyboard.type("This paragraph was rewritten in Quillmark.");
+  await page.keyboard.type("This paragraph was rewritten in Doxxta.");
   await page.keyboard.press("Control+Enter");
-  const changed = await page.waitForFunction((v0) => { const s = window.__quillmark.useApp.getState(); return s.docs[s.activeId].version > v0 && !s.busy; }, v0, { timeout: 30000 }).then(() => true, () => false);
+  const changed = await page.waitForFunction((v0) => { const s = window.__doxxta.useApp.getState(); return s.docs[s.activeId].version > v0 && !s.busy; }, v0, { timeout: 30000 }).then(() => true, () => false);
   check(changed, "text edit changes the page");
   await shot("edit-text");
 
   // Bookmark and title.
   await st(async () => {
-    const s = window.__quillmark.useApp.getState();
+    const s = window.__doxxta.useApp.getState();
     const { setOutline, loadOutline } = await import("/src/core/outline.ts");
     const outline = await loadOutline(s.activeId);
-    await setOutline(s.activeId, [...outline, { id: "bm-test", title: "Added in Quillmark", pageId: s.docs[s.activeId].pages[2].id, top: null, children: [], open: false }], "Add bookmark");
+    await setOutline(s.activeId, [...outline, { id: "bm-test", title: "Added in Doxxta", pageId: s.docs[s.activeId].pages[2].id, top: null, children: [], open: false }], "Add bookmark");
   });
-  await page.evaluate(() => window.__quillmark.runCommand("file.properties"));
+  await page.evaluate(() => window.__doxxta.runCommand("file.properties"));
   await page.waitForSelector(".dialog-title:has-text('Properties'), .dialog-title:has-text('Document properties')");
-  await page.locator(".dialog input").first().fill("Quillmark test title");
+  await page.locator(".dialog input").first().fill("Doxxta test title");
   await page.click(".dialog-footer .btn-primary");
   await page.waitForTimeout(400);
 
   // The saved file has the new text (and not the old), the bookmark and the title.
   const saved = await readPdf(await build());
-  check(saved.text[0].includes("rewritten in Quillmark"), "edited text is written into the page");
+  check(saved.text[0].includes("rewritten in Doxxta"), "edited text is written into the page");
   check(!saved.text[0].includes("The quick brown fox"), "replaced text is gone from the page");
   check(saved.text.length === 6 && saved.text[1].length > 100, "other pages keep their content");
-  check(saved.outline.includes("Added in Quillmark"), "bookmark is saved");
-  check(saved.title === "Quillmark test title", "title is saved in the document properties");
+  check(saved.outline.includes("Added in Doxxta"), "bookmark is saved");
+  check(saved.title === "Doxxta test title", "title is saved in the document properties");
 
   // Search panel.
-  await page.evaluate(() => window.__quillmark.useSettings.getState().set({ rightPanel: "search" }));
+  await page.evaluate(() => window.__doxxta.useSettings.getState().set({ rightPanel: "search" }));
   await page.waitForSelector(".search-panel input", { timeout: 10000 });
   const input = page.locator(".search-panel input").first();
   await input.fill("Lorem ipsum");
@@ -110,17 +110,17 @@ export default async function run({ page, check, st, open, shot, build, readPdf 
 
   // Comments made in other apps are listed.
   await open("annotated.pdf");
-  await page.evaluate(() => window.__quillmark.useSettings.getState().set({ rightPanel: "comments" }));
+  await page.evaluate(() => window.__doxxta.useSettings.getState().set({ rightPanel: "comments" }));
   await page.waitForTimeout(1200);
   const cards = await page.locator(".comments-list .comment-head").count();
   check(cards >= 4, `comments panel lists the file's comments (${cards})`);
   await shot("comments");
 
-  await page.evaluate(() => window.__quillmark.useSettings.getState().set({ theme: "dark" }));
+  await page.evaluate(() => window.__doxxta.useSettings.getState().set({ theme: "dark" }));
   await page.waitForTimeout(400);
   check(await page.evaluate(() => document.documentElement.dataset.theme === "dark" || document.documentElement.classList.contains("dark")), "dark theme applies");
   await shot("dark-theme");
-  await page.evaluate(() => window.__quillmark.useSettings.getState().set({ theme: "light" }));
+  await page.evaluate(() => window.__doxxta.useSettings.getState().set({ theme: "light" }));
 }
 
 /** Lines of page 1 of a PDF (pdf.js): text, left/right edges, baseline and runs with their font weight. */

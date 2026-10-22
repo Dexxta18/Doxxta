@@ -6,7 +6,7 @@ import { commitForms, reloadDocument } from "../core/document";
 import type { DocState } from "../state/types";
 import type { LinkAnnot, LinkHighlight, LinkTarget } from "../annotations/types";
 import { createLink } from "../annotations/factory";
-import { borderWidth, colorOf, pageView, quadsOf, readQuillmarkData, rectOf } from "../annotations/importer";
+import { borderWidth, colorOf, pageView, quadsOf, readDoxxtaData, rectOf } from "../annotations/importer";
 
 const get = (d: PDFDict, k: string) => d.get(PDFName.of(k));
 const lookup = (doc: PDFDocument, o: PDFObject | undefined) => (o instanceof PDFRef ? doc.context.lookup(o) : o);
@@ -136,7 +136,7 @@ function convertLink(doc: PDFDocument, d: PDFDict, pageId: string, rotation: num
   const style = bs instanceof PDFDict ? nameOf(get(bs, "S")) : null;
   const quads = numbers(get(d, "QuadPoints")).length >= 8 ? quadsOf(d, rotation, view) : undefined;
 
-  const saved = readQuillmarkData(doc, d);
+  const saved = readDoxxtaData(doc, d);
   return createLink(pageId, rect, rotation, target, {
     ...(saved?.kind === "link" ? saved : {}),
     pageId,
@@ -154,7 +154,7 @@ const lifting = new Map<string, Promise<number>>();
 
 /**
  * Makes the document's existing links editable (Acrobat's "Edit link" mode):
- * they move from the page into Quillmark's model, where they can be selected,
+ * they move from the page into Doxxta's model, where they can be selected,
  * changed and deleted, and are written back on save.
  */
 export function liftLinks(docId: string): Promise<number> {

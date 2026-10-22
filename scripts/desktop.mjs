@@ -24,7 +24,7 @@ function stageApp() {
   for (const f of ["main.cjs", "preload.cjs"]) cpSync(join(root, "desktop", f), join(stage, f));
   cpSync(join(root, "desktop", "build", "icon.png"), join(stage, "icon.png"));
   const { version } = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
-  const pkg = { name: "quillmark", productName: "Quillmark", desktopName: "quillmark.desktop", version, description: "PDF reader and editor", author: "Quillmark", main: "main.cjs" };
+  const pkg = { name: "doxxta", productName: "Doxxta", desktopName: "doxxta.desktop", version, description: "PDF reader and editor", author: "Doxxta", main: "main.cjs" };
   writeFileSync(join(stage, "package.json"), JSON.stringify(pkg, null, 2));
 }
 

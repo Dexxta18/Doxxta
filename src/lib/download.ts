@@ -31,7 +31,7 @@ export async function downloadPdf(address: string): Promise<DownloadedPdf> {
       res = await fetch(url.href);
     } catch {
       throw new Error(
-        `${url.host} doesn't let other websites download its files (or can't be reached). Download the PDF in your browser and open it here, or use the Quillmark desktop app, which can open it directly.`,
+        `${url.host} doesn't let other websites download its files (or can't be reached). Download the PDF in your browser and open it here, or use the Doxxta desktop app, which can open it directly.`,
       );
     }
     if (!res.ok) throw new Error(httpProblem(res.status));

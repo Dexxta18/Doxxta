@@ -1,8 +1,10 @@
-# Quillmark
+# Doxxta
 
 A full PDF reader and editor for Windows, macOS and Linux (and the browser): the Acrobat Reader experience plus the tools Acrobat keeps behind its Pro subscription, such as editing text, organizing pages, redaction, passwords, OCR, compression, export to Office formats, compare and forms.
 
 Everything happens on your device. Files are never uploaded anywhere.
+
+Doxxta was called Quillmark in its first releases. It still reads the comments and page marks (watermarks, headers and footers…) that Quillmark saved in PDFs, and the desktop app brings over Quillmark's settings, signatures and recent files the first time it runs.
 
 ## Quick start
 
@@ -22,18 +24,18 @@ npm run preview    # serve the build at http://localhost:4173
 
 ## Desktop app
 
-Quillmark installs like any other program. It opens PDFs from your file manager ("Open with", or as your default PDF app), saves straight back to the file, and works without an internet connection.
+Doxxta installs like any other program. It opens PDFs from your file manager ("Open with", or as your default PDF app), saves straight back to the file, and works without an internet connection.
 
 | System | File | Install |
 |---|---|---|
-| Windows 10 and 11 (64-bit) | `Quillmark-Setup-0.1.0.exe` | Run it and follow the steps. It installs for your user account (no administrator rights needed) and adds Start menu and desktop shortcuts. Remove it from Settings → Apps. |
-| macOS 11 or later | `Quillmark-0.1.0-arm64.dmg` (Apple Silicon) or `-x64.dmg` (Intel) | Open the disk image and drag Quillmark to Applications. |
-| Linux (x86-64) | `Quillmark-0.1.0-x86_64.AppImage` | Make it executable (`chmod +x Quillmark-0.1.0-x86_64.AppImage`) and run it. |
+| Windows 10 and 11 (64-bit) | `Doxxta-Setup-0.1.0.exe` | Run it and follow the steps. It installs for your user account (no administrator rights needed) and adds Start menu and desktop shortcuts. Remove it from Settings → Apps. |
+| macOS 11 or later | `Doxxta-0.1.0-arm64.dmg` (Apple Silicon) or `-x64.dmg` (Intel) | Open the disk image and drag Doxxta to Applications. |
+| Linux (x86-64) | `Doxxta-0.1.0-x86_64.AppImage` | Make it executable (`chmod +x Doxxta-0.1.0-x86_64.AppImage`) and run it. |
 
 The installers aren't code-signed yet, so the first launch shows a warning:
 
 - **Windows:** "Windows protected your PC". Click **More info**, then **Run anyway**.
-- **macOS:** "Apple could not verify Quillmark". Open **System Settings → Privacy & Security**, scroll down and click **Open Anyway**.
+- **macOS:** "Apple could not verify Doxxta". Open **System Settings → Privacy & Security**, scroll down and click **Open Anyway**.
 
 ### Building the installers
 
@@ -107,7 +109,7 @@ Signing removes the first-launch warnings. It needs a code-signing certificate f
 
 ## Privacy
 
-Quillmark is a static web app. PDFs are read and written in the browser; nothing is sent to a server. The only network requests after the app has loaded are ones you start:
+Doxxta is a static web app. PDFs are read and written in the browser; nothing is sent to a server. The only network requests after the app has loaded are ones you start:
 
 - **OCR in languages other than English** downloads that language's data the first time (English is bundled).
 - **Open from URL** fetches the address you enter.
@@ -126,7 +128,7 @@ Current Chrome, Edge, Firefox and Safari. In Chrome and Edge, **Save** writes ba
 - **OCR:** [tesseract.js](https://tesseract.projectnaptha.com/), running in a web worker.
 - **Office export:** `docx` and `pptxgenjs`; spreadsheets are written directly as Office Open XML.
 
-The desktop app is [Electron](https://www.electronjs.org/). `desktop/main.cjs` serves the same build from a private `app://quillmark` address with a strict content security policy, and shows the system's Open and Save dialogs. The page has no access to Node.js: `desktop/preload.cjs` gives it a few functions, and it can only read and write files the user chose (in a dialog, with "Open with", or by dropping them on the window). `src/lib/desktop.ts` presents those functions to the app as the browser's File System Access API, so the same code opens and saves files in both versions.
+The desktop app is [Electron](https://www.electronjs.org/). `desktop/main.cjs` serves the same build from a private `app://quillmark` address (named after the app's former name, which its stored settings belong to) with a strict content security policy, and shows the system's Open and Save dialogs. The page has no access to Node.js: `desktop/preload.cjs` gives it a few functions, and it can only read and write files the user chose (in a dialog, with "Open with", or by dropping them on the window). `src/lib/desktop.ts` presents those functions to the app as the browser's File System Access API, so the same code opens and saves files in both versions.
 
 While a document is open, changes are kept as data: comments, form values, text edits and redaction marks are records in the store, and page operations are recorded against page ids. Undo/redo works on that state. **Save** (`src/core/save.ts`) builds a new PDF from the original bytes: it applies page operations, rewrites page content streams for text edits and redaction (`src/lib/contentStream.ts` parses and re-serializes them), writes annotations and form fields with appearance streams (`src/annotations/writer.ts`), and finally encrypts if the document is protected (`src/lib/security.ts`).
 
@@ -160,7 +162,7 @@ npm run test:smoke                # builds, then tests the production build thro
 npm run test:desktop              # desktop app: Open with, saving to disk, dialogs, OCR, Edit text, unsaved-changes prompt
 ```
 
-The desktop tests replace the system dialogs with answers chosen by the test. They need a display (on a Linux server, run them under `xvfb-run`); set `QUILLMARK_APP` to a packaged app (e.g. `release/linux-unpacked/quillmark`) to test an installer's build.
+The desktop tests replace the system dialogs with answers chosen by the test. They need a display (on a Linux server, run them under `xvfb-run`); set `DOXXTA_APP` to a packaged app (e.g. `release/linux-unpacked/doxxta`) to test an installer's build.
 
 Test PDFs are generated into `test-fixtures/` on the first run, except `tests/assets/cv.pdf`, a résumé made in an office suite for the Edit text checks (`node tests/assets/make-cv.mjs` rebuilds it with LibreOffice); screenshots go to `test-output/shots/`. To use a Chromium you already have, set `CHROMIUM_PATH`.
 
@@ -182,4 +184,4 @@ A note on the API key: a key used directly from the browser can be read by anyon
 
 ## License
 
-Quillmark's own code has no license file yet; add one of your choice before sharing it. The app bundles open-source libraries under their own licenses: pdf.js, tesseract.js and idb-keyval (Apache-2.0); pdf-lib, fontkit, React, Zustand, docx, PptxGenJS, fflate and html-entities (MIT); jsdiff (BSD-3-Clause); Lucide icons (ISC); the Inter and signature fonts from Fontsource (SIL Open Font License 1.1, except Homemade Apple, Apache-2.0); and the Carlito, Caladea and Liberation fonts used by Edit text (SIL Open Font License 1.1, license files in `public/fonts`).
+Doxxta's own code has no license file yet; add one of your choice before sharing it. The app bundles open-source libraries under their own licenses: pdf.js, tesseract.js and idb-keyval (Apache-2.0); pdf-lib, fontkit, React, Zustand, docx, PptxGenJS, fflate and html-entities (MIT); jsdiff (BSD-3-Clause); Lucide icons (ISC); the Inter and signature fonts from Fontsource (SIL Open Font License 1.1, except Homemade Apple, Apache-2.0); and the Carlito, Caladea and Liberation fonts used by Edit text (SIL Open Font License 1.1, license files in `public/fonts`).

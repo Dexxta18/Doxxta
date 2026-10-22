@@ -49,7 +49,7 @@ export async function combine(sources: CombineSource[], progress?: (p: number, d
     const pages = await out.copyPages(src, indices);
     pages.forEach((p) => out.addPage(p));
   }
-  out.setCreator("Quillmark");
+  out.setCreator("Doxxta");
   return out.save();
 }
 

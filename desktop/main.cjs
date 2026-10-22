@@ -1,4 +1,4 @@
-// Quillmark desktop: the web app in a native window, with the operating system's
+// Doxxta desktop: the web app in a native window, with the operating system's
 // file dialogs, "Open with" support, and saving straight back to files on disk.
 const { app, BrowserWindow, Menu, dialog, ipcMain, nativeTheme, net, protocol, screen, session, shell } = require("electron");
 const fs = require("node:fs");
@@ -6,7 +6,9 @@ const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 
 /** Set to the Vite dev server (e.g. http://127.0.0.1:5173/) to develop with hot reload. */
-const DEV_URL = process.env.QUILLMARK_DEV_URL || null;
+const DEV_URL = process.env.DOXXTA_DEV_URL || null;
+// The app's address inside the desktop app. It keeps the app's former name, Quillmark,
+// because the settings, signatures and recent files the window stores belong to it.
 const ORIGIN = "app://quillmark";
 const DIST = [path.join(__dirname, "dist"), path.join(__dirname, "..", "dist")].find((d) => fs.existsSync(path.join(d, "index.html")));
 
@@ -38,7 +40,7 @@ const pendingPaths = [];
 
 // ----- Files the window may read and write -----
 // The window can only touch files the user chose: in an Open or Save dialog,
-// by opening them with Quillmark from the OS, or by dropping them on the window.
+// by opening them with Doxxta from the OS, or by dropping them on the window.
 
 const grantsFile = () => path.join(app.getPath("userData"), "granted-files.json");
 let granted = new Set();
@@ -77,7 +79,7 @@ async function readDesktopFile(file) {
 
 /** Writes through a temporary file, so a failed save can't leave a half-written document. */
 async function writeFileSafely(file, data) {
-  const tmp = path.join(path.dirname(file), `.${path.basename(file)}.${process.pid}.quillmark-tmp`);
+  const tmp = path.join(path.dirname(file), `.${path.basename(file)}.${process.pid}.doxxta-tmp`);
   try {
     const stat = await fs.promises.stat(file).catch(() => null);
     await fs.promises.writeFile(tmp, data, stat ? { mode: stat.mode } : undefined);
@@ -114,7 +116,7 @@ async function openPaths(paths) {
       dialog.showErrorBox("Couldn't open the file", `${p}\n\n${e.message}`);
     }
   }
-  if (files.length) win.webContents.send("quillmark:open-files", files);
+  if (files.length) win.webContents.send("doxxta:open-files", files);
   if (win.isMinimized()) win.restore();
   win.focus();
 }
@@ -133,7 +135,7 @@ function handle(channel, fn) {
   });
 }
 
-handle("quillmark:ready", async () => {
+handle("doxxta:ready", async () => {
   rendererReady = true;
   const paths = pendingPaths.splice(0);
   const files = [];
@@ -141,7 +143,7 @@ handle("quillmark:ready", async () => {
   return files.filter(Boolean);
 });
 
-handle("quillmark:open-dialog", async () => {
+handle("doxxta:open-dialog", async () => {
   const res = await dialog.showOpenDialog(win, {
     title: "Open",
     defaultPath: lastDir ?? app.getPath("documents"),
@@ -155,7 +157,7 @@ handle("quillmark:open-dialog", async () => {
   return Promise.all(res.filePaths.map((p) => readDesktopFile(grant(p))));
 });
 
-handle("quillmark:save-dialog", async (suggestedName) => {
+handle("doxxta:save-dialog", async (suggestedName) => {
   const name = typeof suggestedName === "string" && suggestedName ? path.basename(suggestedName) : "document.pdf";
   const res = await dialog.showSaveDialog(win, {
     title: "Save as",
@@ -166,13 +168,13 @@ handle("quillmark:save-dialog", async (suggestedName) => {
   return grant(res.filePath);
 });
 
-handle("quillmark:read-file", async (file) => {
+handle("doxxta:read-file", async (file) => {
   if (!isGranted(file)) return null;
   return readDesktopFile(path.resolve(file)).catch(() => null);
 });
 
-handle("quillmark:write-file", async (file, data) => {
-  if (!isGranted(file)) throw new Error("Quillmark can only save to files you opened or chose.");
+handle("doxxta:write-file", async (file, data) => {
+  if (!isGranted(file)) throw new Error("Doxxta can only save to files you opened or chose.");
   if (!(data instanceof Uint8Array)) throw new Error("Nothing to write");
   await writeFileSafely(path.resolve(file), data);
 });
@@ -180,7 +182,7 @@ handle("quillmark:write-file", async (file, data) => {
 // "Open from URL": the PDF is downloaded here, where websites' cross-origin (CORS) rules don't apply.
 const MAX_DOWNLOAD = 1024 * 1024 * 1024;
 
-handle("quillmark:download", async (address) => {
+handle("doxxta:download", async (address) => {
   let url;
   try {
     url = new URL(String(address));
@@ -199,7 +201,7 @@ handle("quillmark:download", async (address) => {
   }
 });
 
-ipcMain.on("quillmark:grant", (event, file) => {
+ipcMain.on("doxxta:grant", (event, file) => {
   if (fromApp(event) && typeof file === "string" && fs.existsSync(file)) grant(file);
 });
 
@@ -229,7 +231,7 @@ function createWindow() {
     minWidth: 760,
     minHeight: 520,
     show: false,
-    title: "Quillmark",
+    title: "Doxxta",
     backgroundColor: nativeTheme.shouldUseDarkColors ? "#17191e" : "#eceef2",
     icon: process.platform === "linux" ? path.join(__dirname, "icon.png") : undefined,
     webPreferences: {
@@ -270,7 +272,7 @@ function createWindow() {
       cancelId: 1,
       title: "Unsaved changes",
       message: "Some documents have changes that aren't saved.",
-      detail: "If you close Quillmark now, those changes will be lost.",
+      detail: "If you close Doxxta now, those changes will be lost.",
     });
     if (choice === 0) event.preventDefault();
   });
@@ -298,7 +300,7 @@ function serveApp() {
     if (!DIST) return new Response("Not found", { status: 404 });
     const rel = decodeURIComponent(url.pathname).replace(/^\/+/, "") || "index.html";
     const file = path.resolve(DIST, rel);
-    if (url.host !== "quillmark" || !file.startsWith(DIST + path.sep)) return new Response("Not found", { status: 404 });
+    if (url.host !== new URL(ORIGIN).host || !file.startsWith(DIST + path.sep)) return new Response("Not found", { status: 404 });
     const res = await net.fetch(pathToFileURL(file).toString()).catch(() => null);
     if (!res || !res.ok) return new Response("Not found", { status: 404 });
     const headers = new Headers(res.headers);
@@ -322,6 +324,28 @@ function setPermissions() {
 
 // ----- App lifecycle -----
 
+// Doxxta used to be called Quillmark, and the profile folder is named after the app: on
+// first run, carry over Quillmark's settings, saved signatures, recent files and grants.
+function adoptOldProfile() {
+  const profile = app.getPath("userData");
+  const old = path.join(app.getPath("appData"), "Quillmark");
+  const marker = path.join(profile, ".from-quillmark");
+  if (profile === old || !fs.existsSync(old) || fs.existsSync(marker) || fs.existsSync(path.join(profile, "Local Storage"))) return;
+  const caches = new Set(["Cache", "Code Cache", "GPUCache", "DawnCache", "DawnGraphiteCache", "DawnWebGPUCache", "GrShaderCache", "ShaderCache", "Crashpad"]);
+  try {
+    fs.cpSync(old, profile, { recursive: true, filter: (src) => !caches.has(path.basename(src)) && !path.basename(src).startsWith("Singleton") });
+  } catch {
+    // Start with a fresh profile.
+  }
+  try {
+    fs.mkdirSync(profile, { recursive: true });
+    fs.writeFileSync(marker, "");
+  } catch {
+    // Read-only profile folder: nothing to remember.
+  }
+}
+
+adoptOldProfile();
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
@@ -340,11 +364,11 @@ if (!app.requestSingleInstanceLock()) {
 
   app.whenReady().then(() => {
     if (!DIST && !DEV_URL) {
-      dialog.showErrorBox("Quillmark", "The app files are missing. Run `npm run build` first.");
+      dialog.showErrorBox("Doxxta", "The app files are missing. Run `npm run build` first.");
       app.quit();
       return;
     }
-    if (process.platform === "win32") app.setAppUserModelId("app.quillmark.desktop");
+    if (process.platform === "win32") app.setAppUserModelId("app.doxxta.desktop");
     loadGrants();
     pendingPaths.push(...pdfPathsFrom(process.argv));
     serveApp();

@@ -57,7 +57,7 @@ Doxxta for Android and iPhone is the same app in a native shell ([Capacitor](htt
 | Phone | File | Install |
 |---|---|---|
 | Android 7 or later | `Doxxta-<version>.apk` | Open the file on the phone and allow installing apps from your browser or file manager when Android asks. |
-| iPhone, iOS 15 or later | `Doxxta-<version>-unsigned.ipa` | Apple only installs apps signed with an Apple ID. With a free one: install [Sideloadly](https://sideloadly.io/) (Windows or Mac), connect the iPhone, drop the `.ipa` on it and sign in; turn on Developer Mode on the iPhone (Settings → Privacy & Security) and trust your Apple ID (Settings → General → VPN & Device Management). Apps signed with a free Apple ID stop opening after 7 days: install again to renew. An Apple Developer Program membership ($99 a year) removes the limit and allows TestFlight and the App Store. |
+| iPhone, iOS 16.4 or later | `Doxxta-<version>-unsigned.ipa` | Apple only installs apps signed with an Apple ID. With a free one: install [Sideloadly](https://sideloadly.io/) (Windows or Mac), connect the iPhone, drop the `.ipa` on it and sign in; turn on Developer Mode on the iPhone (Settings → Privacy & Security) and trust your Apple ID (Settings → General → VPN & Device Management). Apps signed with a free Apple ID stop opening after 7 days: install again to renew. An Apple Developer Program membership ($99 a year) removes the limit and allows TestFlight and the App Store. |
 
 ```bash
 npm run mobile:sync   # builds the web app and copies it into android/ and ios/

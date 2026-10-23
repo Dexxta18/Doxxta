@@ -1,7 +1,23 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
+
+/**
+ * pdf.js sizes pages with CSS round(), which Android's web view has only from Chrome 125: on phones
+ * that don't update it, pages collapse to nothing. There, they get the same sizes unrounded.
+ */
+function pdfjsWithoutCssRound(): Plugin {
+  const size = /`round\(down, (var\(--total-scale-factor\) \* \$\{page(?:Width|Height)\}px), var\(--scale-round-[xy]\)\)`/g;
+  return {
+    name: "pdfjs-without-css-round",
+    transform(code, id) {
+      if (!id.includes("pdfjs-dist") || !size.test(code)) return;
+      size.lastIndex = 0;
+      return code.replace(size, (round, calc) => `(globalThis.CSS?.supports("width", "round(down, 1.5px, 1px)") ? ${round} : \`calc(${calc})\`)`);
+    },
+  };
+}
 
 // Relative base so the build can be hosted from any sub-path (or opened from a
 // static file server) without rewriting asset URLs.
@@ -10,7 +26,7 @@ const { version } = JSON.parse(readFileSync(new URL("./package.json", import.met
 export default defineConfig({
   base: "./",
   define: { __APP_VERSION__: JSON.stringify(version) },
-  plugins: [react()],
+  plugins: [react(), pdfjsWithoutCssRound()],
   resolve: {
     alias: {
       // pdf-lib's password algorithms aren't exported from its package entry.

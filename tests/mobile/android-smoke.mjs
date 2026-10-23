@@ -59,6 +59,18 @@ const tap = async (locator) => {
   const y = Math.round(bounds.y + (box.y + box.height / 2) * scale);
   await device.shell(`input tap ${x} ${y}`);
 };
+/** The app's page as it shows on the screen (a web view left from an earlier start can linger, with no size). */
+async function appPage() {
+  for (const end = Date.now() + 90_000; Date.now() < end; await new Promise((resolve) => setTimeout(resolve, 1000))) {
+    for (const webView of await device.webViews()) {
+      if (webView.pkg() !== "app.doxxta.mobile") continue;
+      for (const candidate of (await webView.page()).context().pages()) {
+        if (await candidate.evaluate(() => innerWidth > 0 && !!document.querySelector(".app")).catch(() => false)) return candidate;
+      }
+    }
+  }
+  throw new Error("The app's page didn't show up on the screen.");
+}
 let webViewVersion = "";
 const errors = [];
 const logged = [];
@@ -66,9 +78,10 @@ try {
   await device.shell("pm uninstall app.doxxta.mobile").catch(() => {});
   await device.installApk(readFileSync(apk));
   await device.shell("logcat -c").catch(() => {});
-  await device.shell("am start -n app.doxxta.mobile/.MainActivity");
-  const webView = await device.webView({ pkg: "app.doxxta.mobile" }, { timeout: 90_000 });
-  page = await webView.page();
+  await device.shell("input keyevent KEYCODE_WAKEUP");
+  await device.shell("wm dismiss-keyguard").catch(() => {});
+  await device.shell("am start -W -n app.doxxta.mobile/.MainActivity");
+  page = await appPage();
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => ["error", "warning"].includes(m.type()) && logged.push(`${m.type()}: ${m.text()}`));
   await page.waitForSelector(".app", { timeout: 90_000 });

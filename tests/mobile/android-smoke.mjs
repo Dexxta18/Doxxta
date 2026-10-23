@@ -32,18 +32,33 @@ const shot = async (name) => {
   // A small copy in the run's notes, for where the run's downloads can't be reached.
   if (process.env.SCREENSHOT_NOTES && page) note("notice", `Screenshot ${name}`, await thumbnail(png).catch((e) => String(e)));
 };
-/** A small JPEG of a screenshot (a data: URL), drawn by the app's web view. */
+/** A small JPEG of a screenshot (a data: URL that fits in a note), drawn by the app's web view. */
 const thumbnail = (png) =>
   page.evaluate(async (b64) => {
     const image = new Image();
     image.src = `data:image/png;base64,${b64}`;
     await image.decode();
     const canvas = document.createElement("canvas");
-    canvas.width = Math.round(image.width / 4);
-    canvas.height = Math.round(image.height / 4);
-    canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL("image/jpeg", 0.6);
+    for (let width = 240; ; width -= 20) {
+      canvas.width = width;
+      canvas.height = Math.round((image.height * width) / image.width);
+      const context = canvas.getContext("2d");
+      context.filter = "grayscale(1)";
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      const url = canvas.toDataURL("image/jpeg", 0.5);
+      if (url.length <= 4000 || width <= 60) return url;
+    }
   }, png.toString("base64"));
+/** Taps an element with a finger, through Android's own input. */
+const tap = async (locator) => {
+  await locator.scrollIntoViewIfNeeded();
+  const box = await locator.boundingBox();
+  const { bounds } = await device.info({ res: "app.doxxta.mobile:id/webview" });
+  const scale = bounds.width / (await page.evaluate(() => innerWidth));
+  const x = Math.round(bounds.x + (box.x + box.width / 2) * scale);
+  const y = Math.round(bounds.y + (box.y + box.height / 2) * scale);
+  await device.shell(`input tap ${x} ${y}`);
+};
 let webViewVersion = "";
 const errors = [];
 const logged = [];
@@ -94,24 +109,29 @@ try {
     )
     .then(() => true, () => false);
   check(drawn, "its first page is drawn");
+  const shown = await page.evaluate(() => {
+    const box = document.querySelector(".pdfViewer .page canvas")?.getBoundingClientRect();
+    return box ? [Math.round(box.width), Math.round(box.height)] : [0, 0];
+  });
+  check(shown[0] > 200 && shown[1] > 200, `the page is shown at its size (${shown.join("×")})`);
   await page.waitForTimeout(1500);
   await shot("document");
   check(await page.locator(".phone-bar").count() === 1, "the phone layout is used (bottom bar)");
   check((await page.locator(".phone-pager span").innerText()).trim() === "1 / 6", "the bottom bar shows the page number");
 
-  await page.locator(".phone-bar-btn", { hasText: "Tools" }).tap();
+  await tap(page.locator(".phone-bar-btn", { hasText: "Tools" }));
   await page.waitForTimeout(800);
   await shot("tools");
   check(await page.locator(".phone-sheet .tools-item").count() > 10, "the tools sheet lists the tools");
-  await page.locator(".phone-sheet .tools-item", { hasText: "Add comments" }).tap();
+  await tap(page.locator(".phone-sheet .tools-item", { hasText: "Add comments" }));
   await page.waitForTimeout(800);
   check((await page.locator(".mode-chip").innerText()).includes("Comment"), "picking a tool opens it");
   await shot("comment");
 
-  await page.locator(".phone-bar-btn", { hasText: "Pages" }).tap();
+  await tap(page.locator(".phone-bar-btn", { hasText: "Pages" }));
   await page.waitForTimeout(1500);
   await shot("pages");
-  await page.locator(".phone-sheet .thumb-item").nth(3).tap();
+  await tap(page.locator(".phone-sheet .thumb-item").nth(3));
   await page.waitForTimeout(1200);
   check((await page.locator(".phone-pager span").innerText()).trim() === "4 / 6", "tapping a page goes to it");
 

@@ -66,7 +66,7 @@ npx cap open ios      # Xcode (on a Mac): pick your Apple ID under Signing & Cap
 npm run mobile:icons  # redraws the app icons and launch screens from the logo
 ```
 
-The **Installers** workflow builds the Android app (`./gradlew assembleRelease`) and the iPhone app (unsigned, with `xcodebuild`) along with the desktop installers. Android apps can only be updated by apps signed with the same key: the workflow signs with the key in the repository's secrets `ANDROID_KEYSTORE_BASE64` (the keystore file, base64), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`, and without them with a throwaway key. Keep a copy of the keystore: without it, a new version can only be installed after removing the old one. **Actions → Phone app check** runs the Android app in an emulator and keeps its screenshots (`tests/mobile/android-smoke.mjs`).
+The **Installers** workflow builds the Android app (`./gradlew assembleRelease`) and the iPhone app (unsigned, with `xcodebuild`) along with the desktop installers. Android apps can only be updated by apps signed with the same key: the workflow signs with the key in the repository's secrets `ANDROID_KEYSTORE_BASE64` (the keystore file, base64), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`, and without them with a throwaway key. Keep a copy of the keystore: without it, a new version can only be installed after removing the old one. **Actions → Phone app check** runs the Android app in an emulator (`tests/mobile/android-smoke.mjs`) and the iPhone app in a simulator (`tests/mobile/ios-smoke.sh`), and keeps their screenshots.
 
 ## Features
 

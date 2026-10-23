@@ -1,5 +1,6 @@
-# Runs the Android app in an emulator (tests/mobile/android-smoke.mjs) and keeps its screenshots
-# as downloads on the run's page. Run it from the Actions tab ("Run workflow").
+# Runs the Android app in an emulator (tests/mobile/android-smoke.mjs) and the iPhone app in a
+# simulator (tests/mobile/ios-smoke.sh), and keeps their screenshots as downloads on the run's page.
+# Run it from the Actions tab ("Run workflow").
 name: Phone app check
 
 on:
@@ -49,4 +50,25 @@ jobs:
         if: always()
         with:
           name: android-screenshots
+          path: test-output/mobile
+
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: node scripts/make-fixtures.mjs
+      - name: Run the iPhone app in a simulator
+        env:
+          SCREENSHOT_NOTES: ${{ inputs.screenshot_notes && '1' || '' }}
+        run: bash tests/mobile/ios-smoke.sh
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: iphone-screenshots
           path: test-output/mobile

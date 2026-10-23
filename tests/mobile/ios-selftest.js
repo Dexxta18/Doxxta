@@ -1,9 +1,16 @@
 // The iPhone app's checks, run inside the app in a simulator: tests/mobile/ios-smoke.sh adds this
-// script and sample.pdf to a test build of the app. Results go to the app's log through Capacitor's
-// console: "[selftest] ✓ …" or "✗ …", "[selftest] shot <name>" (the shell script takes a
-// screenshot then) and "[selftest] done <failures>".
+// script and sample.pdf to a test build of the app. They talk to the shell script through files in
+// the app's Documents/selftest: a file named after a screenshot asks for it (the script deletes
+// it once taken), results.txt has the results and done the number of failures. The app's log
+// gets the results too ("[selftest] …").
 (async () => {
-  const log = (text) => console.log(`[selftest] ${text}`);
+  const lines = [];
+  const log = (text) => {
+    lines.push(text);
+    console.log(`[selftest] ${text}`);
+  };
+  const files = (method, path, options = {}) => window.Capacitor.nativePromise("Filesystem", method, { path: `selftest/${path}`, directory: "DOCUMENTS", ...options });
+  const write = (path, data) => files("writeFile", path, { data, encoding: "utf8", recursive: true });
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const $ = (selector) => document.querySelector(selector);
   const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -27,9 +34,16 @@
     log(`${ok ? "✓" : "✗"} ${what}`);
     if (!ok) failed++;
   };
+  /** Waits (up to 15 s) for the shell script to take a screenshot. */
   const shot = async (name) => {
-    log(`shot ${name}`);
-    await wait(2500);
+    await write(name, "");
+    for (const end = Date.now() + 15_000; Date.now() < end; await wait(250)) {
+      try {
+        await files("stat", name);
+      } catch {
+        return;
+      }
+    }
   };
   const button = (label) => $$(".phone-bar-btn").find((b) => b.textContent.includes(label));
 
@@ -84,5 +98,7 @@
     log(`✗ stopped: ${e?.stack ?? e}`);
     await shot("ios-stopped");
   }
+  await write("results.txt", lines.filter((line) => /^[✓✗]/.test(line)).join("\n"));
+  await write("done", String(failed));
   log(`done ${failed}`);
 })();

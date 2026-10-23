@@ -41,21 +41,24 @@ xcrun simctl bootstatus "$device" -b > /dev/null
 xcrun simctl install "$device" "$app"
 log="$out/ios-app.log"
 xcrun simctl launch --console-pty "$device" app.doxxta.mobile > "$log" 2>&1 &
+sleep 2
+# The checks and this script talk through files in the app's Documents/selftest (see ios-selftest.js).
+talk="$(xcrun simctl get_app_container "$device" app.doxxta.mobile data)/Documents/selftest"
 
 # Screenshots when the checks ask for them, until they're done (at most 5 minutes).
-taken=0
 for _ in $(seq 600); do
-  for name in $(grep -ao '\[selftest\] shot [a-z-]*' "$log" | awk '{print $3}' | tail -n "+$((taken + 1))"); do
-    xcrun simctl io "$device" screenshot "$out/$name.png" > /dev/null 2>&1
-    taken=$((taken + 1))
+  for request in "$talk"/ios-*; do
+    [ -e "$request" ] || continue
+    xcrun simctl io "$device" screenshot "$out/$(basename "$request").png" > /dev/null 2>&1
+    rm -f "$request"
   done
-  grep -aq '\[selftest\] done' "$log" && break
+  [ -e "$talk/done" ] && break
   sleep 0.5
 done
 xcrun simctl terminate "$device" app.doxxta.mobile > /dev/null 2>&1 || true
 
-results=$(grep -a '\[selftest\] [✓✗]' "$log" | sed 's/.*\[selftest\] //' || true)
-failed=$(grep -ao '\[selftest\] done [0-9]*' "$log" | awk '{print $3}' || true)
+results=$(cat "$talk/results.txt" 2> /dev/null || true)
+failed=$(cat "$talk/done" 2> /dev/null || true)
 echo "iPhone app"
 echo "$results" | sed 's/^/  /'
 if [ -z "$failed" ]; then
@@ -67,7 +70,7 @@ fi
 
 # Notes on the GitHub Actions run: the results, and small screenshots when asked for.
 if [ -n "${GITHUB_ACTIONS:-}" ]; then
-  escape() { local s="${1//'%'/'%25'}"; s="${s//$'\r'/'%0D'}"; echo "${s//$'\n'/'%0A'}"; }
+  escape() { node -e 'process.stdout.write(process.argv[1].replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A"))' "$1"; }
   echo "::notice title=iPhone app check::$(escape "$results")"
   if [ -n "${SCREENSHOT_NOTES:-}" ]; then
     for png in "$out"/ios-*.png; do

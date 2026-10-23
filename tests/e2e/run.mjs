@@ -5,11 +5,12 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createServer } from "vite";
+import { devices } from "playwright";
 import { ROOT, dropFile, fixture, launchBrowser, openApp, recorder, shot } from "./harness.mjs";
 import { ensureFixtures } from "./fixtures.mjs";
 import { startFileServer } from "./server.mjs";
 
-const ALL = ["organize", "forms", "editing", "export", "signing", "security", "redaction", "openurl"];
+const ALL = ["organize", "forms", "editing", "export", "signing", "security", "redaction", "openurl", "phone"];
 const picked = process.argv.slice(2);
 const unknown = picked.filter((s) => !ALL.includes(s));
 if (unknown.length) {
@@ -30,7 +31,8 @@ const results = [];
 for (const name of suites) {
   const suite = await import(`./suites/${name}.mjs`);
   console.log(`\n${suite.title}`);
-  const { context, page, errors } = await openApp(browser, url);
+  // A suite that names a phone runs on one (touch, small screen).
+  const { context, page, errors } = await openApp(browser, url, suite.device ? devices[suite.device] : undefined);
   const { results: own, check } = recorder(name);
   try {
     await suite.default(suiteContext(page, check, name));

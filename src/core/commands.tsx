@@ -36,11 +36,12 @@ import {
   Volume2,
   X,
 } from "lucide-react";
-import { getActiveDoc, getApp, openDialog, setMode, setTool, toast, useApp } from "../state/store";
+import { getActiveDoc, getApp, getDoc, openDialog, setMode, setTool, toast, useApp, withBusy } from "../state/store";
 import { getViewer } from "../state/runtime";
 import { useSettings } from "../state/settings";
 import type { Mode, ToolId } from "../state/types";
 import { pickFiles } from "../lib/util";
+import { mobile } from "../lib/mobile";
 import { closeDocument, openFile, redo, revertDocument, undo } from "./document";
 import { copySelected, deleteSelected, duplicateSelected, hasAnnotClipboard, pasteAnnots, selectAllOnPage } from "./annotOps";
 import { MODE_PERMISSION, withPermission, type Permission } from "./permissions";
@@ -100,13 +101,31 @@ function tool(t: ToolId) {
   return () => setTool(t);
 }
 
+/** Phones: the document goes to the share sheet, which prints it (or sends it to a printing app). */
+async function printFromPhone(docId: string) {
+  const doc = getDoc(docId);
+  if (!doc) return;
+  const [{ buildPdf }, { shareFile }] = await Promise.all([import("./save"), import("../lib/mobile")]);
+  const bytes = await withBusy("Preparing to print…", () => buildPdf(docId, {}));
+  if (bytes) await shareFile(bytes, doc.name, `Print “${doc.name}”`);
+}
+
 const commands: Command[] = [
   // ----- File -----
   { id: "file.open", label: "Open…", icon: ic(FolderOpen), shortcut: "Mod+O", run: openFilesFromPicker },
   { id: "file.openUrl", label: "Open from URL…", icon: ic(Link2), run: () => openDialog("open-url") },
   { id: "file.save", label: "Save", icon: ic(Save), shortcut: "Mod+S", needsDoc: true, run: async () => (await import("./save")).saveDocument(activeId()!) },
   { id: "file.saveAs", label: "Save as…", icon: ic(Download), shortcut: "Mod+Shift+S", needsDoc: true, run: () => openDialog("save-as", { docId: activeId() }) },
-  { id: "file.print", perm: "print", label: "Print…", icon: ic(Printer), shortcut: "Mod+P", needsDoc: true, run: () => openDialog("print", { docId: activeId() }) },
+  {
+    id: "file.print",
+    perm: "print",
+    label: "Print…",
+    icon: ic(Printer),
+    shortcut: "Mod+P",
+    needsDoc: true,
+    // Phones print from the share sheet (Print on iPhone; printer and PDF apps on Android).
+    run: () => (mobile ? void printFromPhone(activeId()!) : openDialog("print", { docId: activeId() })),
+  },
   { id: "file.properties", label: "Document properties…", icon: ic(Info), shortcut: "Mod+D", needsDoc: true, run: () => openDialog("properties", { docId: activeId() }) },
   { id: "file.close", label: "Close document", icon: ic(X), needsDoc: true, run: () => closeDocument(activeId()!) },
   {

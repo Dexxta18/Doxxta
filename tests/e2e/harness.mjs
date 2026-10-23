@@ -22,9 +22,9 @@ export async function launchBrowser() {
   }
 }
 
-/** A fresh page on the app with the native file windows disabled (headless Chromium can't show them). */
-export async function openApp(browser, url) {
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true });
+/** A fresh page on the app with the native file windows disabled (headless Chromium can't show them). A phone's settings (Playwright's devices) make it a phone. */
+export async function openApp(browser, url, device) {
+  const context = await browser.newContext({ ...(device ?? { viewport: { width: 1440, height: 900 } }), acceptDownloads: true });
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));

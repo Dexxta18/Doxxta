@@ -9,12 +9,14 @@ import "./styles/viewer.css";
 import "./styles/panels.css";
 import "./styles/dialogs.css";
 import "./styles/modes.css";
+import "./styles/phone.css";
 import App from "./App";
 import { useApp } from "./state/store";
 import { useSettings } from "./state/settings";
 import { runtimes } from "./state/runtime";
 import { runCommand } from "./core/commands";
 import { installDesktop } from "./lib/desktop";
+import { installMobile } from "./lib/mobile";
 
 if (import.meta.env.DEV) {
   // Debug handle for automated browser tests.
@@ -22,6 +24,7 @@ if (import.meta.env.DEV) {
 }
 
 installDesktop();
+installMobile();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

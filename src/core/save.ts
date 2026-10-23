@@ -5,6 +5,7 @@ import { FontCache, PDFName, PDFRef, loadPdfLib, pdfText, setPageOrder, type PDF
 import { writeAnnotations } from "../annotations/writer";
 import { hexToPdf } from "../lib/colors";
 import { downloadBytes, errorMessage, withExt } from "../lib/util";
+import { mobile, shareFile } from "../lib/mobile";
 import { pdfjs } from "../lib/pdfjs";
 import { keepOriginalEncryption, savePdf } from "../lib/security";
 
@@ -236,6 +237,12 @@ export async function saveDocument(docId: string): Promise<boolean> {
         console.warn("In-place save failed, downloading instead", e);
       }
     }
+    // Phones: the share sheet saves it (Files, Drive…) or sends it.
+    if (mobile) {
+      if (!(await shareFile(bytes, doc.name))) return false;
+      markSaved(docId, bytes);
+      return true;
+    }
     downloadBytes(bytes, doc.name);
     markSaved(docId, bytes);
     toast(`Downloaded “${doc.name}”`, "success");
@@ -272,6 +279,11 @@ export async function saveDocumentAs(docId: string, name: string, opts: BuildOpt
       } catch (e) {
         toast(`Couldn't write the file: ${errorMessage(e)}. Downloading instead.`, "warning");
       }
+    }
+    if (mobile) {
+      if (!(await shareFile(bytes, fileName))) return false;
+      markSaved(docId, bytes, fileName);
+      return true;
     }
     downloadBytes(bytes, fileName);
     markSaved(docId, bytes, fileName);

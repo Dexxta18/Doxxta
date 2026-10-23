@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, 
 import { createPortal } from "react-dom";
 import { useEffect } from "react";
 
-export type Placement = "bottom-start" | "bottom-end" | "bottom" | "top-start" | "top" | "right-start" | "left-start";
+export type Placement = "bottom-start" | "bottom-end" | "bottom" | "top-start" | "top-end" | "top" | "right-start" | "left-start";
 
 /** Computes a fixed position for a floating element next to an anchor, flipping to stay on screen. */
 export function computePosition(anchor: DOMRect, floating: { width: number; height: number }, placement: Placement, gap = 6) {
@@ -18,6 +18,10 @@ export function computePosition(anchor: DOMRect, floating: { width: number; heig
       x = anchor.left + anchor.width / 2 - floating.width / 2;
       break;
     case "top-start":
+      y = anchor.top - floating.height - gap;
+      break;
+    case "top-end":
+      x = anchor.right - floating.width;
       y = anchor.top - floating.height - gap;
       break;
     case "top":

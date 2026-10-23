@@ -12,6 +12,7 @@ import { openBytes, openFile } from "./core/document";
 import { errorMessage, isImageFile, isPdfFile } from "./lib/util";
 import { downloadPdf } from "./lib/download";
 import { loadRecent } from "./lib/recent";
+import { PhoneSheetHost } from "./components/shell/PhoneShell";
 
 const CompareView = lazy(() => import("./components/modes/CompareView"));
 const SpeechBar = lazy(() => import("./components/shell/SpeechBar"));
@@ -155,6 +156,7 @@ export default function App() {
           <Presentation />
         </Suspense>
       )}
+      <PhoneSheetHost />
       <DialogHost />
       <ContextMenuHost />
       <Toasts />

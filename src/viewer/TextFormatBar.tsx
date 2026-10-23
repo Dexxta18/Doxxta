@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AArrowDown, AArrowUp, AlignCenter, AlignJustify, AlignLeft, AlignRight, Baseline, Bold, Check, Highlighter, Italic, RemoveFormatting, Strikethrough, Underline } from "lucide-react";
 import { IconButton } from "../components/ui/Button";
 import { ColorSwatches } from "../components/ui/Fields";
@@ -41,6 +42,7 @@ export function TextFormatBar({
   ownColor,
   left,
   top,
+  docked,
   barRef,
   onFamily,
   onSize,
@@ -58,6 +60,8 @@ export function TextFormatBar({
   ownColor: string;
   left: number;
   top: number;
+  /** Along the bottom of the screen (phones), rather than above the text. */
+  docked?: boolean;
   barRef: React.RefObject<HTMLDivElement | null>;
   onFamily: (family: string) => void;
   /** A new size (null: unchanged), and whether to go back to the text. */
@@ -90,13 +94,13 @@ export function TextFormatBar({
   const known = new Set([...fonts.document, ...fonts.others.map((f) => f.family)]);
   const color = state.color === undefined ? null : (state.color ?? ownColor);
 
-  return (
+  const bar = (
     <div
       ref={barRef}
-      className="annot-toolbar text-format-bar"
+      className={`annot-toolbar text-format-bar${docked ? " is-docked" : ""}`}
       role="toolbar"
       aria-label="Text formatting"
-      style={{ left, top }}
+      style={docked ? undefined : { left, top }}
       onPointerDown={(e) => e.stopPropagation()}
       // Buttons don't take the focus, so the text stays selected in the editor.
       onMouseDown={(e) => {
@@ -238,4 +242,5 @@ export function TextFormatBar({
       <IconButton size="sm" icon={<Check size={16} />} label="Done" shortcut="Mod+Enter" onClick={onDone} />
     </div>
   );
+  return docked ? createPortal(bar, document.body) : bar;
 }

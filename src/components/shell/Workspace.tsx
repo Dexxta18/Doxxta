@@ -12,6 +12,8 @@ import { SelectionMenu } from "./SelectionMenu";
 import { Button, Spinner } from "../ui/Button";
 import { closeDocument } from "../../core/document";
 import { consumePendingCommand } from "./HomeScreen";
+import { PhoneBar } from "./PhoneShell";
+import { usePhone } from "../../lib/device";
 
 const OrganizeView = lazy(() => import("../modes/OrganizeView"));
 
@@ -34,9 +36,19 @@ const MODE_HINTS: Partial<Record<string, string>> = {
   "image-stamp": "Click on the page to place the stamp.",
 };
 
+/** On touch screens: tap rather than click, and no keyboard shortcuts. */
+const TOUCH_HINTS: Partial<Record<string, string>> = {
+  "edit-text": "Tap a paragraph to edit its text, and format it with the toolbar.",
+  "measure-perimeter": "Tap to add points, double-tap to finish.",
+  "measure-area": "Tap to add points, double-tap to finish.",
+  polyline: "Tap to add points, double-tap to finish.",
+  "marquee-zoom": "Drag to zoom into an area, or tap to zoom in.",
+};
+const touch = typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
+
 function ToolHint() {
   const tool = useApp((s) => s.tool);
-  const hint = MODE_HINTS[tool];
+  const hint = (touch && TOUCH_HINTS[tool]) || (touch ? MODE_HINTS[tool]?.replace(/\bClick\b/g, "Tap").replace(/\bclick\b/g, "tap") : MODE_HINTS[tool]);
   if (!hint) return null;
   return (
     <div className="tool-hint" role="status">
@@ -74,6 +86,7 @@ export function Workspace({ docId }: { docId: string }) {
   const readMode = useApp((s) => s.readMode);
   const toolsOpen = useSettings((s) => s.toolsPanelOpen);
   void toolsOpen;
+  const phone = usePhone();
 
   useEffect(() => {
     if (status === "ready") consumePendingCommand();
@@ -92,7 +105,7 @@ export function Workspace({ docId }: { docId: string }) {
 
   return (
     <div className={`workspace${readMode ? " is-read-mode" : ""}`}>
-      {!readMode && <ToolsPanel />}
+      {!readMode && !phone && <ToolsPanel />}
       <div className="center">
         {!readMode && status === "ready" && mode !== "organize" && <ContextToolbar docId={docId} />}
         <div className="viewer-area">
@@ -134,9 +147,9 @@ export function Workspace({ docId }: { docId: string }) {
             </>
           )}
         </div>
-        {!readMode && status === "ready" && mode !== "organize" && <StatusBar docId={docId} />}
+        {!readMode && status === "ready" && mode !== "organize" && (phone ? <PhoneBar docId={docId} /> : <StatusBar docId={docId} />)}
       </div>
-      {!readMode && status === "ready" && <RightPanel docId={docId} />}
+      {!readMode && status === "ready" && !phone && <RightPanel docId={docId} />}
       {readMode && (
         <button className="read-mode-exit btn btn-secondary btn-sm" onClick={() => useApp.setState({ readMode: false })}>
           Exit read mode

@@ -49,7 +49,14 @@ export const baseName = (name: string) => name.replace(/\.[^./\\]+$/, "");
 
 export const withExt = (name: string, ext: string) => `${baseName(name)}.${ext.replace(/^\./, "")}`;
 
+/** In the phone apps (Capacitor's bridge is on the page): files are saved through the share sheet. */
+const inPhoneApp = () => !!(globalThis as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.();
+
 export function downloadBlob(blob: Blob, filename: string) {
+  if (inPhoneApp()) {
+    void Promise.all([blob.arrayBuffer(), import("./mobile")]).then(([data, m]) => m.shareFile(new Uint8Array(data), filename));
+    return;
+  }
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

@@ -46,9 +46,27 @@ npm run dist:mac      # macOS disk images (on a Mac)
 npm run dist:linux    # Linux AppImage
 ```
 
-Build each installer on its own system: the macOS app can only be built on a Mac, and building the Windows installer elsewhere also needs [Wine](https://www.winehq.org/). The easiest way to get all three is GitHub: on the repository, open **Actions → Desktop installers → Run workflow**. GitHub builds the three installers and publishes them on the repository's **Releases** page, named after the version in `package.json` (pushing a version tag such as `v0.2.0` does the same). Untick "Publish a release" to only get them as downloads on the finished run's page.
+Build each installer on its own system: the macOS app can only be built on a Mac, and building the Windows installer elsewhere also needs [Wine](https://www.winehq.org/). The easiest way to get them all is GitHub: on the repository, open **Actions → Installers → Run workflow**. GitHub builds the desktop installers and the phone apps and publishes them on the repository's **Releases** page, named after the version in `package.json` (pushing a version tag such as `v0.4.0` does the same). Untick "Publish a release" to only get them as downloads on the finished run's page.
 
 Signing removes the first-launch warnings. It needs a code-signing certificate for Windows (set `WIN_CSC_LINK` to the `.pfx` file and `WIN_CSC_KEY_PASSWORD` to its password) and an Apple Developer ID for macOS (`CSC_LINK` and `CSC_KEY_PASSWORD`, plus `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID` for notarization). Without them, Windows builds are unsigned and Mac builds are ad-hoc signed.
+
+## Phone apps
+
+Doxxta for Android and iPhone is the same app in a native shell ([Capacitor](https://capacitorjs.com/)), laid out for phones: the tools and side panels open as full-screen sheets, a bar along the bottom has Tools, Pages, the page number, Search and More, two fingers zoom the pages, and Edit text's formatting toolbar sits above the keyboard. PDFs from other apps open in Doxxta ("Open with" on Android, "Open in" or the share sheet's app row on iPhone); Save, Save as, exports and Print go through the phone's share sheet, to save the file (Files, Drive…), send it or print it.
+
+| Phone | File | Install |
+|---|---|---|
+| Android 7 or later | `Doxxta-<version>.apk` | Open the file on the phone and allow installing apps from your browser or file manager when Android asks. |
+| iPhone, iOS 15 or later | `Doxxta-<version>-unsigned.ipa` | Apple only installs apps signed with an Apple ID. With a free one: install [Sideloadly](https://sideloadly.io/) (Windows or Mac), connect the iPhone, drop the `.ipa` on it and sign in; turn on Developer Mode on the iPhone (Settings → Privacy & Security) and trust your Apple ID (Settings → General → VPN & Device Management). Apps signed with a free Apple ID stop opening after 7 days: install again to renew. An Apple Developer Program membership ($99 a year) removes the limit and allows TestFlight and the App Store. |
+
+```bash
+npm run mobile:sync   # builds the web app and copies it into android/ and ios/
+npx cap open android  # Android Studio: run on a phone or an emulator, or Build → Generate Signed Bundle / APK
+npx cap open ios      # Xcode (on a Mac): pick your Apple ID under Signing & Capabilities and run on your iPhone
+npm run mobile:icons  # redraws the app icons and launch screens from the logo
+```
+
+The **Installers** workflow builds the Android app (`./gradlew assembleRelease`) and the iPhone app (unsigned, with `xcodebuild`) along with the desktop installers. Android apps can only be updated by apps signed with the same key: the workflow signs with the key in the repository's secrets `ANDROID_KEYSTORE_BASE64` (the keystore file, base64), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`, and without them with a throwaway key. Keep a copy of the keystore: without it, a new version can only be installed after removing the old one. **Actions → Phone app check** runs the Android app in an emulator and keeps its screenshots (`tests/mobile/android-smoke.mjs`).
 
 ## Features
 
@@ -144,6 +162,7 @@ src/
   state/         app store, settings, undo history
   viewer/        page view, annotation overlay, text editing layer, thumbnails
 desktop/         Electron main process, preload bridge, app icon
+android/, ios/   the phone apps' native projects (Capacitor); capacitor.config.ts
 scripts/         copies pdf.js/tesseract assets into public/vendor; generates test PDFs; desktop build
 tests/e2e/       browser tests
 tests/desktop/   desktop app tests
@@ -155,8 +174,8 @@ The browser tests drive the app in headless Chromium with Playwright, then read 
 
 ```bash
 npx playwright install chromium   # once
-npm run test:e2e                  # 8 suites against the dev server (98 checks)
-npm run test:e2e -- security      # one suite: organize, forms, editing, export, signing, security, redaction, openurl
+npm run test:e2e                  # 9 suites against the dev server (109 checks)
+npm run test:e2e -- security      # one suite: organize, forms, editing, export, signing, security, redaction, openurl, phone
 npm run test:smoke                # builds, then tests the production build through the UI (incl. OCR)
 ```
 

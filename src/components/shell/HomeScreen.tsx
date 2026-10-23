@@ -29,6 +29,7 @@ import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/Fields";
 import { Logo } from "./TopBar";
 import { desktop } from "../../lib/desktop";
+import { mobile } from "../../lib/mobile";
 
 const QUICK_TOOLS: { label: string; desc: string; icon: React.ReactNode; command: string; color: string }[] = [
   { label: "Edit PDF", desc: "Change text, add images and links", icon: <FilePen size={20} />, command: "mode.edit", color: "#e5484d" },
@@ -65,6 +66,9 @@ export function consumePendingCommand() {
   if (c) setTimeout(() => runCommand(c), 50);
 }
 
+/** A touch screen without a mouse: files are chosen, not dropped. */
+const touch = typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches && !window.matchMedia?.("(any-pointer: fine)").matches;
+
 export function HomeScreen() {
   const { entries, loaded } = useRecent();
   const [filter, setFilter] = useState<"all" | "starred">("all");
@@ -94,7 +98,7 @@ export function HomeScreen() {
             </div>
             <h1>Everything you need to work with PDFs.</h1>
             <p className="muted">
-              Read, comment, sign, edit, organize, convert and protect — privately, {desktop ? "on your computer" : "right in your browser"}. Your files never leave this device.
+              Read, comment, sign, edit, organize, convert and protect — privately, {mobile ? "on your phone" : desktop ? "on your computer" : "right in your browser"}. Your files never leave this device.
             </p>
           </div>
           <div
@@ -107,8 +111,8 @@ export function HomeScreen() {
             <div className="dropzone-icon">
               <Upload size={26} />
             </div>
-            <strong>Drop PDF files here</strong>
-            <span className="muted">or click to choose files</span>
+            <strong>{touch ? "Open a PDF" : "Drop PDF files here"}</strong>
+            <span className="muted">{touch ? "Tap to choose one from your files" : "or click to choose files"}</span>
             <div className="row" style={{ marginTop: 10, flexWrap: "wrap", justifyContent: "center" }} onClick={(e) => e.stopPropagation()}>
               <Button variant="primary" icon={<FolderOpen size={16} />} onClick={() => openFilesFromPicker()}>
                 Open file
@@ -162,7 +166,7 @@ export function HomeScreen() {
           </div>
           {shown.length === 0 ? (
             <EmptyState icon={<Clock size={22} />} title={filter === "starred" ? "No starred files" : "No recent files yet"}>
-              Files you open appear here so you can get back to them quickly. They're stored only {desktop ? "on this computer" : "in this browser"}.
+              Files you open appear here so you can get back to them quickly. They're stored only {mobile ? "on this phone" : desktop ? "on this computer" : "in this browser"}.
             </EmptyState>
           ) : (
             <div className="recent-grid">

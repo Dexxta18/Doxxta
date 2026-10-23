@@ -57,9 +57,52 @@ export function useViewerInteractions(docId: string, handle: ViewerHandle | null
       pdfViewer.updateScale({ scaleFactor: factor, origin: [e.clientX, e.clientY], drawingDelay: 300 });
     };
 
+    // Touch screens: two fingers zoom around the point between them (one finger scrolls).
+    let pinch: number | null = null;
+    const spread = (t: TouchList) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 2) return;
+      pinch = spread(e.touches);
+      e.preventDefault();
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (pinch === null || e.touches.length !== 2) return;
+      e.preventDefault();
+      const now = spread(e.touches);
+      const factor = now / pinch;
+      if (Math.abs(factor - 1) < 0.02) return;
+      pinch = now;
+      const [a, b] = [e.touches[0], e.touches[1]];
+      pdfViewer.updateScale({ scaleFactor: factor, origin: [(a.clientX + b.clientX) / 2, (a.clientY + b.clientY) / 2], drawingDelay: 400 });
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) pinch = null;
+    };
+    // Safari's own page zoom (gesture events): the pages zoom instead.
+    const onGesture = (e: Event) => e.preventDefault();
+
+    // Text selected by touch is adjusted with handles after the finger lifts: the menu follows the selection.
+    let pointerType = "mouse";
+    let selectionTimer: ReturnType<typeof setTimeout> | undefined;
+    const onSelectionChange = () => {
+      if (pointerType !== "touch") return;
+      clearTimeout(selectionTimer);
+      selectionTimer = setTimeout(() => {
+        if (useApp.getState().tool !== "select" || !useSettings.getState().showTextSelectionMenu) return;
+        const sels = selectionToQuads(pdfViewer, container);
+        if (sels.length && sels.some((s) => s.quads.length)) {
+          const last = sels[sels.length - 1].lastRect;
+          useTextSelectionMenu.setState({ docId, selections: sels, x: last.right, y: last.bottom + 8 });
+        } else if (useTextSelectionMenu.getState().docId) {
+          useTextSelectionMenu.setState({ docId: null });
+        }
+      }, 350);
+    };
+
     // Hand tool: drag to pan.
     let pan: { x: number; y: number; left: number; top: number } | null = null;
     const onPointerDown = (e: PointerEvent) => {
+      pointerType = e.pointerType;
       const tool = useApp.getState().tool;
       const target = e.target as HTMLElement;
       const middle = e.button === 1;
@@ -110,12 +153,25 @@ export function useViewerInteractions(docId: string, handle: ViewerHandle | null
       if (useTextSelectionMenu.getState().docId) useTextSelectionMenu.setState({ docId: null });
     };
     container.addEventListener("wheel", onWheel, { passive: false });
+    container.addEventListener("touchstart", onTouchStart, { passive: false });
+    container.addEventListener("touchmove", onTouchMove, { passive: false });
+    container.addEventListener("touchend", onTouchEnd);
+    container.addEventListener("touchcancel", onTouchEnd);
+    container.addEventListener("gesturestart", onGesture);
+    document.addEventListener("selectionchange", onSelectionChange);
     container.addEventListener("pointerdown", onPointerDown, true);
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
     container.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       container.removeEventListener("wheel", onWheel);
+      container.removeEventListener("touchstart", onTouchStart);
+      container.removeEventListener("touchmove", onTouchMove);
+      container.removeEventListener("touchend", onTouchEnd);
+      container.removeEventListener("touchcancel", onTouchEnd);
+      container.removeEventListener("gesturestart", onGesture);
+      document.removeEventListener("selectionchange", onSelectionChange);
+      clearTimeout(selectionTimer);
       container.removeEventListener("pointerdown", onPointerDown, true);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);

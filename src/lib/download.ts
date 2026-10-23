@@ -1,4 +1,5 @@
 import { desktop } from "./desktop";
+import { fetchNative, mobile } from "./mobile";
 import { isPdfBytes } from "./util";
 
 /** A PDF downloaded from a web address. */
@@ -25,6 +26,17 @@ export async function downloadPdf(address: string): Promise<DownloadedPdf> {
       throw new Error(`Couldn't reach ${url.host}. Check the address and your internet connection.`);
     }
     ({ data: bytes, url: finalUrl, disposition } = res);
+  } else if (mobile) {
+    // The phone apps download it themselves, so sites that don't allow other sites to work too.
+    let res: Awaited<ReturnType<typeof fetchNative>>;
+    try {
+      res = await fetchNative(url.href);
+    } catch {
+      throw new Error(`Couldn't reach ${url.host}. Check the address and your internet connection.`);
+    }
+    if (res.status >= 400) throw new Error(httpProblem(res.status));
+    ({ bytes, url: finalUrl } = res);
+    disposition = res.headers["content-disposition"] ?? null;
   } else {
     let res: Response;
     try {

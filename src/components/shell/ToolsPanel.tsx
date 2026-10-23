@@ -96,6 +96,41 @@ const GROUPS: { title: string; tools: ToolEntry[] }[] = [
   },
 ];
 
+/** Every tool, by group, as a list (the "All tools" sheet on phones). */
+export function ToolsList({ onPick }: { onPick?: () => void }) {
+  const mode = useApp((s) => (s.activeId ? s.docs[s.activeId]?.mode : undefined));
+  useApp((s) => (s.activeId ? `${s.activeId}:${s.docs[s.activeId]?.status}` : ""));
+  return (
+    <div className="tools-list">
+      {GROUPS.map((g) => (
+        <div key={g.title} className="tools-group">
+          <div className="tools-group-title">{g.title}</div>
+          {g.tools.map((t) => {
+            const c = getCommand(t.command);
+            const active = t.command.startsWith("mode.") && mode === t.command.slice(5);
+            return (
+              <button
+                key={t.command}
+                className={`tools-item${active ? " is-active" : ""}`}
+                disabled={!isEnabled(c)}
+                onClick={() => {
+                  onPick?.();
+                  runCommand(t.command);
+                }}
+              >
+                <span className="tools-item-icon" style={{ color: t.color, background: `${t.color}17` }}>
+                  {t.icon}
+                </span>
+                <span className="tools-item-label">{t.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function ToolsPanel() {
   const open = useSettings((s) => s.toolsPanelOpen);
   const mode = useApp((s) => (s.activeId ? s.docs[s.activeId]?.mode : undefined));

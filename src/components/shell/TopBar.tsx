@@ -7,6 +7,8 @@ import { MENUS } from "./menus";
 import { closeDocument } from "../../core/document";
 import { openFilesFromPicker, runCommand } from "../../core/commands";
 import { IconButton } from "../ui/Button";
+import { usePhone } from "../../lib/device";
+import { PhoneMenuButton } from "./PhoneShell";
 
 export function Logo() {
   return (
@@ -106,16 +108,21 @@ function Tabs() {
 }
 
 export function TopBar() {
+  const phone = usePhone();
   const theme = useSettings((s) => s.theme);
   const activeDoc = useApp((s) => (s.activeId ? s.docs[s.activeId] : undefined));
   const dark = theme === "dark" || (theme === "system" && window.matchMedia?.("(prefers-color-scheme: dark)").matches);
   return (
     <header className="topbar">
-      <div className="topbar-brand">
-        <Logo />
-        <span>Doxxta</span>
-      </div>
-      <MenuBar />
+      {phone ? (
+        <PhoneMenuButton />
+      ) : (
+        <div className="topbar-brand">
+          <Logo />
+          <span>Doxxta</span>
+        </div>
+      )}
+      {!phone && <MenuBar />}
       <Tabs />
       <div className="topbar-actions">
         {activeDoc?.status === "ready" && (
@@ -124,11 +131,13 @@ export function TopBar() {
             <span className="btn-label hide-narrow">Save</span>
           </button>
         )}
-        <IconButton
-          icon={dark ? <Sun size={17} /> : <Moon size={17} />}
-          label={dark ? "Light theme" : "Dark theme"}
-          onClick={() => useSettings.getState().set({ theme: dark ? "light" : "dark" })}
-        />
+        {!phone && (
+          <IconButton
+            icon={dark ? <Sun size={17} /> : <Moon size={17} />}
+            label={dark ? "Light theme" : "Dark theme"}
+            onClick={() => useSettings.getState().set({ theme: dark ? "light" : "dark" })}
+          />
+        )}
       </div>
     </header>
   );

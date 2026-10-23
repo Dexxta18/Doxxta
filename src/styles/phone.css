@@ -1,0 +1,273 @@
+/* ---------- Phones (the layout is chosen by usePhone in lib/device.ts) ---------- */
+
+/* Keep clear of the notch and rounded corners (the app is drawn edge to edge: viewport-fit=cover). */
+.app {
+  box-sizing: border-box;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+}
+
+/* Touch: one finger scrolls the pages and two zoom them (interactions.ts); tools that draw take the finger. */
+.viewer-container {
+  touch-action: pan-x pan-y;
+}
+.doxxta-overlay.is-creating,
+[data-handle] {
+  touch-action: none;
+}
+
+/* Bottom bar */
+.phone-bar {
+  flex: none;
+  display: flex;
+  align-items: stretch;
+  height: calc(56px + env(safe-area-inset-bottom));
+  padding: 0 4px env(safe-area-inset-bottom);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+.phone-bar-btn {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 550;
+}
+.phone-bar-btn:active {
+  background: var(--surface-hover);
+}
+.phone-bar-btn .icon-btn-badge {
+  top: 4px;
+  right: calc(50% - 20px);
+}
+.phone-pager {
+  flex: 1.7 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.phone-pager button {
+  width: 38px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text);
+}
+.phone-pager button:active:not(:disabled) {
+  background: var(--surface-hover);
+}
+.phone-pager button:disabled {
+  opacity: 0.3;
+}
+
+/* Sheets: the menus, the tools and the side panels, over the whole screen */
+.phone-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 850;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  animation: phone-sheet-in 0.16s ease-out;
+}
+@keyframes phone-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+.phone-sheet-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 52px;
+  padding: 0 6px 0 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 16px;
+  font-weight: 650;
+}
+.phone-sheet-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.phone-sheet-body.is-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.phone-sheet-body.is-panel > * {
+  flex: 1;
+  min-height: 0;
+}
+
+/* The tools sheet */
+.tools-list {
+  padding: 4px 10px 24px;
+}
+.phone-sheet .tools-item {
+  padding: 8px 8px;
+  font-size: 15px;
+  gap: 14px;
+}
+.phone-sheet .tools-item-icon {
+  width: 36px;
+  height: 36px;
+}
+
+/* The menu sheet */
+.phone-menu {
+  padding: 4px 0 24px;
+}
+.phone-menu-title {
+  margin: 14px 18px 4px;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.phone-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 46px;
+  padding: 0 18px;
+  border: none;
+  background: none;
+  color: var(--text);
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+  list-style: none;
+}
+.phone-menu-item::-webkit-details-marker {
+  display: none;
+}
+.phone-menu-item:active:not(:disabled) {
+  background: var(--surface-hover);
+}
+.phone-menu-item:disabled,
+.phone-menu-item[aria-disabled="true"] {
+  opacity: 0.4;
+}
+.phone-menu-icon {
+  width: 20px;
+  display: grid;
+  place-items: center;
+  color: var(--text-2);
+  flex: none;
+}
+.phone-menu-label {
+  flex: 1;
+  min-width: 0;
+}
+.phone-menu-chevron {
+  color: var(--text-3);
+  transition: transform 0.15s;
+}
+.phone-menu-sub[open] > summary .phone-menu-chevron {
+  transform: rotate(90deg);
+}
+.phone-menu-nested {
+  padding-left: 34px;
+}
+.phone-menu-sep {
+  height: 1px;
+  margin: 4px 18px;
+  background: var(--border);
+}
+.phone-menu-heading {
+  padding: 8px 18px 2px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+/* Touch screens: no keyboard shortcuts in menus, and tool rows are scrolled with a finger. */
+@media (pointer: coarse) {
+  .menu-shortcut,
+  .toolbar-scroll {
+    display: none;
+  }
+}
+
+/* Edit text's formatting toolbar on phones: one row along the bottom, above the keyboard */
+.annot-toolbar.text-format-bar.is-docked {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 845;
+  max-width: none;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  border-radius: 0;
+  border-width: 1px 0 0;
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  animation: none;
+  scrollbar-width: none;
+}
+.annot-toolbar.text-format-bar.is-docked::-webkit-scrollbar {
+  display: none;
+}
+.text-format-bar.is-docked > * {
+  flex-shrink: 0;
+}
+
+@media (max-width: 700px), (max-height: 500px) and (pointer: coarse) {
+  .dialog-backdrop {
+    padding: calc(8px + env(safe-area-inset-top)) 8px calc(8px + env(safe-area-inset-bottom));
+  }
+  .dialog {
+    width: 100% !important;
+    max-width: 100%;
+    max-height: 100%;
+  }
+  .topbar {
+    padding: 0 6px 0 4px;
+    gap: 2px;
+  }
+  .doc-tab {
+    max-width: 44vw;
+  }
+  .context-toolbar {
+    padding: 0 4px;
+  }
+  .mode-chip {
+    margin-right: 2px;
+    padding-left: 8px;
+    font-size: 12px;
+  }
+  .home {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .tool-hint {
+    max-width: calc(100% - 24px);
+    white-space: normal;
+    text-align: center;
+    border-radius: 14px;
+  }
+  .findbar {
+    left: 8px;
+    right: 8px;
+  }
+}

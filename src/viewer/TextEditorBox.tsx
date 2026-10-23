@@ -21,6 +21,7 @@ import {
   type Toggle,
 } from "./richText";
 import { TextFormatBar, type FontMenu, type FormatState } from "./TextFormatBar";
+import { usePhone } from "../lib/device";
 
 /** Text being edited in Edit text, with its styles. */
 export interface RichEditing {
@@ -86,6 +87,7 @@ export function TextEditorBox({
 }) {
   const el = useRef<HTMLDivElement>(null);
   const bar = useRef<HTMLDivElement>(null);
+  const phone = usePhone();
   const bases = editing.bases;
   // Style of text typed where there's no span (into an emptied editor).
   const typing = useRef<{ base: number; f: CharFormat }>({ base: editing.chars[0]?.base ?? 0, f: {} });
@@ -493,6 +495,7 @@ export function TextEditorBox({
           ownColor={editing.color ?? "#000000"}
           left={barLeft}
           top={barTop}
+          docked={phone}
           onFamily={setFamily}
           onSize={setSize}
           onStep={step}

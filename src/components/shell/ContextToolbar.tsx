@@ -72,6 +72,7 @@ import { IconButton } from "../ui/Button";
 import { ColorButton, Slider } from "../ui/Fields";
 import { Popover } from "../ui/Popover";
 import { Menu, MenuButton, type MenuItem } from "../ui/Menu";
+import { usePhone } from "../../lib/device";
 import { runCommand } from "../../core/commands";
 import { STAMPS } from "../../annotations/stamps";
 import { HIGHLIGHT_COLORS } from "../../lib/colors";
@@ -710,6 +711,7 @@ function ToolsRow({ children }: { children: ReactNode }) {
 }
 
 export function ContextToolbar({ docId }: { docId: string }) {
+  const phone = usePhone();
   const mode = useApp((s) => s.docs[docId]?.mode ?? "view");
   const canUndo = useApp((s) => s.docs[docId]?.canUndo);
   const canRedo = useApp((s) => s.docs[docId]?.canRedo);
@@ -728,7 +730,8 @@ export function ContextToolbar({ docId }: { docId: string }) {
       )}
       {mode !== "organize" && (
         <>
-          <ToolButtons tools={[SELECT, HAND]} />
+          {/* On phones a finger scrolls the page: no Hand tool. */}
+          <ToolButtons tools={phone ? [SELECT] : [SELECT, HAND]} />
           <Sep />
         </>
       )}
@@ -738,7 +741,7 @@ export function ContextToolbar({ docId }: { docId: string }) {
       <ToolActions key={`actions-${mode}`} actions={ACTIONS[mode] ?? []} start={mode === "protect"} />
       <IconButton icon={<Undo2 size={17} />} label={undoLabel ? `Undo ${undoLabel}` : "Undo"} shortcut="Mod+Z" disabled={!canUndo} onClick={() => runCommand("edit.undo")} />
       <IconButton icon={<Redo2 size={17} />} label={redoLabel ? `Redo ${redoLabel}` : "Redo"} shortcut="Mod+Shift+Z" disabled={!canRedo} onClick={() => runCommand("edit.redo")} />
-      {mode === "view" && (
+      {mode === "view" && !phone && (
         <>
           <Sep />
           <IconButton icon={<Search size={17} />} label="Find" shortcut="Mod+F" onClick={() => runCommand("edit.find")} />

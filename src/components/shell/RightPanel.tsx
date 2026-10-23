@@ -13,7 +13,7 @@ const LayersPanel = lazy(() => import("../panels/LayersPanel"));
 const SearchPanel = lazy(() => import("../panels/SearchPanel"));
 const FieldsPanel = lazy(() => import("../panels/FieldsPanel"));
 
-const PANELS: { id: RightPanelId; label: string; icon: React.ReactNode; forms?: boolean }[] = [
+export const PANELS: { id: RightPanelId; label: string; icon: React.ReactNode; forms?: boolean }[] = [
   { id: "thumbnails", label: "Page thumbnails", icon: <GalleryVerticalEnd size={18} /> },
   { id: "bookmarks", label: "Bookmarks", icon: <Bookmark size={18} /> },
   { id: "comments", label: "Comments", icon: <MessageSquare size={18} /> },
@@ -22,6 +22,27 @@ const PANELS: { id: RightPanelId; label: string; icon: React.ReactNode; forms?: 
   { id: "layers", label: "Layers", icon: <Layers size={18} /> },
   { id: "fields", label: "Form fields", icon: <FormInput size={18} /> },
 ];
+
+/** A side panel's contents (in the panel beside the page, or a sheet on phones). */
+export function PanelContent({ docId, panel }: { docId: string; panel: RightPanelId }) {
+  return (
+    <Suspense
+      fallback={
+        <div className="center-fill">
+          <Spinner />
+        </div>
+      }
+    >
+      {panel === "thumbnails" && <ThumbnailsPanel docId={docId} />}
+      {panel === "bookmarks" && <BookmarksPanel docId={docId} />}
+      {panel === "comments" && <CommentsPanel docId={docId} />}
+      {panel === "attachments" && <AttachmentsPanel docId={docId} />}
+      {panel === "layers" && <LayersPanel docId={docId} />}
+      {panel === "search" && <SearchPanel docId={docId} />}
+      {panel === "fields" && <FieldsPanel docId={docId} />}
+    </Suspense>
+  );
+}
 
 export function RightPanel({ docId }: { docId: string }) {
   const panel = useSettings((s) => s.rightPanel);
@@ -55,21 +76,7 @@ export function RightPanel({ docId }: { docId: string }) {
             </button>
           </header>
           <div className="right-panel-body">
-            <Suspense
-              fallback={
-                <div className="center-fill">
-                  <Spinner />
-                </div>
-              }
-            >
-              {panel === "thumbnails" && <ThumbnailsPanel docId={docId} />}
-              {panel === "bookmarks" && <BookmarksPanel docId={docId} />}
-              {panel === "comments" && <CommentsPanel docId={docId} />}
-              {panel === "attachments" && <AttachmentsPanel docId={docId} />}
-              {panel === "layers" && <LayersPanel docId={docId} />}
-              {panel === "search" && <SearchPanel docId={docId} />}
-              {panel === "fields" && <FieldsPanel docId={docId} />}
-            </Suspense>
+            <PanelContent docId={docId} panel={panel} />
           </div>
         </section>
       )}

@@ -26,8 +26,24 @@ const note = (level, title, text) => process.env.GITHUB_ACTIONS && console.log(`
 const [device] = await android.devices();
 if (!device) throw new Error("No Android device or emulator found (adb devices).");
 console.log(`Android app on ${device.model()}`);
-const shot = (name) => device.screenshot({ path: join(shots, `${name}.png`) });
 let page;
+const shot = async (name) => {
+  const png = await device.screenshot({ path: join(shots, `${name}.png`) });
+  // A small copy in the run's notes, for where the run's downloads can't be reached.
+  if (process.env.SCREENSHOT_NOTES && page) note("notice", `Screenshot ${name}`, await thumbnail(png).catch((e) => String(e)));
+};
+/** A small JPEG of a screenshot (a data: URL), drawn by the app's web view. */
+const thumbnail = (png) =>
+  page.evaluate(async (b64) => {
+    const image = new Image();
+    image.src = `data:image/png;base64,${b64}`;
+    await image.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(image.width / 4);
+    canvas.height = Math.round(image.height / 4);
+    canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", 0.6);
+  }, png.toString("base64"));
 let webViewVersion = "";
 const errors = [];
 const logged = [];
@@ -59,9 +75,25 @@ try {
     target.dispatchEvent(new DragEvent("dragenter", { dataTransfer: dt, bubbles: true }));
     target.dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true }));
   }, b64);
-  const opened = await page.waitForSelector('.pdfViewer .page[data-loaded="true"] canvas', { timeout: 60_000 }).then(() => true, () => false);
-  check(opened, "a PDF opens and its first page is drawn");
+  const opened = await page.waitForSelector('.pdfViewer .page[data-loaded="true"]', { state: "attached", timeout: 60_000 }).then(() => true, () => false);
+  check(opened, "a PDF opens");
   if (!opened) throw new Error("The PDF didn't open, so the rest can't be checked.");
+  // Drawn: the first page's canvas has the page's (dark) text on it.
+  const drawn = await page
+    .waitForFunction(
+      () => {
+        const canvas = document.querySelector(".pdfViewer .page canvas");
+        if (!canvas?.width) return false;
+        const pixels = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+        let dark = 0;
+        for (let i = 0; i < pixels.length; i += 64) if (pixels[i] < 128) dark++;
+        return dark > 100;
+      },
+      null,
+      { timeout: 30_000, polling: 500 },
+    )
+    .then(() => true, () => false);
+  check(drawn, "its first page is drawn");
   await page.waitForTimeout(1500);
   await shot("document");
   check(await page.locator(".phone-bar").count() === 1, "the phone layout is used (bottom bar)");
@@ -107,6 +139,13 @@ try {
         text: document.body.innerText.replace(/\s+/g, " ").slice(0, 600),
         toasts: [...document.querySelectorAll(".toast")].map((t) => t.textContent),
         pages: [...document.querySelectorAll(".pdfViewer .page")].map((p) => p.getAttribute("data-loaded") ?? "-").join(" "),
+        canvases: [...document.querySelectorAll(".pdfViewer .page")].slice(0, 2).map((p) =>
+          [...p.querySelectorAll("canvas")].map((c) => {
+            const r = c.getBoundingClientRect();
+            const style = getComputedStyle(c);
+            return `${c.className || "canvas"} ${c.width}×${c.height} shown ${Math.round(r.width)}×${Math.round(r.height)} at ${Math.round(r.left)},${Math.round(r.top)} ${style.display} ${style.visibility} opacity ${style.opacity}`;
+          }).join("; ") || `none (${p.innerHTML.slice(0, 300)})`,
+        ),
       }))
       .catch((e) => ({ unavailable: String(e) }));
     const logcat = await device.shell("logcat -d -t 400").then((b) => b.toString(), () => "");

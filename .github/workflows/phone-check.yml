@@ -4,6 +4,11 @@ name: Phone app check
 
 on:
   workflow_dispatch:
+    inputs:
+      screenshot_notes:
+        description: Also put small copies of the screenshots in the run's notes (data URLs)
+        type: boolean
+        default: false
 
 jobs:
   android:
@@ -31,6 +36,8 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
       - uses: reactivecircus/android-emulator-runner@v2
+        env:
+          SCREENSHOT_NOTES: ${{ inputs.screenshot_notes && '1' || '' }}
         with:
           api-level: 35
           arch: x86_64

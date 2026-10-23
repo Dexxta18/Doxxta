@@ -1,9 +1,11 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import {
   ArrowUpRight,
   CalendarDays,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Circle,
   CircleDot,
   Cloud,
@@ -26,6 +28,7 @@ import {
   LockOpen,
   MessageSquareText,
   Minus,
+  MoreHorizontal,
   MousePointer2,
   MousePointerClick,
   PenLine,
@@ -68,7 +71,7 @@ import type { Mode, ToolId } from "../../state/types";
 import { IconButton } from "../ui/Button";
 import { ColorButton, Slider } from "../ui/Fields";
 import { Popover } from "../ui/Popover";
-import { Menu, type MenuItem } from "../ui/Menu";
+import { Menu, MenuButton, type MenuItem } from "../ui/Menu";
 import { runCommand } from "../../core/commands";
 import { STAMPS } from "../../annotations/stamps";
 import { HIGHLIGHT_COLORS } from "../../lib/colors";
@@ -493,13 +496,6 @@ function ModeTools({ mode }: { mode: Mode }) {
           <SignatureButton kind="initials" />
           <Sep />
           <ToolStyleControls />
-          <span className="spacer" />
-          <button className="toolbar-text-btn" onClick={() => runCommand("tool.resetForm")} data-tip="Clear all form field values">
-            <ListRestart size={16} /> Clear form
-          </button>
-          <button className="toolbar-text-btn" onClick={() => runCommand("tool.exportFormData")}>
-            <FileOutput size={16} /> Form data
-          </button>
         </>
       );
     case "edit":
@@ -508,34 +504,10 @@ function ModeTools({ mode }: { mode: Mode }) {
           <ToolButtons tools={EDIT} />
           <Sep />
           <ToolStyleControls />
-          <span className="spacer" />
-          <button className="toolbar-text-btn" onClick={() => runCommand("tool.headerFooter")}>
-            <Heading size={16} /> Header & footer
-          </button>
-          <button className="toolbar-text-btn" onClick={() => runCommand("tool.watermark")}>
-            <Droplet size={16} /> Watermark
-          </button>
-          <button className="toolbar-text-btn" onClick={() => runCommand("tool.background")}>
-            <Image size={16} /> Background
-          </button>
-          <button className="toolbar-text-btn" onClick={() => runCommand("tool.pageNumbers")}>
-            <ListOrdered size={16} /> Page numbers
-          </button>
-          <button className="toolbar-text-btn" onClick={() => runCommand("tool.bates")}>
-            <Hash size={16} /> Bates
-          </button>
         </>
       );
     case "forms":
-      return (
-        <>
-          <ToolButtons tools={FORMS} />
-          <span className="spacer" />
-          <button className="toolbar-text-btn" onClick={() => useSettings.getState().set({ rightPanel: "fields" })}>
-            <Layers size={16} /> All fields
-          </button>
-        </>
-      );
+      return <ToolButtons tools={FORMS} />;
     case "redact":
       return (
         <>
@@ -543,13 +515,6 @@ function ModeTools({ mode }: { mode: Mode }) {
           <Sep />
           <button className="toolbar-text-btn" onClick={() => openDialog("search-redact")}>
             <Search size={16} /> Find text & patterns
-          </button>
-          <span className="spacer" />
-          <button className="toolbar-text-btn" onClick={() => runCommand("tool.sanitize")}>
-            <ShieldCheck size={16} /> Remove hidden info
-          </button>
-          <button className="btn btn-sm btn-danger" onClick={() => openDialog("apply-redactions")}>
-            <EyeOff size={15} /> Apply redactions
           </button>
         </>
       );
@@ -559,32 +524,10 @@ function ModeTools({ mode }: { mode: Mode }) {
           <ToolButtons tools={MEASURE} />
           <Sep />
           <ToolStyleControls />
-          <span className="spacer" />
-          <button className="toolbar-text-btn" onClick={() => openDialog("measure-scale")}>
-            <Settings2 size={16} /> Scale & units
-          </button>
         </>
       );
     case "protect":
-      return (
-        <>
-          <button className="toolbar-text-btn" onClick={() => runCommand("tool.protect")}>
-            <Lock size={16} /> Encrypt with password
-          </button>
-          <button className="toolbar-text-btn" onClick={() => runCommand("tool.removeSecurity")}>
-            <LockOpen size={16} /> Remove security
-          </button>
-          <button className="toolbar-text-btn" onClick={() => runCommand("mode.redact")}>
-            <EyeOff size={16} /> Redact
-          </button>
-          <button className="toolbar-text-btn" onClick={() => runCommand("tool.sanitize")}>
-            <ShieldCheck size={16} /> Remove hidden info
-          </button>
-          <button className="toolbar-text-btn" onClick={() => runCommand("tool.flatten")}>
-            <KeyRound size={16} /> Flatten
-          </button>
-        </>
-      );
+      return null;
     default:
       return (
         <>
@@ -594,6 +537,176 @@ function ModeTools({ mode }: { mode: Mode }) {
         </>
       );
   }
+}
+
+/** A tool's labelled button (Watermark, Clear form…): put in the "More" menu when there's no room for it. */
+interface ToolAction {
+  label: string;
+  icon: ReactNode;
+  tip?: string;
+  run: () => void;
+  /** The tool's main action: drawn as a button of its own, and the last to go in "More". */
+  main?: boolean;
+}
+
+const ACTIONS: Partial<Record<Mode, ToolAction[]>> = {
+  fillsign: [
+    { label: "Clear form", icon: <ListRestart size={16} />, tip: "Clear all form field values", run: () => runCommand("tool.resetForm") },
+    { label: "Form data", icon: <FileOutput size={16} />, run: () => runCommand("tool.exportFormData") },
+  ],
+  edit: [
+    { label: "Header & footer", icon: <Heading size={16} />, run: () => runCommand("tool.headerFooter") },
+    { label: "Watermark", icon: <Droplet size={16} />, run: () => runCommand("tool.watermark") },
+    { label: "Background", icon: <Image size={16} />, run: () => runCommand("tool.background") },
+    { label: "Page numbers", icon: <ListOrdered size={16} />, run: () => runCommand("tool.pageNumbers") },
+    { label: "Bates", icon: <Hash size={16} />, run: () => runCommand("tool.bates") },
+  ],
+  forms: [{ label: "All fields", icon: <Layers size={16} />, run: () => useSettings.getState().set({ rightPanel: "fields" }) }],
+  redact: [
+    { label: "Remove hidden info", icon: <ShieldCheck size={16} />, run: () => runCommand("tool.sanitize") },
+    { label: "Apply redactions", icon: <EyeOff size={15} />, run: () => openDialog("apply-redactions"), main: true },
+  ],
+  measure: [{ label: "Scale & units", icon: <Settings2 size={16} />, run: () => openDialog("measure-scale") }],
+  protect: [
+    { label: "Encrypt with password", icon: <Lock size={16} />, run: () => runCommand("tool.protect") },
+    { label: "Remove security", icon: <LockOpen size={16} />, run: () => runCommand("tool.removeSecurity") },
+    { label: "Redact", icon: <EyeOff size={16} />, run: () => runCommand("mode.redact") },
+    { label: "Remove hidden info", icon: <ShieldCheck size={16} />, run: () => runCommand("tool.sanitize") },
+    { label: "Flatten", icon: <KeyRound size={16} />, run: () => runCommand("tool.flatten") },
+  ],
+};
+
+/** Widths of the "More" button, of the gap between buttons and of the tools' scroll arrows. */
+const MORE_WIDTH = 34;
+const GAP = 2;
+const SCROLL_ARROW = 28;
+
+/**
+ * A tool's labelled buttons, as many as fit in the space the toolbar has left; the rest are in a
+ * "More" menu, so they never run over the buttons beside them however narrow the window is.
+ */
+function ToolActions({ actions, start }: { actions: ToolAction[]; start: boolean }) {
+  const box = useRef<HTMLDivElement>(null);
+  const ghost = useRef<HTMLDivElement>(null);
+  const [shown, setShown] = useState(() => new Set(actions.map((a) => a.label)));
+  // Room kept for the main action (the tool buttons scroll first).
+  const [keep, setKeep] = useState(0);
+  const key = actions.map((a) => a.label).join("|");
+  useLayoutEffect(() => {
+    const el = box.current;
+    const sizes = ghost.current;
+    if (!el || !sizes) return;
+    const fit = () => {
+      const widths = [...sizes.children].map((c) => (c as HTMLElement).offsetWidth + GAP);
+      const room = el.clientWidth;
+      const all = widths.reduce((s, w) => s + w, 0) <= room;
+      // The main action first, then the others in order, while they fit.
+      const order = actions.map((_, i) => i).sort((i, j) => Number(!!actions[j].main) - Number(!!actions[i].main) || i - j);
+      const fits = new Set<string>();
+      let used = all ? 0 : MORE_WIDTH;
+      for (const i of order) {
+        if (used + widths[i] > room) break;
+        used += widths[i];
+        fits.add(actions[i].label);
+      }
+      setShown((prev) => (prev.size === fits.size && [...fits].every((l) => prev.has(l)) ? prev : fits));
+      // Room for the main action, when the toolbar has it beside the buttons that always show.
+      const main = widths.reduce((s, w, i) => s + (actions[i].main ? w : 0), 0);
+      const want = main ? main + (actions.some((a) => !a.main) ? MORE_WIDTH : 0) : 0;
+      const bar = el.parentElement;
+      let spare = 0;
+      if (want && bar) {
+        const px = (v: string) => Number.parseFloat(v) || 0;
+        const style = getComputedStyle(bar);
+        spare = bar.clientWidth - px(style.paddingLeft) - px(style.paddingRight) - 2 * SCROLL_ARROW;
+        for (const c of bar.children) {
+          if (c === el || c.classList.contains("context-toolbar-tools") || c.classList.contains("toolbar-scroll")) continue;
+          const cs = getComputedStyle(c);
+          spare -= c.getBoundingClientRect().width + px(cs.marginLeft) + px(cs.marginRight) + GAP;
+        }
+      }
+      setKeep(want && spare >= want ? want : 0);
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    if (el.parentElement) ro.observe(el.parentElement);
+    return () => ro.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  const look = (a: ToolAction) => (a.main ? "btn btn-sm btn-danger" : "toolbar-text-btn");
+  const more = actions.filter((a) => !shown.has(a.label));
+  return (
+    <div ref={box} className={`toolbar-actions${start ? " is-start" : ""}`} style={keep ? { minWidth: keep } : undefined}>
+      {actions
+        .filter((a) => shown.has(a.label))
+        .map((a) => (
+          <button key={a.label} className={look(a)} data-tip={a.tip} onClick={a.run}>
+            {a.icon} {a.label}
+          </button>
+        ))}
+      {more.length > 0 && (
+        <MenuButton items={more.map((a) => ({ label: a.label, icon: a.icon, hint: a.tip, danger: a.main, onSelect: a.run }))} placement="bottom-end">
+          {({ ref, onClick, open }) => <IconButton ref={ref} icon={<MoreHorizontal size={17} />} label="More" active={open} onClick={onClick} />}
+        </MenuButton>
+      )}
+      {/* The buttons' widths, for working out how many fit. */}
+      <div ref={ghost} className="toolbar-actions-sizes" aria-hidden>
+        {actions.map((a) => (
+          <span key={a.label} className={look(a)}>
+            {a.icon} {a.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The tool buttons. When the window is too narrow for all of them, they scroll sideways (with
+ * the mouse wheel or the arrows beside them) rather than pushing Undo and Redo away.
+ */
+function ToolsRow({ children }: { children: ReactNode }) {
+  const row = useRef<HTMLDivElement>(null);
+  const [edges, setEdges] = useState({ back: false, more: false });
+  const update = () => {
+    const el = row.current;
+    if (!el) return;
+    const back = el.scrollLeft > 1;
+    const more = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+    setEdges((e) => (e.back === back && e.more === more ? e : { back, more }));
+  };
+  // After every change of tools or styles, and whenever the row changes size.
+  useLayoutEffect(update);
+  useLayoutEffect(() => {
+    const el = row.current;
+    if (!el) return;
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    el.addEventListener("scroll", update, { passive: true });
+    return () => {
+      ro.disconnect();
+      el.removeEventListener("scroll", update);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const scroll = (dir: number) => row.current?.scrollBy({ left: dir * Math.max(120, row.current.clientWidth * 0.6), behavior: "smooth" });
+  const overflowing = edges.back || edges.more;
+  return (
+    <>
+      {overflowing && <IconButton size="sm" className="toolbar-scroll" icon={<ChevronLeft size={16} />} label="Show earlier tools" disabled={!edges.back} onClick={() => scroll(-1)} />}
+      <div
+        ref={row}
+        className={`context-toolbar-tools${edges.back ? " fade-start" : ""}${edges.more ? " fade-end" : ""}`}
+        onWheel={(e) => {
+          if (row.current && Math.abs(e.deltaY) > Math.abs(e.deltaX)) row.current.scrollLeft += e.deltaY;
+        }}
+      >
+        {children}
+      </div>
+      {overflowing && <IconButton size="sm" className="toolbar-scroll" icon={<ChevronRight size={16} />} label="Show more tools" disabled={!edges.more} onClick={() => scroll(1)} />}
+    </>
+  );
 }
 
 export function ContextToolbar({ docId }: { docId: string }) {
@@ -619,10 +732,10 @@ export function ContextToolbar({ docId }: { docId: string }) {
           <Sep />
         </>
       )}
-      <div className="context-toolbar-tools">
+      <ToolsRow key={`tools-${mode}`}>
         <ModeTools mode={mode} />
-      </div>
-      <span className="spacer" />
+      </ToolsRow>
+      <ToolActions key={`actions-${mode}`} actions={ACTIONS[mode] ?? []} start={mode === "protect"} />
       <IconButton icon={<Undo2 size={17} />} label={undoLabel ? `Undo ${undoLabel}` : "Undo"} shortcut="Mod+Z" disabled={!canUndo} onClick={() => runCommand("edit.undo")} />
       <IconButton icon={<Redo2 size={17} />} label={redoLabel ? `Redo ${redoLabel}` : "Redo"} shortcut="Mod+Shift+Z" disabled={!canRedo} onClick={() => runCommand("edit.redo")} />
       {mode === "view" && (

@@ -24,18 +24,18 @@ npm run preview    # serve the build at http://localhost:4173
 
 ## Desktop app
 
-Doxxta installs like any other program. It opens PDFs from your file manager ("Open with", or as your default PDF app), saves straight back to the file, and works without an internet connection.
+Doxxta installs like any other program. It opens PDFs from your file manager ("Open with", or as your default PDF app), saves straight back to the file, and works without an internet connection. The installers are on the repository's **Releases** page (the version number is in each file's name).
 
 | System | File | Install |
 |---|---|---|
-| Windows 10 and 11 (64-bit) | `Doxxta-Setup-0.1.0.exe` | Run it and follow the steps. It installs for your user account (no administrator rights needed) and adds Start menu and desktop shortcuts. Remove it from Settings → Apps. |
-| macOS 11 or later | `Doxxta-0.1.0-arm64.dmg` (Apple Silicon) or `-x64.dmg` (Intel) | Open the disk image and drag Doxxta to Applications. |
-| Linux (x86-64) | `Doxxta-0.1.0-x86_64.AppImage` | Make it executable (`chmod +x Doxxta-0.1.0-x86_64.AppImage`) and run it. |
+| Windows 10 and 11 (64-bit) | `Doxxta-Setup-<version>.exe` | Run it and follow the steps. It installs for your user account (no administrator rights needed) and adds Start menu and desktop shortcuts. Remove it from Settings → Apps. |
+| macOS 11 or later | `Doxxta-<version>-arm64.dmg` (Apple Silicon: M1 and later) or `Doxxta-<version>-x64.dmg` (Intel) | Open the disk image and drag Doxxta to Applications. |
+| Linux (x86-64) | `Doxxta-<version>-x86_64.AppImage` | Make it executable (`chmod +x Doxxta-*.AppImage`) and run it. |
 
 The installers aren't code-signed yet, so the first launch shows a warning:
 
 - **Windows:** "Windows protected your PC". Click **More info**, then **Run anyway**.
-- **macOS:** "Apple could not verify Doxxta". Open **System Settings → Privacy & Security**, scroll down and click **Open Anyway**.
+- **macOS:** "Apple could not verify Doxxta". Click **Done**, open **System Settings → Privacy & Security**, scroll down and click **Open Anyway**, then open Doxxta again. If macOS says the app is damaged instead, run `xattr -dr com.apple.quarantine /Applications/Doxxta.app` in Terminal.
 
 ### Building the installers
 

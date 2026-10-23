@@ -291,8 +291,55 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
+  align-self: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.context-toolbar-tools::-webkit-scrollbar {
+  display: none;
+}
+.context-toolbar-tools > * {
+  flex-shrink: 0;
+}
+/* Tools cut off by the edge of the row fade out. */
+.context-toolbar-tools.fade-end {
+  mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+}
+.context-toolbar-tools.fade-start {
+  mask-image: linear-gradient(to left, #000 calc(100% - 24px), transparent);
+}
+.context-toolbar-tools.fade-start.fade-end {
+  mask-image: linear-gradient(to right, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+}
+.toolbar-scroll {
+  color: var(--text-3, var(--text-2));
+}
+/* A tool's labelled buttons take the room that's left; what doesn't fit goes in "More". */
+.toolbar-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  flex: 1 1 0;
+  min-width: 34px;
+  overflow: hidden;
+}
+.toolbar-actions.is-start {
+  justify-content: flex-start;
+}
+.toolbar-actions-sizes {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 0;
+  display: flex;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
 }
 .toolbar-sep {
   width: 1px;

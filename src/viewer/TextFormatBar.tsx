@@ -6,6 +6,7 @@ import { ColorSwatches } from "../components/ui/Fields";
 import { Popover } from "../components/ui/Popover";
 import type { TextAlign } from "../ops/editText";
 import { HIGHLIGHT_COLORS, TEXT_COLORS } from "../lib/colors";
+import { useKeyboardInset } from "../lib/device";
 import { FONT_SIZES, type Toggle } from "./richText";
 
 /** The formatting of the selection, as the toolbar shows it (undefined where it's mixed). */
@@ -80,6 +81,8 @@ export function TextFormatBar({
   const [colorOpen, setColorOpen] = useState(false);
   const [markOpen, setMarkOpen] = useState(false);
   const [sizeText, setSizeText] = useState(sizeLabel(state.size));
+  // Docked, it stays just above the on-screen keyboard.
+  const keyboard = useKeyboardInset(!!docked);
   useEffect(() => setSizeText(sizeLabel(state.size)), [state.size]);
 
   const applySize = (text: string, refocus: boolean) => {
@@ -100,7 +103,7 @@ export function TextFormatBar({
       className={`annot-toolbar text-format-bar${docked ? " is-docked" : ""}`}
       role="toolbar"
       aria-label="Text formatting"
-      style={docked ? undefined : { left, top }}
+      style={docked ? (keyboard ? { bottom: keyboard, paddingBottom: 6 } : undefined) : { left, top }}
       onPointerDown={(e) => e.stopPropagation()}
       // Buttons don't take the focus, so the text stays selected in the editor.
       onMouseDown={(e) => {

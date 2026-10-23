@@ -74,4 +74,19 @@ export default async function run({ page, check, st, open, shot }) {
   const screen = page.viewportSize();
   check(bar && editor && bar.y + bar.height >= screen.height - 2 && bar.width >= screen.width - 2 && bar.y > editor.y, "the formatting toolbar sits along the bottom of the screen");
   await shot("edit-text");
+
+  // An on-screen keyboard (as on an iPhone, where the page isn't shrunk for it) covering the bottom 300 px.
+  await page.evaluate(() => {
+    const height = Object.getOwnPropertyDescriptor(VisualViewport.prototype, "height");
+    Object.defineProperty(VisualViewport.prototype, "height", { configurable: true, get: () => window.innerHeight - 300 });
+    window.visualViewport.dispatchEvent(new Event("resize"));
+    window.__keyboardOff = () => {
+      Object.defineProperty(VisualViewport.prototype, "height", height);
+      window.visualViewport.dispatchEvent(new Event("resize"));
+    };
+  });
+  await page.waitForTimeout(200);
+  const raised = await page.locator(".text-format-bar").boundingBox();
+  check(raised && Math.abs(raised.y + raised.height - (screen.height - 300)) <= 2, "the formatting toolbar stays above the on-screen keyboard");
+  await page.evaluate(() => window.__keyboardOff());
 }

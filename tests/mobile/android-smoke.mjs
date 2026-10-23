@@ -132,7 +132,8 @@ try {
   check((await page.locator(".phone-pager span").innerText()).trim() === "1 / 6", "the bottom bar shows the page number");
 
   await tap(page.locator(".phone-bar-btn", { hasText: "Tools" }));
-  await page.waitForTimeout(800);
+  await page.waitForFunction(() => document.querySelector(".phone-sheet")?.getAnimations({ subtree: true }).every((a) => a.playState !== "running"));
+  await page.waitForTimeout(1000);
   await shot("tools");
   check(await page.locator(".phone-sheet .tools-item").count() > 10, "the tools sheet lists the tools");
   await tap(page.locator(".phone-sheet .tools-item", { hasText: "Add comments" }));
@@ -141,7 +142,11 @@ try {
   await shot("comment");
 
   await tap(page.locator(".phone-bar-btn", { hasText: "Pages" }));
-  await page.waitForTimeout(1500);
+  const thumbnails = await page
+    .waitForFunction(() => [...document.querySelectorAll(".phone-sheet .thumb-item img")].filter((i) => i.complete && i.naturalWidth > 0).length >= 4, null, { timeout: 30_000, polling: 500 })
+    .then(() => true, () => false);
+  check(thumbnails, "the Pages sheet draws the pages");
+  await page.waitForTimeout(500);
   await shot("pages");
   await tap(page.locator(".phone-sheet .thumb-item").nth(3));
   await page.waitForTimeout(1200);

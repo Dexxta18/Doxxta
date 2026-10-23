@@ -87,7 +87,9 @@
     check(!!$(".mode-chip")?.textContent.includes("Comment"), "picking a tool opens it");
 
     button("Pages").click();
-    await wait(1500);
+    const thumbnails = await until(() => $$(".phone-sheet .thumb-item img").filter((i) => i.complete && i.naturalWidth > 0).length >= 4, 30_000);
+    check(!!thumbnails, "the Pages sheet draws the pages");
+    await wait(500);
     await shot("ios-pages");
     $$(".phone-sheet .thumb-item")[3].click();
     await wait(1200);

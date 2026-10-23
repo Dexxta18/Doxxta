@@ -15,7 +15,7 @@ export const PDFJS_ASSETS = {
   standardFontDataUrl: abs("vendor/pdfjs/standard_fonts/"),
   wasmUrl: abs("vendor/pdfjs/wasm/"),
   iccUrl: abs("vendor/pdfjs/iccs/"),
-  sandboxBundleSrc: abs("vendor/pdfjs/pdf.sandbox.min.mjs"),
+  sandboxBundleSrc: abs("vendor/pdfjs/pdf.sandbox.min.js"),
   imageResourcesPath: abs("vendor/pdfjs/images/"),
 };
 

@@ -25,7 +25,8 @@ copy("pdfjs-dist/cmaps", "pdfjs/cmaps");
 copy("pdfjs-dist/standard_fonts", "pdfjs/standard_fonts");
 copy("pdfjs-dist/wasm", "pdfjs/wasm");
 copy("pdfjs-dist/iccs", "pdfjs/iccs");
-copy("pdfjs-dist/legacy/build/pdf.sandbox.min.mjs", "pdfjs/pdf.sandbox.min.mjs");
+// As .js, which every server (and the phone apps) sends as JavaScript.
+copy("pdfjs-dist/legacy/build/pdf.sandbox.min.mjs", "pdfjs/pdf.sandbox.min.js");
 copy("pdfjs-dist/web/images", "pdfjs/images");
 
 // OCR: worker + the LSTM-only cores (the engine picks the fastest one the

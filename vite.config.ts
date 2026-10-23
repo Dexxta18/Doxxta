@@ -22,6 +22,13 @@ export default defineConfig({
     target: "es2022",
     chunkSizeWarningLimit: 4000,
     sourcemap: false,
+    rolldownOptions: {
+      output: {
+        // pdf.js's worker is a .mjs file; as .js it's served as JavaScript everywhere, including
+        // by the iPhone app, which doesn't know .mjs (and won't start a worker that isn't JavaScript).
+        assetFileNames: ({ names }) => (names[0]?.endsWith(".mjs") ? "assets/[name]-[hash].js" : "assets/[name]-[hash][extname]"),
+      },
+    },
   },
   optimizeDeps: {
     exclude: ["pdfjs-dist"],

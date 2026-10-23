@@ -34,16 +34,20 @@
     log(`${ok ? "✓" : "✗"} ${what}`);
     if (!ok) failed++;
   };
-  /** Waits (up to 15 s) for the shell script to take a screenshot. */
+  /** Waits (up to 15 s) for the shell script to take a screenshot, and notes how long it took. */
   const shot = async (name) => {
-    await write(name, "");
-    for (const end = Date.now() + 15_000; Date.now() < end; await wait(250)) {
+    await write(name, "screenshot");
+    const start = Date.now();
+    let taken = "not taken in 15 s";
+    for (const end = start + 15_000; Date.now() < end; await wait(250)) {
       try {
-        await files("stat", name);
-      } catch {
-        return;
+        await files("readFile", name, { encoding: "utf8" });
+      } catch (e) {
+        taken = `taken in ${((Date.now() - start) / 1000).toFixed(1)} s${Date.now() - start < 200 ? ` (${e?.message ?? e})` : ""}`;
+        break;
       }
     }
+    log(`· screenshot ${name} ${taken}`);
   };
   const button = (label) => $$(".phone-bar-btn").find((b) => b.textContent.includes(label));
 
@@ -100,7 +104,7 @@
     log(`✗ stopped: ${e?.stack ?? e}`);
     await shot("ios-stopped");
   }
-  await write("results.txt", lines.filter((line) => /^[✓✗]/.test(line)).join("\n"));
+  await write("results.txt", lines.filter((line) => /^[✓✗·]/.test(line)).join("\n"));
   await write("done", String(failed));
   log(`done ${failed}`);
 })();

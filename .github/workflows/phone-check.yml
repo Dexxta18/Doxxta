@@ -6,6 +6,11 @@ name: Phone app check
 on:
   workflow_dispatch:
     inputs:
+      phones:
+        description: Which apps to check
+        type: choice
+        options: [both, android, iphone]
+        default: both
       screenshot_notes:
         description: Also put small copies of the screenshots in the run's notes (data URLs)
         type: boolean
@@ -13,6 +18,7 @@ on:
 
 jobs:
   android:
+    if: inputs.phones != 'iphone'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -53,6 +59,7 @@ jobs:
           path: test-output/mobile
 
   ios:
+    if: inputs.phones != 'android'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7

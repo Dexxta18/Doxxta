@@ -49,15 +49,14 @@ const thumbnail = (png) =>
       if (url.length <= 4000 || width <= 60) return url;
     }
   }, png.toString("base64"));
-/** Taps an element with a finger, through Android's own input. */
+let cdp;
+/** Taps an element with a finger (a touch, through the web view's DevTools). */
 const tap = async (locator) => {
   await locator.scrollIntoViewIfNeeded();
   const box = await locator.boundingBox();
-  const { bounds } = await device.info({ res: "app.doxxta.mobile:id/webview" });
-  const scale = bounds.width / (await page.evaluate(() => innerWidth));
-  const x = Math.round(bounds.x + (box.x + box.width / 2) * scale);
-  const y = Math.round(bounds.y + (box.y + box.height / 2) * scale);
-  await device.shell(`input tap ${x} ${y}`);
+  cdp ??= await page.context().newCDPSession(page);
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: box.x + box.width / 2, y: box.y + box.height / 2 }] });
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
 };
 /** The app's page as it shows on the screen (a web view left from an earlier start can linger, with no size). */
 async function appPage() {

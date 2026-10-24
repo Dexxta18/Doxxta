@@ -175,7 +175,7 @@ The browser tests drive the app in headless Chromium with Playwright, then read 
 
 ```bash
 npx playwright install chromium   # once
-npm run test:e2e                  # 10 suites against the dev server (129 checks)
+npm run test:e2e                  # 10 suites against the dev server (131 checks)
 npm run test:e2e -- security      # one suite: organize, forms, editing, pictures, export, signing, security, redaction, openurl, phone
 npm run test:smoke                # builds, then tests the production build through the UI (incl. OCR)
 ```

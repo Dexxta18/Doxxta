@@ -81,7 +81,7 @@ window.__doxxtaSelftest = true;
     document.elementFromPoint(cx, cy)?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true, clientX: cx, clientY: cy, pointerType: "touch", isPrimary: true }));
   };
 
-  /** What reading the shown page's text gives, step by step (as Edit text reads it), and how long each step takes. */
+  /** What pdf.js gives for the shown page, step by step (as Edit text reads it), and how long each step takes. */
   const probe = async () => {
     const app = window.__doxxta;
     if (!app) return ["no debug handle"];
@@ -101,8 +101,6 @@ window.__doxxtaSelftest = true;
     if (text) out.push(`text ${JSON.stringify(text.items.map((i) => i.str).join("|"))}, fonts ready ${text.items.map((i) => page.commonObjs.has(i.fontName)).join(",")}`);
     const ops = page && (await timed("drawing (pdf.js)", page.getOperatorList()));
     if (ops) out.push(`drawing: ${ops.fnArray.length} operations`);
-    const layout = await timed("analysis", app.textLayout().then((m) => m.analyzePage(rt.pdf, 0)));
-    if (layout) out.push(`analysis: ${JSON.stringify(layout.blocks.map((b) => b.text))}`);
     return out;
   };
 

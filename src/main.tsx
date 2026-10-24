@@ -22,7 +22,7 @@ import { installMobile } from "./lib/mobile";
 
 if (import.meta.env.DEV || "__doxxtaSelftest" in window) {
   // Debug handle for automated tests: the browser tests, and the iPhone app's test copy.
-  (window as unknown as { __doxxta: unknown }).__doxxta = { useApp, useSettings, runtimes, runCommand, textLayout: () => import("./lib/textLayout") };
+  (window as unknown as { __doxxta: unknown }).__doxxta = { useApp, useSettings, runtimes, runCommand };
 }
 
 installDesktop();

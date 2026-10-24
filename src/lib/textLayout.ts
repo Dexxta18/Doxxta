@@ -194,18 +194,19 @@ function buildLines(runs: TextRun[]): TextLine[] {
   return lines;
 }
 
-function makeLine(runs: TextRun[]): TextLine {
+function makeLine(runs: TextRun[], textOf: (r: TextRun) => string = (r) => r.str): TextLine {
   // The runs' text with a space where they're apart, each character with its run.
   const chars: { ch: string; run: number }[] = [];
   for (let i = 0; i < runs.length; i++) {
     const r = runs[i];
+    const str = textOf(r);
     if (i > 0) {
       const prev = runs[i - 1];
       const gap = r.rect[0] - prev.rect[2];
       const last = chars[chars.length - 1]?.ch ?? "";
-      if (gap > Math.min(prev.size, r.size) * 0.15 && !/\s/.test(last) && !/^\s/.test(r.str)) chars.push({ ch: " ", run: i - 1 });
+      if (gap > Math.min(prev.size, r.size) * 0.15 && !/\s/.test(last) && !/^\s/.test(str)) chars.push({ ch: " ", run: i - 1 });
     }
-    for (const ch of r.str) chars.push({ ch, run: i });
+    for (const ch of str) chars.push({ ch, run: i });
   }
   // Runs of white space become one space, and the line is trimmed.
   const kept: { ch: string; run: number }[] = [];
@@ -310,6 +311,16 @@ export function buildBlocks(lines: TextLine[]): TextBlock[] {
       text,
     };
   });
+}
+
+/**
+ * The block with some runs' text replaced (e.g. without the spaces pdf.js reads between the
+ * letters of letter-spaced text), its lines' and its own text redone.
+ */
+export function withRunText(b: TextBlock, textOf: (r: TextRun) => string | undefined): TextBlock {
+  if (!b.lines.some((l) => l.runs.some((r) => textOf(r) !== undefined))) return b;
+  const lines = b.lines.map((l) => makeLine(l.runs, (r) => textOf(r) ?? r.str));
+  return { ...b, lines, text: lines.map((l, i) => l.text + (b.seps[i] ?? "")).join("") };
 }
 
 /** Reading-order text for a page from its layout (blocks top-to-bottom, left-to-right). */

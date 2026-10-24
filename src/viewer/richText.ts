@@ -22,6 +22,8 @@ export interface BaseStyle {
   size: number;
   /** Its color in the PDF, when known. */
   color?: string;
+  /** Space after each letter, in points (letter-spaced text). */
+  spacing?: number;
 }
 
 export interface RichChar {

@@ -452,6 +452,139 @@ export async function editPageText(doc: PDFDocument, req: TextEditRequest, fonts
   return "edited";
 }
 
+/** How a character of text seen in a picture is drawn: its line's look as seen, with the editor's formatting. */
+export interface SeenCharLook {
+  family: string;
+  kind: "serif" | "sans-serif" | "monospace";
+  weight: number;
+  italic: boolean;
+  size: number;
+  /** Space after each letter, in points. */
+  spacing: number;
+  color: string;
+  underline?: boolean;
+  strike?: boolean;
+  highlight?: string;
+}
+
+/** An edit of text seen in a picture of the page (see ops/recognize.ts). */
+export interface SeenTextEdit {
+  pageIndex: number;
+  /** Where the old text is: covered with `background` before the new text is drawn. */
+  cover: PdfRect;
+  background: string;
+  /** A picture of what's behind the text without it, to cover it with instead (where it isn't one color). */
+  patch?: { png: Uint8Array; rect: PdfRect };
+  /** The block's lines as they were seen. */
+  lines: { left: number; right: number; baseline: number }[];
+  align: TextAlign;
+  text: string;
+  /** How each character of `text` (UTF-16 code unit) is drawn. */
+  looks: SeenCharLook[];
+}
+
+/**
+ * Text that's part of a picture, edited: its old letters are covered with the color behind them
+ * and the new text is written there as real text, in the fonts, sizes, letter spacing and colors
+ * seen (with the formatting given in the editor), aligned as the block was. An invisible OCR
+ * layer under it is removed, so searching finds the new text.
+ */
+export async function editSeenText(doc: PDFDocument, req: SeenTextEdit, fonts: FontCache): Promise<void> {
+  const page = doc.getPages()[req.pageIndex];
+  if (!page) return;
+  // The lines of the new text, each character with its look.
+  const lines: { ch: string; look: SeenCharLook; key: string }[][] = [[]];
+  let unit = 0;
+  for (const ch of req.text) {
+    const look = req.looks[unit] ?? req.looks[unit - 1] ?? req.looks[0];
+    unit += ch.length;
+    if (ch === "\n") lines.push([]);
+    else lines[lines.length - 1].push({ ch, look, key: JSON.stringify(look) });
+  }
+  // One font per look, chosen for all the text in it.
+  const keyOf = (l: SeenCharLook) => `${l.family}|${l.weight}|${l.italic}`;
+  const texts = new Map<string, { look: SeenCharLook; text: string }>();
+  for (const line of lines) for (const c of line) {
+    const t = texts.get(keyOf(c.look)) ?? { look: c.look, text: "" };
+    t.text += c.ch;
+    texts.set(keyOf(c.look), t);
+  }
+  const like = new Map<string, LikeFont>();
+  for (const [key, { look, text }] of texts) {
+    like.set(key, await fonts.like({ name: look.family, familyName: look.family, family: look.kind, weight: look.weight, bold: look.weight >= 600, italic: look.italic }, text));
+  }
+  const names = new Map<PDFFont, string>();
+  const nameOf = (font: PDFFont) => {
+    let name = names.get(font);
+    if (!name) names.set(font, (name = addPageResource(page, "Font", "DxEd", font.ref)));
+    return name;
+  };
+
+  const seen = req.lines.length ? req.lines : [{ left: req.cover[0], right: req.cover[2], baseline: req.cover[1] }];
+  const left = Math.min(...seen.map((l) => l.left));
+  const right = Math.max(...seen.map((l) => l.right));
+  const firstSize = lines.flat()[0]?.look.size ?? 12;
+  const pitch = seen.length > 1 ? (seen[0].baseline - seen[seen.length - 1].baseline) / (seen.length - 1) : firstSize * 1.25;
+  const [br, bg, bb] = hexToPdf(req.background);
+  const [cx0, cy0, cx1, cy1] = req.cover;
+  const box = `${fmt(cx0)} ${fmt(cy0)} ${fmt(cx1 - cx0)} ${fmt(cy1 - cy0)} re`;
+  const ops = [`q ${fmt(br)} ${fmt(bg)} ${fmt(bb)} rg ${box} f Q`];
+  if (req.patch) {
+    // What's behind the text, without it, in place of one color.
+    const image = await doc.embedPng(req.patch.png);
+    const name = addPageResource(page, "XObject", "DxBg", image.ref);
+    const [px0, py0, px1, py1] = req.patch.rect;
+    ops[0] = `q ${box} W n ${fmt(px1 - px0)} 0 0 ${fmt(py1 - py0)} ${fmt(px0)} ${fmt(py0)} cm /${name} Do Q`;
+  }
+  const under: string[] = [];
+  const over: string[] = [];
+  let baseline = seen[0].baseline;
+  lines.forEach((line, li) => {
+    if (li > 0) baseline = li < seen.length ? seen[li].baseline : baseline - Math.max(pitch, ...line.map((c) => c.look.size * 1.15));
+    // Each character's advance: its width, and the letter spacing after it but the last.
+    const advances = line.map((c, i) => like.get(keyOf(c.look))!.font.widthOfTextAtSize(c.ch, c.look.size) + (i < line.length - 1 ? c.look.spacing : 0));
+    const width = advances.reduce((s, a) => s + a, 0);
+    let x = req.align === "right" ? right - width : req.align === "center" ? (left + right) / 2 - width / 2 : left;
+    // Runs of characters in one look.
+    for (let i = 0; i < line.length; ) {
+      let j = i + 1;
+      while (j < line.length && line[j].key === line[i].key) j++;
+      const look = line[i].look;
+      const lf = like.get(keyOf(look))!;
+      const text = line.slice(i, j).map((c) => c.ch).join("");
+      const runWidth = advances.slice(i, j).reduce((s, a) => s + a, 0);
+      const [r, g, b] = hexToPdf(look.color);
+      if (look.highlight) {
+        const [hr, hg, hb] = hexToPdf(look.highlight);
+        under.push(`q ${fmt(hr)} ${fmt(hg)} ${fmt(hb)} rg ${fmt(x)} ${fmt(baseline - look.size * 0.24)} ${fmt(runWidth)} ${fmt(look.size * 1.16)} re f Q`);
+      }
+      if (text.trim()) {
+        const bold = lf.embolden;
+        const drawn = `BT /${nameOf(lf.font)} ${fmt(look.size)} Tf ${fmt(look.spacing)} Tc 0 Tw 100 Tz 0 Ts ${bold ? 2 : 0} Tr ${fmt(r)} ${fmt(g)} ${fmt(b)} rg 1 0 ${lf.slant ? SLANT : 0} 1 ${fmt(x)} ${fmt(baseline)} Tm ${lf.font.encodeText(text).toString()} Tj ET`;
+        over.push(bold ? `q ${fmt(look.size * 0.035)} w ${fmt(r)} ${fmt(g)} ${fmt(b)} RG ${drawn} Q` : drawn);
+      }
+      for (const kind of ["underline", "strike"] as const) {
+        if (!look[kind]) continue;
+        const h = Math.max(0.5, look.size * 0.055);
+        const y = kind === "underline" ? baseline - look.size * 0.12 - h / 2 : baseline + look.size * 0.28 - h / 2;
+        over.push(`q ${fmt(r)} ${fmt(g)} ${fmt(b)} rg ${fmt(x)} ${fmt(y)} ${fmt(runWidth - (j === line.length ? 0 : look.spacing))} ${fmt(h)} re f Q`);
+      }
+      x += runWidth;
+      i = j;
+    }
+  });
+
+  // An invisible OCR layer under the old letters goes with them (searching would find the old text).
+  const glyphs = (await extractGlyphs(doc, page).catch(() => null)) ?? [];
+  const hidden = glyphs.filter((g) => {
+    if (g.style?.mode !== 3 && g.style?.mode !== 7) return false;
+    const x = (g.origin.x + g.end.x) / 2;
+    return x >= cx0 && x <= cx1 && g.origin.y >= cy0 - g.size * 0.3 && g.origin.y <= cy1;
+  });
+  if (hidden.length) await redactPage(doc, page, hidden.map(tightRegion), { text: true, images: false, graphics: false });
+  appendIsolated(doc, page, [...ops, ...under, ...over].join("\n"));
+}
+
 /** The formatting asked for a character, less what it already has; undefined when nothing changes. */
 function formatChange(f: CharFormat | null | undefined, c: NewChar): CharFormat | undefined {
   if (!f) return undefined;

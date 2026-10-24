@@ -36,6 +36,8 @@ export interface RichEditing {
   leading: number;
   /** The text's color, as sampled from the page. */
   color?: string;
+  /** The color behind the text on the page. */
+  background?: string;
   /** Whether the text can be formatted (not edits made by earlier versions). */
   formatting: boolean;
 }
@@ -46,6 +48,8 @@ export interface EditorResult {
   formats: (CharFormat | null)[];
   /** The new alignment, when it was changed. */
   align?: TextAlign;
+  /** The base style of each character (UTF-16 code unit) of `text`. */
+  bases: number[];
 }
 
 interface HistoryEntry {
@@ -99,7 +103,7 @@ export function TextEditorBox({
   const [ui, setUi] = useState<FormatState>({ bold: false, italic: false, underline: false, strike: false, align: editing.align });
   const [fontTick, setFontTick] = useState(0);
   const [height, setHeight] = useState(0);
-  const [barWidth, setBarWidth] = useState(0);
+  const [barSize, setBarSize] = useState({ width: 0, height: 0 });
   const matched = useRef(new Map<string, string>());
   // The fonts found, by the same keys: whether each is the font itself or one standing in for it.
   const found = useRef(new Map<string, { family: string; exact: boolean }>());
@@ -141,6 +145,7 @@ export function TextEditorBox({
       fontWeight: String(l.weight),
       fontStyle: l.italic ? "italic" : "normal",
       fontSize: `${l.size}px`,
+      letterSpacing: b.spacing ? `${b.spacing}px` : "",
       color: l.color ?? "",
       textDecorationLine: [l.underline && "underline", l.strike && "line-through"].filter(Boolean).join(" ") || "none",
       backgroundColor: l.highlight ?? "",
@@ -390,7 +395,7 @@ export function TextEditorBox({
       const chars = model();
       const formats: (CharFormat | null)[] = [];
       for (const c of chars) for (let i = 0; i < c.ch.length; i++) formats.push(Object.keys(c.f).length ? c.f : null);
-      return { text: chars.map((c) => c.ch).join(""), formats, align: align.current !== editing.align ? align.current : undefined };
+      return { text: chars.map((c) => c.ch).join(""), formats, align: align.current !== editing.align ? align.current : undefined, bases: chars.flatMap((c) => Array<number>(c.ch.length).fill(c.base)) };
     };
     return () => {
       root.removeEventListener("beforeinput", onBeforeInput);
@@ -416,9 +421,16 @@ export function TextEditorBox({
   useLayoutEffect(() => {
     const root = el.current;
     if (!root) return;
-    const ro = new ResizeObserver(() => setHeight(root.offsetHeight));
+    const toolbar = bar.current;
+    const ro = new ResizeObserver(() => {
+      setHeight(root.offsetHeight);
+      if (toolbar) setBarSize({ width: toolbar.offsetWidth, height: toolbar.offsetHeight });
+    });
     ro.observe(root);
-    if (bar.current) setBarWidth(bar.current.offsetWidth);
+    if (toolbar) {
+      ro.observe(toolbar);
+      setBarSize({ width: toolbar.offsetWidth, height: toolbar.offsetHeight });
+    }
     return () => ro.disconnect();
   }, []);
 
@@ -456,13 +468,14 @@ export function TextEditorBox({
 
   const box = stageBox(ctx.m, editing.rect);
   const room = stageBox(ctx.m, [editing.rect[0], editing.rect[1], Math.max(editing.rect[2], editing.maxRight), editing.rect[3]]);
-  const above = box.y * scale - 46;
+  // Above the text (the toolbar is on two rows in a narrow window), or below it when there's no room.
+  const above = box.y * scale - (barSize.height || 38) - 8;
   const barTop = above >= 4 ? above : (box.y - 2) * scale + Math.max(height, box.h + 4) * scale + 8;
-  const barLeft = Math.max(4, Math.min((box.x - 2) * scale, geo.width * scale - barWidth - 4));
+  const barLeft = Math.max(4, Math.min((box.x - 2) * scale, geo.width * scale - barSize.width - 4));
   return (
     <>
       <div className="doxxta-stage doxxta-textedit-live" style={{ width: geo.width, height: geo.height }}>
-        <div className="doxxta-textedit-cover is-live" style={{ left: box.x - 1, top: box.y - 1, width: box.w + 2, height: box.h + 2 }} />
+        <div className="doxxta-textedit-cover is-live" style={{ left: box.x - 1, top: box.y - 1, width: box.w + 2, height: box.h + 2, background: editing.background }} />
         <div
           ref={el}
           className="doxxta-textedit-editor"
@@ -482,6 +495,7 @@ export function TextEditorBox({
             lineHeight: editing.leading,
             textAlign: ui.align,
             color: editing.color,
+            background: editing.background,
           }}
           onPointerDown={(e) => e.stopPropagation()}
           onKeyDown={onKeyDown}

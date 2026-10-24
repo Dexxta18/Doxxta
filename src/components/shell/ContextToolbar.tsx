@@ -39,6 +39,7 @@ import {
   Ruler,
   Scan,
   Search,
+  ScanText,
   Settings2,
   ShieldCheck,
   Signature,
@@ -556,6 +557,7 @@ const ACTIONS: Partial<Record<Mode, ToolAction[]>> = {
     { label: "Form data", icon: <FileOutput size={16} />, run: () => runCommand("tool.exportFormData") },
   ],
   edit: [
+    { label: "Text in pictures", icon: <ScanText size={16} />, tip: "Recognize the text in this page's pictures to edit it", run: () => runCommand("tool.editPictureText") },
     { label: "Header & footer", icon: <Heading size={16} />, run: () => runCommand("tool.headerFooter") },
     { label: "Watermark", icon: <Droplet size={16} />, run: () => runCommand("tool.watermark") },
     { label: "Background", icon: <Image size={16} />, run: () => runCommand("tool.background") },

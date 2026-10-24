@@ -96,6 +96,7 @@ The **Installers** workflow builds the Android app (`./gradlew assembleRelease`)
 - Edit existing text in place, keeping its formatting: text you don't change stays exactly as it was, and changed words are written in the document's own font at the same size, color, spacing and alignment (left, right, centered or justified). The old glyphs are removed from the page, not covered, and the new text is placed where the old was in the page's text order, so copying, search and CV-screening software read it in sequence
 - Fonts are recognized from the names PDFs give them (family, weight from Thin to Black, italics, condensed), so the editor shows text in its own font and weight. When the font embedded in the file lacks a letter, the word is written in the closest font available: the same font installed on the computer (desktop app, when its license allows embedding), the same family from the app's font library, a font made to stand in for it (Carlito for Calibri, Liberation for Arial, Times New Roman and Courier New, Gelasio for Georgia…), or one of the same kind and weight. Light text stays light, bold stays bold
 - Word-style formatting while editing text: font (the document's, the app's library of 68 open font families, and in the desktop app the computer's fonts), size, bold, italics, underline, strikethrough, font color, highlight color, alignment and clear formatting, from a toolbar or Word's shortcuts (Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+Shift+> and <, Ctrl+] and [, Ctrl+L/E/R/J, Ctrl+Space). With nothing selected, formatting applies to what you type next; Ctrl+Z undoes inside the editor
+- Text that's part of a picture (a scan, or a design app's text exported as an image or as outlines, like an invitation card) can be edited too: Edit text offers to recognize it, or recognizes it when you tap it. Each line is read with OCR and matched against the app's font library by drawing candidates over it, for its font, weight, slant, size, letter spacing and color; when edited, the old letters are covered with the color behind them (or, on a photo or gradient, with what's behind them, filled in) and the new text is written as real text in that style. Letter-spaced text is read as words, not spaced-out letters. Text running up or down the page isn't recognized
 - Add text and images, add/edit/remove links
 - Watermark (text, image or PDF page), header & footer, page numbers, Bates numbering, background (color, image or PDF page); each can be replaced or removed later
 - Crop pages
@@ -174,8 +175,8 @@ The browser tests drive the app in headless Chromium with Playwright, then read 
 
 ```bash
 npx playwright install chromium   # once
-npm run test:e2e                  # 9 suites against the dev server (109 checks)
-npm run test:e2e -- security      # one suite: organize, forms, editing, export, signing, security, redaction, openurl, phone
+npm run test:e2e                  # 10 suites against the dev server (129 checks)
+npm run test:e2e -- security      # one suite: organize, forms, editing, pictures, export, signing, security, redaction, openurl, phone
 npm run test:smoke                # builds, then tests the production build through the UI (incl. OCR)
 ```
 

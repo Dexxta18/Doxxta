@@ -89,4 +89,23 @@ export default async function run({ page, check, st, open, shot }) {
   const raised = await page.locator(".text-format-bar").boundingBox();
   check(raised && Math.abs(raised.y + raised.height - (screen.height - 300)) <= 2, "the formatting toolbar stays above the on-screen keyboard");
   await page.evaluate(() => window.__keyboardOff());
+  await page.keyboard.press("Escape");
+
+  // Text in a picture: tapping it recognizes it and opens it, with the toolbar along the bottom.
+  await open("card.pdf");
+  await st(() => window.__doxxta.runCommand("mode.edit"));
+  await st(() => window.__doxxta.useApp.setState({ tool: "edit-text" }));
+  await page.waitForSelector(".doxxta-recognize", { timeout: 15000 });
+  const offer = await page.locator(".doxxta-recognize").boundingBox();
+  check(offer && offer.x >= 0 && offer.x + offer.width <= screen.width, `the offer to recognize the text fits the screen (${Math.round(offer?.width ?? 0)} px)`);
+  const at = await st(() => {
+    const el = [...document.querySelectorAll('.pdfViewer .page[data-page-number="1"]')].find((e) => e.getBoundingClientRect().width > 0);
+    const r = el.getBoundingClientRect();
+    const k = r.width / 504;
+    return { x: r.left + 290 * k, y: r.top + (288 - 169) * k };
+  });
+  await page.touchscreen.tap(at.x, at.y);
+  await page.waitForSelector(".doxxta-textedit-editor", { timeout: 60000 });
+  check((await page.locator(".doxxta-textedit-editor").innerText()) === "NAFOWA HALL," && (await page.locator(".text-format-bar.is-docked").count()) === 1, "tapping text in a picture opens it, with the toolbar along the bottom");
+  await shot("picture-text");
 }

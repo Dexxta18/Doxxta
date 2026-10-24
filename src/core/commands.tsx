@@ -45,6 +45,7 @@ import { mobile } from "../lib/mobile";
 import { closeDocument, openFile, redo, revertDocument, undo } from "./document";
 import { copySelected, deleteSelected, duplicateSelected, hasAnnotClipboard, pasteAnnots, selectAllOnPage } from "./annotOps";
 import { MODE_PERMISSION, withPermission, type Permission } from "./permissions";
+import { requestRecognition } from "../viewer/recognizeRequest";
 
 export interface Command {
   id: string;
@@ -254,6 +255,7 @@ const commands: Command[] = [
   { id: "tool.compare", label: "Compare files", needsDoc: false, run: () => openDialog("compare-setup", { docId: activeId() }) },
   { id: "tool.compress", perm: "modify", label: "Compress PDF", needsDoc: true, run: () => openDialog("compress", { docId: activeId() }) },
   { id: "tool.ocr", perm: "modify", label: "Recognize text (OCR)", needsDoc: true, run: () => openDialog("ocr", { docId: activeId() }) },
+  { id: "tool.editPictureText", perm: "modify", label: "Edit text in pictures", needsDoc: true, run: editPictureText },
   { id: "tool.export", perm: "copy", label: "Export PDF", needsDoc: true, run: () => openDialog("export", { docId: activeId() }) },
   { id: "tool.split", perm: "assemble", label: "Split document", needsDoc: true, run: () => openDialog("split", { docId: activeId() }) },
   { id: "tool.insertPages", perm: "assemble", label: "Insert pages", needsDoc: true, run: () => openDialog("insert-pages", { docId: activeId() }) },
@@ -286,6 +288,15 @@ function setLayout(scroll: number, spread: number) {
   if (!v) return;
   v.setScrollMode(scroll);
   v.setSpreadMode(spread);
+}
+
+/** Edit text on the current page, after recognizing the text that's part of its pictures. */
+function editPictureText() {
+  const id = activeId();
+  const doc = getActiveDoc();
+  if (!id || !doc) return;
+  enterTool("edit", "edit-text");
+  requestRecognition(id, Math.max(0, doc.view.page - 1));
 }
 
 export function enterTool(m: Mode, t: ToolId) {

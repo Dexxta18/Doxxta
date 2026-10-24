@@ -57,7 +57,7 @@ interface PageResult {
 
 const vendor = (p: string) => new URL(`${import.meta.env.BASE_URL}vendor/tesseract/${p}`, document.baseURI).href;
 
-async function createOcrWorker(languages: string[], onProgress: (status: string, p: number) => void) {
+export async function createOcrWorker(languages: string[], onProgress: (status: string, p: number) => void) {
   const Tesseract = await import("tesseract.js");
   const onlyEnglish = languages.length === 1 && languages[0] === "eng";
   return Tesseract.createWorker(languages, Tesseract.OEM.LSTM_ONLY, {

@@ -70,6 +70,34 @@ async function appPage() {
   }
   throw new Error("The app's page didn't show up on the screen.");
 }
+/** Opens a test PDF as a dropped file. */
+const drop = (name) =>
+  page.evaluate(
+    ({ b64, name }) => {
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const dt = new DataTransfer();
+      dt.items.add(new File([bytes], name, { type: "application/pdf" }));
+      const target = document.querySelector(".main");
+      target.dispatchEvent(new DragEvent("dragenter", { dataTransfer: dt, bubbles: true }));
+      target.dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true }));
+    },
+    { b64: readFileSync(join(FIXTURES, name)).toString("base64"), name },
+  );
+/** Taps a point of the first page, given in PDF points. */
+const tapPage = async (x, y) => {
+  const at = await page.evaluate(([x, y]) => {
+    // The shown document's page (another document's viewer may be kept, hidden).
+    const el = [...document.querySelectorAll('.pdfViewer .page[data-page-number="1"]')].find((e) => e.getBoundingClientRect().width > 0);
+    const r = el.getBoundingClientRect();
+    const s = r.width / 504;
+    return { x: r.left + x * s, y: r.top + (288 - y) * s };
+  }, [x, y]);
+  cdp ??= await page.context().newCDPSession(page);
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [at] });
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+};
 let webViewVersion = "";
 const errors = [];
 const logged = [];
@@ -91,17 +119,7 @@ try {
   check(await page.locator(".home-hero").count() === 1, "the home screen shows");
 
   // Open a PDF the way the browser tests do (a dropped file).
-  const b64 = readFileSync(join(FIXTURES, "sample.pdf")).toString("base64");
-  await page.evaluate((b64) => {
-    const bin = atob(b64);
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    const dt = new DataTransfer();
-    dt.items.add(new File([bytes], "sample.pdf", { type: "application/pdf" }));
-    const target = document.querySelector(".main");
-    target.dispatchEvent(new DragEvent("dragenter", { dataTransfer: dt, bubbles: true }));
-    target.dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true }));
-  }, b64);
+  await drop("sample.pdf");
   const opened = await page.waitForSelector('.pdfViewer .page[data-loaded="true"]', { state: "attached", timeout: 60_000 }).then(() => true, () => false);
   check(opened, "a PDF opens");
   if (!opened) throw new Error("The PDF didn't open, so the rest can't be checked.");
@@ -160,6 +178,34 @@ try {
   await page.waitForTimeout(800);
   check(await page.locator(".home-hero").count() === 1, "Back again goes to the home screen");
   await shot("back-home");
+
+  // Text that's part of a picture (an invitation whose letters are outlines): recognized, then edited.
+  await drop("card.pdf");
+  await page.waitForFunction(() => document.querySelector(".phone-pager span")?.textContent.trim() === "1 / 1", null, { timeout: 60_000 });
+  await page.waitForTimeout(1500);
+  await tap(page.locator(".phone-bar-btn", { hasText: "Tools" }));
+  await page.waitForTimeout(1000);
+  await tap(page.locator(".phone-sheet .tools-item", { hasText: "Edit PDF" }));
+  await page.waitForTimeout(1000);
+  const editTool = page.locator('.context-toolbar [aria-label="Edit text"]').first();
+  if ((await editTool.getAttribute("aria-pressed")) !== "true") await tap(editTool);
+  const offered = await page.waitForSelector(".doxxta-recognize", { timeout: 30_000 }).then(() => true, () => false);
+  check(offered, "a page whose text is in a picture offers to recognize it");
+  await shot("picture-offer");
+  await tapPage(290, 169);
+  const recognized = await page.waitForSelector(".doxxta-textedit-editor", { timeout: 180_000 }).then(() => true, () => false);
+  const seenText = recognized ? await page.locator(".doxxta-textedit-editor").innerText() : "";
+  check(seenText === "NAFOWA HALL,", `tapping text in a picture recognizes it (OCR) and opens it (${JSON.stringify(seenText)})`);
+  await page.waitForTimeout(1000);
+  await shot("picture-editing");
+  await page.evaluate(() => (document.querySelector(".doxxta-textedit-editor").innerText = "GRAND HALL,"));
+  await tap(page.locator('.text-format-bar [aria-label="Done"]'));
+  await page.waitForFunction(() => !document.querySelector(".doxxta-textedit-editor") && !document.querySelector(".busy-backdrop.is-visible"), null, { timeout: 60_000 }).catch(() => {});
+  await page.waitForTimeout(3000);
+  await tapPage(290, 169);
+  const again = await page.waitForSelector(".doxxta-textedit-editor", { timeout: 30_000 }).then(() => page.locator(".doxxta-textedit-editor").innerText(), () => "");
+  check(again === "GRAND HALL,", `the edit is written as the page's text (edited again: ${JSON.stringify(again)})`);
+  await shot("picture-edited");
   check(errors.length === 0, `no script errors${errors.length ? `: ${errors.join(" | ")}` : ""}`);
 } catch (e) {
   failed++;

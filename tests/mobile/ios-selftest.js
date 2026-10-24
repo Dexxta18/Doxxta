@@ -50,6 +50,22 @@
     log(`· screenshot ${name} ${taken}`);
   };
   const button = (label) => $$(".phone-bar-btn").find((b) => b.textContent.includes(label));
+  /** Opens a test PDF (copied into the test build) as a dropped file. */
+  const drop = async (name) => {
+    const bytes = new Uint8Array(await (await fetch(name)).arrayBuffer());
+    const dt = new DataTransfer();
+    dt.items.add(new File([bytes], name, { type: "application/pdf" }));
+    $(".main").dispatchEvent(new DragEvent("dragenter", { dataTransfer: dt, bubbles: true }));
+    $(".main").dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true }));
+  };
+  /** Presses a point of the shown document's first page (a 504 × 288 pt card), given in PDF points. */
+  const press = (x, y) => {
+    const el = $$('.pdfViewer .page[data-page-number="1"]').find((e) => e.getBoundingClientRect().width > 0);
+    const r = el.getBoundingClientRect();
+    const s = r.width / 504;
+    const [cx, cy] = [r.left + x * s, r.top + (288 - y) * s];
+    document.elementFromPoint(cx, cy)?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true, clientX: cx, clientY: cy, pointerType: "touch", isPrimary: true }));
+  };
 
   try {
     await until(() => $(".app"), 30_000);
@@ -59,11 +75,7 @@
     await shot("ios-home");
 
     // Open a PDF the way the other tests do (a dropped file).
-    const bytes = new Uint8Array(await (await fetch("sample.pdf")).arrayBuffer());
-    const dt = new DataTransfer();
-    dt.items.add(new File([bytes], "sample.pdf", { type: "application/pdf" }));
-    $(".main").dispatchEvent(new DragEvent("dragenter", { dataTransfer: dt, bubbles: true }));
-    $(".main").dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true }));
+    await drop("sample.pdf");
     check(!!(await until(() => $('.pdfViewer .page[data-loaded="true"]'), 60_000)), "a PDF opens");
     const drawn = await until(() => {
       const canvas = $(".pdfViewer .page canvas");
@@ -98,6 +110,33 @@
     $$(".phone-sheet .thumb-item")[3].click();
     await wait(1200);
     check($(".phone-pager span")?.textContent.trim() === "4 / 6", "tapping a page goes to it");
+
+    // Text that's part of a picture (an invitation whose letters are outlines): recognized, then edited.
+    await drop("card.pdf");
+    await until(() => $(".phone-pager span")?.textContent.trim() === "1 / 1", 60_000);
+    await wait(1500);
+    button("Tools").click();
+    await wait(800);
+    $$(".phone-sheet .tools-item").find((b) => b.textContent.includes("Edit PDF")).click();
+    await wait(1000);
+    const tool = $('.context-toolbar [aria-label="Edit text"]');
+    if (tool?.getAttribute("aria-pressed") !== "true") tool?.click();
+    check(!!(await until(() => $(".doxxta-recognize"), 30_000)), "a page whose text is in a picture offers to recognize it");
+    $(".doxxta-recognize").click();
+    const found = await until(() => $$(".doxxta-text-block.is-seen").length >= 8, 180_000);
+    check(!!found, `the text in the picture is recognized (OCR): ${$$(".doxxta-text-block.is-seen").length} lines`);
+    await shot("ios-picture");
+    press(290, 169);
+    const opened = await until(() => $(".doxxta-textedit-editor"), 10_000);
+    check(opened?.innerText === "NAFOWA HALL,", `tapping a recognized line opens it (${JSON.stringify(opened?.innerText)})`);
+    opened.innerText = "GRAND HALL,";
+    $('.text-format-bar [aria-label="Done"]').click();
+    await until(() => !$(".doxxta-textedit-editor") && !$(".busy-backdrop.is-visible"), 60_000);
+    await wait(3000);
+    press(290, 169);
+    const again = await until(() => $(".doxxta-textedit-editor"), 15_000);
+    check(again?.innerText === "GRAND HALL,", `the edit is written as the page's text (edited again: ${JSON.stringify(again?.innerText)})`);
+    await shot("ios-picture-edited");
     check(errors.length === 0, `no script errors${errors.length ? `: ${errors.join(" | ")}` : ""}`);
   } catch (e) {
     failed++;

@@ -8,11 +8,11 @@ cd "$(dirname "$0")/../.."
 out=test-output/mobile
 mkdir -p "$out"
 
-# The test copy: the web app, the checks and the PDF they open, logging in every build.
+# The test copy: the web app, the checks and the PDFs they open, logging in every build.
 npx cap sync ios
 public=ios/App/App/public
 cp tests/mobile/ios-selftest.js "$public/selftest.js"
-cp test-fixtures/sample.pdf "$public/sample.pdf"
+cp test-fixtures/sample.pdf test-fixtures/card.pdf "$public/"
 sed -i '' 's#</body>#<script src="selftest.js"></script></body>#' "$public/index.html"
 node -e '
   const fs = require("fs");

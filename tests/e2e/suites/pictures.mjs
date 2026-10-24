@@ -129,7 +129,10 @@ export default async function run({ page, check, st, open, shot, build, readPdf 
   // ----- A poster on a gradient: covered with what's behind the text, not with one color -----
   await open("poster-picture.pdf");
   await editText();
-  await page.waitForSelector(".doxxta-recognize", { timeout: 15000 });
+  // The offer's own button (over the page, which taps would otherwise reach).
+  await page.click(".doxxta-recognize", { timeout: 15000 });
+  const recognized = await page.waitForSelector(".doxxta-text-block.is-seen", { timeout: 60000 }).then(() => true, () => false);
+  check(recognized && (await page.locator(".doxxta-textedit-editor").count()) === 0, "the offer's button recognizes the page's text");
   await tap(216, 152);
   await page.waitForSelector(".doxxta-textedit-editor", { timeout: 60000 });
   check((await editor().innerText()) === "Up to 50% off everything", `text on a gradient is recognized (${JSON.stringify(await editor().innerText())})`);

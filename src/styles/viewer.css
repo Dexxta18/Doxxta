@@ -293,6 +293,7 @@ g.doxxta-annot:hover {
 .doxxta-recognize {
   position: absolute;
   z-index: 5;
+  pointer-events: auto;
   transform: translateX(-50%);
   display: inline-flex;
   align-items: center;

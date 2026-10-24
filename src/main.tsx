@@ -18,9 +18,9 @@ import { runCommand } from "./core/commands";
 import { installDesktop } from "./lib/desktop";
 import { installMobile } from "./lib/mobile";
 
-if (import.meta.env.DEV) {
-  // Debug handle for automated browser tests.
-  (window as unknown as { __doxxta: unknown }).__doxxta = { useApp, useSettings, runtimes, runCommand };
+if (import.meta.env.DEV || "__doxxtaSelftest" in window) {
+  // Debug handle for automated tests: the browser tests, and the iPhone app's test copy.
+  (window as unknown as { __doxxta: unknown }).__doxxta = { useApp, useSettings, runtimes, runCommand, textLayout: () => import("./lib/textLayout") };
 }
 
 installDesktop();

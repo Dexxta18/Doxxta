@@ -45,8 +45,8 @@ sleep 2
 # The checks and this script talk through files in the app's Documents/selftest (see ios-selftest.js).
 talk="$(xcrun simctl get_app_container "$device" app.doxxta.mobile data)/Documents/selftest"
 
-# Screenshots when the checks ask for them, until they're done (at most 5 minutes).
-for _ in $(seq 600); do
+# Screenshots when the checks ask for them, until they're done (at most 10 minutes).
+for _ in $(seq 1200); do
   for request in "$talk"/ios-*; do
     [ -e "$request" ] || continue
     xcrun simctl io "$device" screenshot "$out/$(basename "$request").png" > /dev/null 2>&1

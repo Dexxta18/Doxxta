@@ -3,6 +3,9 @@
 // the app's Documents/selftest: a file named after a screenshot asks for it (the script deletes
 // it once taken), results.txt has the results and done the number of failures. The app's log
 // gets the results too ("[selftest] …").
+// Run before the app's own script: the app then gives its debug handle (window.__doxxta), as in the
+// browser tests.
+window.__doxxtaSelftest = true;
 (async () => {
   const lines = [];
   const log = (text) => {
@@ -27,13 +30,17 @@
     return null;
   };
   const errors = [];
-  // The app's own error reports (it shows a message and logs the error).
+  // The app's own error reports and warnings (and pdf.js's), but not the screenshot handshake's
+  // (reading a file the shell script has deleted).
   const logged = [];
-  const consoleError = console.error.bind(console);
-  console.error = (...args) => {
-    logged.push(args.map((a) => String(a?.stack ?? a?.message ?? a)).join(" ").slice(0, 400));
-    consoleError(...args);
-  };
+  for (const level of ["error", "warn", "log"]) {
+    const original = console[level].bind(console);
+    console[level] = (...args) => {
+      const text = args.map((a) => String(a?.stack ?? a?.message ?? a)).join(" ");
+      if ((level !== "log" || /^Warning:/.test(text)) && !text.includes("/selftest/") && !text.startsWith("[selftest]")) logged.push(`${level}: ${text.slice(0, 300)}`);
+      original(...args);
+    };
+  }
   addEventListener("error", (e) => errors.push(e.message));
   addEventListener("unhandledrejection", (e) => errors.push(String(e.reason?.message ?? e.reason)));
   let failed = 0;
@@ -72,6 +79,31 @@
     const s = r.width / 504;
     const [cx, cy] = [r.left + x * s, r.top + (288 - y) * s];
     document.elementFromPoint(cx, cy)?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true, clientX: cx, clientY: cy, pointerType: "touch", isPrimary: true }));
+  };
+
+  /** What reading the shown page's text gives, step by step (as Edit text reads it), and how long each step takes. */
+  const probe = async () => {
+    const app = window.__doxxta;
+    if (!app) return ["no debug handle"];
+    const out = [];
+    const timed = async (what, promise, ms = 15_000) => {
+      const start = Date.now();
+      const r = await Promise.race([promise.then((value) => ({ value }), (error) => ({ error })), wait(ms).then(() => ({ late: true }))]);
+      out.push(`${what}: ${r.late ? `no answer in ${ms / 1000} s` : r.error ? `failed (${r.error?.message ?? r.error})` : "ok"}, ${Date.now() - start} ms`);
+      return r.value;
+    };
+    const s = app.useApp.getState();
+    const rt = app.runtimes.get(s.activeId);
+    out.push(`version ${s.docs[s.activeId].version}, ${rt.bytes.length} bytes`);
+    await timed("links (pdf.js)", rt.pdf.getAnnotationsByType(new Set([2]), new Set()));
+    const page = await timed("page (pdf.js)", rt.pdf.getPage(1));
+    const text = page && (await timed("text (pdf.js)", page.getTextContent()));
+    if (text) out.push(`text ${JSON.stringify(text.items.map((i) => i.str).join("|"))}, fonts ready ${text.items.map((i) => page.commonObjs.has(i.fontName)).join(",")}`);
+    const ops = page && (await timed("drawing (pdf.js)", page.getOperatorList()));
+    if (ops) out.push(`drawing: ${ops.fnArray.length} operations`);
+    const layout = await timed("analysis", app.textLayout().then((m) => m.analyzePage(rt.pdf, 0)));
+    if (layout) out.push(`analysis: ${JSON.stringify(layout.blocks.map((b) => b.text))}`);
+    return out;
   };
 
   try {
@@ -149,13 +181,14 @@
     const trace = [];
     const timers = [300, 2000, 8000, 30_000].map((ms) => setTimeout(() => trace.push(state()), ms));
     // Written: the line is the page's own text, no longer one seen in the picture (or a message says why not).
-    const written = await until(() => $$(".doxxta-text-block.is-seen").length < lines || $(".toast"), 120_000);
+    const written = await until(() => $$(".doxxta-text-block.is-seen").length < lines || $(".toast"), 60_000);
     timers.forEach(clearTimeout);
     trace.push(state());
     for (const t of trace) log(`· ${t}`);
     for (const e of logged) log(`· logged: ${e}`);
     const toasts = $$(".toast").map((t) => t.textContent);
     check(!!written && !toasts.length, `the edit is written in the page (${toasts.join(" | ") || (written ? "no message" : "timed out")})`);
+    if (!written) for (const line of await probe()) log(`· ${line}`);
     await wait(1500);
     press(290, 169);
     const again = await until(() => $(".doxxta-textedit-editor"), 15_000);

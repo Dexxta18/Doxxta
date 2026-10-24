@@ -87,7 +87,10 @@ export function TextEditLayer({ docId, pageIndex, ctx, geo, scale }: { docId: st
         glyphs.current = runGlyphs(getRuntime(docId)?.bytes, pageIndex, l.runs).catch(() => null);
         void glyphs.current.then((g) => alive && setDrawn(g));
       })
-      .catch(() => alive && setLayout({ blocks: [], runs: [], view: [0, 0, 612, 792] }));
+      .catch((e) => {
+        console.warn("Could not read the page's text", e);
+        if (alive) setLayout({ blocks: [], runs: [], view: [0, 0, 612, 792] });
+      });
     return () => {
       alive = false;
     };

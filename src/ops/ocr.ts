@@ -63,10 +63,10 @@ export async function createOcrWorker(languages: string[], onProgress: (status: 
   return Tesseract.createWorker(languages, Tesseract.OEM.LSTM_ONLY, {
     workerPath: vendor("worker.min.js"),
     corePath: vendor("core"),
-    // English ships with the app; without a langPath tesseract.js fetches each
-    // language from its own @tesseract.js-data package on jsDelivr.
+    // English ships with the app (not gzipped: see scripts/copy-vendor.mjs); without a langPath
+    // tesseract.js fetches each language, gzipped, from its own @tesseract.js-data package on jsDelivr.
     langPath: onlyEnglish ? vendor("lang") : undefined,
-    gzip: true,
+    gzip: !onlyEnglish,
     logger: (m: { status: string; progress: number }) => onProgress(m.status, m.progress),
   } as never);
 }

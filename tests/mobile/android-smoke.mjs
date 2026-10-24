@@ -198,10 +198,16 @@ try {
   check(seenText === "NAFOWA HALL,", `tapping text in a picture recognizes it (OCR) and opens it (${JSON.stringify(seenText)})`);
   await page.waitForTimeout(1000);
   await shot("picture-editing");
+  const lines = await page.locator(".doxxta-text-block.is-seen").count();
   await page.evaluate(() => (document.querySelector(".doxxta-textedit-editor").innerText = "GRAND HALL,"));
   await tap(page.locator('.text-format-bar [aria-label="Done"]'));
-  await page.waitForFunction(() => !document.querySelector(".doxxta-textedit-editor") && !document.querySelector(".busy-backdrop.is-visible"), null, { timeout: 60_000 }).catch(() => {});
-  await page.waitForTimeout(3000);
+  // Written: the line is the page's own text, no longer one seen in the picture (or a message says why not).
+  const written = await page
+    .waitForFunction((n) => document.querySelectorAll(".doxxta-text-block.is-seen").length < n || document.querySelector(".toast"), lines, { timeout: 120_000, polling: 500 })
+    .then(() => true, () => false);
+  const toasts = await page.evaluate(() => [...document.querySelectorAll(".toast")].map((t) => t.textContent));
+  check(written && !toasts.length, `the edit is written in the page (${toasts.join(" | ") || (written ? "no message" : "timed out")})`);
+  await page.waitForTimeout(1500);
   await tapPage(290, 169);
   const again = await page.waitForSelector(".doxxta-textedit-editor", { timeout: 30_000 }).then(() => page.locator(".doxxta-textedit-editor").innerText(), () => "");
   check(again === "GRAND HALL,", `the edit is written as the page's text (edited again: ${JSON.stringify(again)})`);

@@ -34,12 +34,12 @@
     log(`${ok ? "✓" : "✗"} ${what}`);
     if (!ok) failed++;
   };
-  /** Waits (up to 15 s) for the shell script to take a screenshot, and notes how long it took. */
+  /** Waits (up to 40 s) for the shell script to take a screenshot, and notes how long it took. */
   const shot = async (name) => {
     await write(name, "screenshot");
     const start = Date.now();
-    let taken = "not taken in 15 s";
-    for (const end = start + 15_000; Date.now() < end; await wait(250)) {
+    let taken = "not taken in 40 s";
+    for (const end = start + 40_000; Date.now() < end; await wait(250)) {
       try {
         await files("readFile", name, { encoding: "utf8" });
       } catch (e) {
@@ -129,10 +129,14 @@
     press(290, 169);
     const opened = await until(() => $(".doxxta-textedit-editor"), 10_000);
     check(opened?.innerText === "NAFOWA HALL,", `tapping a recognized line opens it (${JSON.stringify(opened?.innerText)})`);
+    const lines = $$(".doxxta-text-block.is-seen").length;
     opened.innerText = "GRAND HALL,";
     $('.text-format-bar [aria-label="Done"]').click();
-    await until(() => !$(".doxxta-textedit-editor") && !$(".busy-backdrop.is-visible"), 60_000);
-    await wait(3000);
+    // Written: the line is the page's own text, no longer one seen in the picture (or a message says why not).
+    const written = await until(() => $$(".doxxta-text-block.is-seen").length < lines || $(".toast"), 120_000);
+    const toasts = $$(".toast").map((t) => t.textContent);
+    check(!!written && !toasts.length, `the edit is written in the page (${toasts.join(" | ") || (written ? "no message" : "timed out")})`);
+    await wait(1500);
     press(290, 169);
     const again = await until(() => $(".doxxta-textedit-editor"), 15_000);
     check(again?.innerText === "GRAND HALL,", `the edit is written as the page's text (edited again: ${JSON.stringify(again?.innerText)})`);

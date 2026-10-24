@@ -1,7 +1,8 @@
 // Copies runtime assets that libraries load by URL (pdf.js fonts/cmaps/wasm,
 // the form-scripting sandbox, and the OCR engine) into public/vendor so the
 // app is fully self-hosted. Runs before `dev` and `build`.
-import { cpSync, existsSync, mkdirSync, readdirSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { gunzipSync } from "node:zlib";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -37,5 +38,12 @@ for (const f of readdirSync(join(nm, "tesseract.js-core"))) {
     copy(`tesseract.js-core/${f}`, `tesseract/core/${f}`);
   }
 }
-copy("@tesseract.js-data/eng/4.0.0_best_int/eng.traineddata.gz", "tesseract/lang/eng.traineddata.gz");
+// Not gzipped: Android's packaging doesn't keep .gz files under their own name (the app couldn't
+// find it). The packages compress it anyway.
+const eng = join(nm, "@tesseract.js-data/eng/4.0.0_best_int/eng.traineddata.gz");
+if (existsSync(eng)) {
+  mkdirSync(join(out, "tesseract", "lang"), { recursive: true });
+  writeFileSync(join(out, "tesseract", "lang", "eng.traineddata"), gunzipSync(readFileSync(eng)));
+  rmSync(join(out, "tesseract", "lang", "eng.traineddata.gz"), { force: true });
+} else console.warn("[vendor] missing English OCR data, skipped");
 console.log("[vendor] assets ready in public/vendor");

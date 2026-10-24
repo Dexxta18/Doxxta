@@ -1,0 +1,3 @@
+Doxxta's first release on Google Play.
+
+New: edit text that's part of a picture, like the words on an invitation card or a scan. Tap it, and Doxxta reads it, matches its font, size, spacing and color, and writes your change in the same style.

@@ -1,0 +1,40 @@
+Doxxta is a complete PDF editor and reader. Change the text in your PDFs, fill in and sign forms, mark up documents, turn scans into text and organize pages, right on your phone, with no account and no ads.
+
+Edit text right in the PDF
+• Tap a paragraph to change it. Your text keeps the document's font, size, color and alignment.
+• Format as you type: font, size, bold, italics, underline, colors and alignment.
+• Edit text that's part of a picture, like the words on an invitation card or a scanned page. Doxxta reads it, matches its font, size, spacing and color, and writes your change in the same style.
+• Add text, images and links, watermarks, headers and footers, page numbers and backgrounds.
+
+Fill & sign
+• Fill in PDF forms.
+• Sign with your finger, a typed signature or a photo of your signature, and add initials, dates and checkmarks anywhere.
+
+Comment and mark up
+• Highlight, underline and strike out text.
+• Add notes, text boxes, shapes, arrows, freehand drawing and stamps.
+
+Organize pages
+• Reorder, rotate, delete, duplicate, extract and insert pages.
+• Combine files into one PDF, or split a PDF into several.
+• Make PDFs from photos and images.
+
+Scan to text (OCR)
+• Recognize the text in scans and photos in 20 languages, making it searchable and selectable. English is built in; other languages download the first time you use them.
+
+Convert and optimize
+• Export to Word, Excel, PowerPoint, images, HTML and plain text.
+• Reduce file size.
+
+Protect
+• Add a password, and restrict printing, editing and copying.
+• Redact: permanently remove sensitive text and images.
+• Remove hidden information such as metadata.
+
+And more
+• Search, bookmarks, night mode and read aloud.
+• Compare two versions of a document.
+• Measure distances and areas.
+
+Private by design
+Your documents stay on your phone: Doxxta edits them on the device and never uploads them. There are no accounts, ads or tracking, and it works offline.

@@ -69,20 +69,25 @@ jobs:
         run: |
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/doxxta.jks"
           echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/doxxta.jks" >> "$GITHUB_ENV"
-      - name: Build the APK
+      # With the signing key, also the bundle for Google Play (which takes no other).
+      - name: Build the APK and the Google Play bundle
         working-directory: android
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew assembleRelease --no-daemon
+        run: ./gradlew assembleRelease ${ANDROID_KEYSTORE_FILE:+bundleRelease} --no-daemon
       - run: |
+          version=$(node -p "require('./package.json').version")
           mkdir -p out
-          cp android/app/build/outputs/apk/release/app-release.apk "out/Doxxta-$(node -p "require('./package.json').version").apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "out/Doxxta-$version.apk"
+          if [ -f android/app/build/outputs/bundle/release/app-release.aab ]; then
+            cp android/app/build/outputs/bundle/release/app-release.aab "out/Doxxta-$version.aab"
+          fi
       - uses: actions/upload-artifact@v7
         with:
           name: doxxta-android
-          path: out/*.apk
+          path: out/*
           if-no-files-found: error
 
   ios:
@@ -139,5 +144,5 @@ jobs:
             gh release create "$tag" installers/* \
               --target "$GITHUB_SHA" \
               --title "Doxxta $tag" \
-              --notes "Windows: Doxxta-Setup-*.exe · macOS: the .dmg for your Mac (arm64 = Apple Silicon, x64 = Intel) · Linux: the .AppImage · Android: the .apk · iPhone: the -unsigned.ipa, installed with your Apple ID (see the README)"
+              --notes "Windows: Doxxta-Setup-*.exe · macOS: the .dmg for your Mac (arm64 = Apple Silicon, x64 = Intel) · Linux: the .AppImage · Android: the .apk · iPhone: the -unsigned.ipa, installed with your Apple ID (see the README) · Google Play: the .aab, uploaded in Play Console (not installed on a phone)"
           fi

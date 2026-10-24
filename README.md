@@ -66,7 +66,9 @@ npx cap open ios      # Xcode (on a Mac): pick your Apple ID under Signing & Cap
 npm run mobile:icons  # redraws the app icons and launch screens from the logo
 ```
 
-The **Installers** workflow builds the Android app (`./gradlew assembleRelease`) and the iPhone app (unsigned, with `xcodebuild`) along with the desktop installers. Android apps can only be updated by apps signed with the same key: the workflow signs with the key in the repository's secrets `ANDROID_KEYSTORE_BASE64` (the keystore file, base64), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`, and without them with a throwaway key. Keep a copy of the keystore: without it, a new version can only be installed after removing the old one. **Actions → Phone app check** runs the Android app in an emulator (`tests/mobile/android-smoke.mjs`) and the iPhone app in a simulator (`tests/mobile/ios-smoke.sh`), and keeps their screenshots.
+The **Installers** workflow builds the Android app (`./gradlew assembleRelease`, and with the signing key `bundleRelease`, the bundle Google Play takes) and the iPhone app (unsigned, with `xcodebuild`) along with the desktop installers. Android apps can only be updated by apps signed with the same key: the workflow signs with the key in the repository's secrets `ANDROID_KEYSTORE_BASE64` (the keystore file, base64), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`, and without them with a throwaway key. Keep a copy of the keystore: without it, a new version can only be installed after removing the old one. **Actions → Phone app check** runs the Android app in an emulator (`tests/mobile/android-smoke.mjs`) and the iPhone app in a simulator (`tests/mobile/ios-smoke.sh`), and keeps their screenshots.
+
+**Google Play:** [docs/google-play.md](docs/google-play.md) goes through publishing the Android app there. The store listing (texts, icon, feature graphic and screenshots) is in `fastlane/metadata/android/en-US/`; `node scripts/store-graphics.mjs` takes the screenshots again after the app changes.
 
 ## Features
 
@@ -129,6 +131,8 @@ The **Installers** workflow builds the Android app (`./gradlew assembleRelease`)
 - Print with page ranges, scaling, orientation, quality and grayscale; document properties; keyboard shortcuts for everything (press `?`)
 
 ## Privacy
+
+The privacy policy for the app stores is [PRIVACY.md](PRIVACY.md).
 
 Doxxta is a static web app. PDFs are read and written in the browser; nothing is sent to a server. The only network requests after the app has loaded are ones you start:
 

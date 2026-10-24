@@ -7,7 +7,7 @@ What's ready in this repository, and the steps that need your Google account.
 - **The app bundle.** Google Play takes an Android App Bundle (`.aab`), not an APK. The **Installers** workflow builds `Doxxta-<version>.aab` and attaches it to the release once your signing key is in the repository's secrets (step 2); without the key it skips the bundle, since Play won't take one signed with a throwaway key.
 - **The store listing**, in `fastlane/metadata/android/en-US/`:
   - `title.txt`, `short_description.txt`, `full_description.txt`: the name and descriptions (within Play's 30, 80 and 4,000 characters).
-  - `changelogs/500.txt`: the release notes for version 0.5.0 (version code 500).
+  - `changelogs/501.txt`: the release notes for version 0.5.1 (version code 501), the first on Play.
   - `images/icon.png` (512 × 512), `images/featureGraphic.jpg` (1024 × 500) and `images/phoneScreenshots/` (six, 1080 × 1920).
   - `node scripts/store-graphics.mjs` makes the images again after the app changes, from the demo documents it creates.
 - **The privacy policy**: [PRIVACY.md](../PRIVACY.md), at https://github.com/Dexxta18/Doxxta/blob/main/PRIVACY.md.
@@ -58,7 +58,7 @@ In **Policy and programs → App content**:
 ## 6. Closed test (personal accounts)
 
 1. **Testing → Closed testing**: create a track, and under **Testers** add an email list with the Google account addresses of at least 12 people.
-2. **Create new release**: when asked about app signing, keep **Let Google manage and protect your app signing key**. Upload the `.aab` from step 3, paste `changelogs/500.txt` as the release notes, and **Start rollout**. Google reviews it, which takes from a few hours to a few days.
+2. **Create new release**: when asked about app signing, keep **Let Google manage and protect your app signing key**. Upload the `.aab` from step 3, paste `changelogs/501.txt` as the release notes, and **Start rollout**. Google reviews it, which takes from a few hours to a few days.
 3. Copy the test's opt-in link and send it to your testers. Each one opens it, taps **Become a tester**, then installs Doxxta from the Play Store link on that page. People who don't opt in don't count.
 4. Keep at least 12 testers signed up for 14 days in a row: if the count drops below 12, the 14 days start again. Ask them to really use the app, since Google asks about the test afterwards.
 5. After the 14 days, **Dashboard → Apply for production** and answer the questions about the test. Google's answer can take up to a week.
@@ -69,7 +69,7 @@ In **Production → Create new release**, add the same bundle from the library (
 
 ## Updates
 
-Raise the version in `package.json`, run the Installers workflow, and upload the new `.aab` in a new Production release. The version code rises with the version (0.5.1 is 501), as Play requires.
+Raise the version in `package.json`, run the Installers workflow, and upload the new `.aab` in a new Production release. The version code rises with the version (0.5.2 is 502), as Play requires.
 
 The copy on Play and the APK on GitHub are signed with different keys (Google's and yours), so a phone can't update one with the other: it has to uninstall first. Once Doxxta is on Play, send people there.
 

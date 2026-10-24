@@ -105,6 +105,8 @@ try {
   await device.shell("pm uninstall app.doxxta.mobile").catch(() => {});
   await device.installApk(readFileSync(apk));
   await device.shell("logcat -c").catch(() => {});
+  // No "… isn't responding" dialogs (slow emulators show them for the launcher): they take the Back key.
+  await device.shell("settings put global hide_error_dialogs 1").catch(() => {});
   await device.shell("input keyevent KEYCODE_WAKEUP");
   await device.shell("wm dismiss-keyguard").catch(() => {});
   await device.shell("am start -W -n app.doxxta.mobile/.MainActivity");

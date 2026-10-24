@@ -27,6 +27,13 @@
     return null;
   };
   const errors = [];
+  // The app's own error reports (it shows a message and logs the error).
+  const logged = [];
+  const consoleError = console.error.bind(console);
+  console.error = (...args) => {
+    logged.push(args.map((a) => String(a?.stack ?? a?.message ?? a)).join(" ").slice(0, 400));
+    consoleError(...args);
+  };
   addEventListener("error", (e) => errors.push(e.message));
   addEventListener("unhandledrejection", (e) => errors.push(String(e.reason?.message ?? e.reason)));
   let failed = 0;
@@ -131,9 +138,22 @@
     check(opened?.innerText === "NAFOWA HALL,", `tapping a recognized line opens it (${JSON.stringify(opened?.innerText)})`);
     const lines = $$(".doxxta-text-block.is-seen").length;
     opened.innerText = "GRAND HALL,";
-    $('.text-format-bar [aria-label="Done"]').click();
+    log(`· editor before Done: ${JSON.stringify(opened.innerText)}`);
+    const done = $('.text-format-bar [aria-label="Done"]');
+    log(`· Done button: ${done ? "found" : "missing"}`);
+    done?.click();
+    // How the edit goes, for finding out why when it doesn't.
+    const t0 = Date.now();
+    const state = () =>
+      `${((Date.now() - t0) / 1000).toFixed(1)}s: editor ${$(".doxxta-textedit-editor") ? "open" : "closed"}, busy ${$(".busy-backdrop.is-visible") ? "yes" : "no"}, seen ${$$(".doxxta-text-block.is-seen").length}, own ${$$(".doxxta-text-block:not(.is-seen)").length}, page text ${JSON.stringify((document.querySelector(".textLayer")?.textContent ?? "").replace(/\s+/g, "").slice(0, 40))}`;
+    const trace = [];
+    const timers = [300, 2000, 8000, 30_000].map((ms) => setTimeout(() => trace.push(state()), ms));
     // Written: the line is the page's own text, no longer one seen in the picture (or a message says why not).
     const written = await until(() => $$(".doxxta-text-block.is-seen").length < lines || $(".toast"), 120_000);
+    timers.forEach(clearTimeout);
+    trace.push(state());
+    for (const t of trace) log(`· ${t}`);
+    for (const e of logged) log(`· logged: ${e}`);
     const toasts = $$(".toast").map((t) => t.textContent);
     check(!!written && !toasts.length, `the edit is written in the page (${toasts.join(" | ") || (written ? "no message" : "timed out")})`);
     await wait(1500);

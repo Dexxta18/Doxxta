@@ -4,6 +4,15 @@ export const device = "iPhone 15";
 
 export default async function run({ page, check, st, open, shot }) {
   const active = () => st(() => { const s = window.__doxxta.useApp.getState(); return s.docs[s.activeId]; });
+  // Without what Safari (the iPhone app's browser) lacks: reading a stream with `for await`, as pdf.js
+  // reads a page's text, and AbortSignal.any (Safari before 17.4).
+  await page.addInitScript(() => {
+    delete ReadableStream.prototype.values;
+    delete ReadableStream.prototype[Symbol.asyncIterator];
+    delete AbortSignal.any;
+  });
+  await page.reload();
+  await page.waitForSelector(".app");
   await open("sample.pdf");
   check(await page.locator(".phone-bar").count() === 1 && (await page.locator(".tools-panel, .right-rail, .statusbar").count()) === 0, "phones get a bottom bar instead of the side panels and status bar");
   check((await page.locator(".phone-pager span").innerText()).trim() === "1 / 6", "the bottom bar shows the page number");
@@ -108,4 +117,9 @@ export default async function run({ page, check, st, open, shot }) {
   await page.waitForSelector(".doxxta-textedit-editor", { timeout: 60000 });
   check((await page.locator(".doxxta-textedit-editor").innerText()) === "NAFOWA HALL," && (await page.locator(".text-format-bar.is-docked").count()) === 1, "tapping text in a picture opens it, with the toolbar along the bottom");
   await shot("picture-text");
+  // Done: the line is written in the page, as the page's own text.
+  await st(() => (document.querySelector(".doxxta-textedit-editor").innerText = "GRAND HALL,"));
+  await page.tap('.text-format-bar [aria-label="Done"]');
+  const own = await page.waitForSelector(".doxxta-text-block:not(.is-seen)", { timeout: 30000 }).then(() => true, () => false);
+  check(own, "the edited line is then the page's own text");
 }

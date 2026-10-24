@@ -98,6 +98,21 @@ const tapPage = async (x, y) => {
   await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [at] });
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
 };
+/**
+ * Closes other apps' "… isn't responding" dialogs, which take the Back key (slow emulators show them
+ * for the launcher, sometimes before the setting that hides them is made).
+ */
+const closeDialogs = async () => {
+  for (let i = 0; i < 3; i++) {
+    const focus = (await device.shell("dumpsys window | grep mCurrentFocus").catch(() => "")).toString();
+    const stuck = focus.match(/Application (?:Not Responding|Error): ([\w.]+)/)?.[1];
+    if (!stuck) return;
+    results.push(`· a dialog said ${stuck} isn't responding`);
+    if (stuck === "app.doxxta.mobile") return;
+    await device.shell(`am force-stop ${stuck}`).catch(() => {});
+    await page.waitForTimeout(1000);
+  }
+};
 let webViewVersion = "";
 const errors = [];
 const logged = [];
@@ -173,9 +188,11 @@ try {
   check((await page.locator(".phone-pager span").innerText()).trim() === "4 / 6", "tapping a page goes to it");
 
   // Android's Back button: closes the tool, then the document.
+  await closeDialogs();
   await device.shell("input keyevent KEYCODE_BACK");
   await page.waitForTimeout(800);
   check(await page.locator(".mode-chip").count() === 0, "Back closes the tool");
+  await closeDialogs();
   await device.shell("input keyevent KEYCODE_BACK");
   await page.waitForTimeout(800);
   check(await page.locator(".home-hero").count() === 1, "Back again goes to the home screen");
@@ -200,12 +217,11 @@ try {
   check(seenText === "NAFOWA HALL,", `tapping text in a picture recognizes it (OCR) and opens it (${JSON.stringify(seenText)})`);
   await page.waitForTimeout(1000);
   await shot("picture-editing");
-  const lines = await page.locator(".doxxta-text-block.is-seen").count();
   await page.evaluate(() => (document.querySelector(".doxxta-textedit-editor").innerText = "GRAND HALL,"));
   await tap(page.locator('.text-format-bar [aria-label="Done"]'));
   // Written: the line is the page's own text, no longer one seen in the picture (or a message says why not).
   const written = await page
-    .waitForFunction((n) => document.querySelectorAll(".doxxta-text-block.is-seen").length < n || document.querySelector(".toast"), lines, { timeout: 120_000, polling: 500 })
+    .waitForFunction(() => document.querySelector(".doxxta-text-block:not(.is-seen)") || document.querySelector(".toast"), null, { timeout: 120_000, polling: 500 })
     .then(() => true, () => false);
   const toasts = await page.evaluate(() => [...document.querySelectorAll(".toast")].map((t) => t.textContent));
   check(written && !toasts.length, `the edit is written in the page (${toasts.join(" | ") || (written ? "no message" : "timed out")})`);

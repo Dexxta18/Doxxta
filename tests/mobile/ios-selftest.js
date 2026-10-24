@@ -168,7 +168,6 @@ window.__doxxtaSelftest = true;
     press(290, 169);
     const opened = await until(() => $(".doxxta-textedit-editor"), 10_000);
     check(opened?.innerText === "NAFOWA HALL,", `tapping a recognized line opens it (${JSON.stringify(opened?.innerText)})`);
-    const lines = $$(".doxxta-text-block.is-seen").length;
     opened.innerText = "GRAND HALL,";
     log(`· editor before Done: ${JSON.stringify(opened.innerText)}`);
     const done = $('.text-format-bar [aria-label="Done"]');
@@ -181,7 +180,7 @@ window.__doxxtaSelftest = true;
     const trace = [];
     const timers = [300, 2000, 8000, 30_000].map((ms) => setTimeout(() => trace.push(state()), ms));
     // Written: the line is the page's own text, no longer one seen in the picture (or a message says why not).
-    const written = await until(() => $$(".doxxta-text-block.is-seen").length < lines || $(".toast"), 60_000);
+    const written = await until(() => $(".doxxta-text-block:not(.is-seen)") || $(".toast"), 60_000);
     timers.forEach(clearTimeout);
     trace.push(state());
     for (const t of trace) log(`· ${t}`);

@@ -1,3 +1,5 @@
+// First: adds what pdf.js needs that some browsers lack.
+import "./lib/compat";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "@fontsource-variable/inter";

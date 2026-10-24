@@ -492,6 +492,8 @@ export function TextEditorBox({
             minWidth: box.w + 4,
             maxWidth: room.w + 4,
             minHeight: box.h + 4,
+            // The text's own size: lines are at least this size times the spacing, as in the page.
+            fontSize: editing.fontSize,
             lineHeight: editing.leading,
             textAlign: ui.align,
             color: editing.color,

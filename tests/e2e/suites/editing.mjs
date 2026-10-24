@@ -77,8 +77,12 @@ export default async function run({ page, check, st, open, shot, build, readPdf 
   await page.click('.context-toolbar button[aria-label="Edit text"], .context-toolbar [data-tip="Edit text"]').catch(() => {});
   await page.waitForSelector(".doxxta-text-block", { timeout: 15000 });
   const v0 = await version();
+  const paragraph = await page.locator(".doxxta-text-block").nth(1).boundingBox();
   await page.locator(".doxxta-text-block").nth(1).click();
   await page.waitForSelector(".doxxta-textedit-editor");
+  // Its lines are as far apart as the page's: the editor is as tall as the paragraph.
+  const opened = await page.locator(".doxxta-textedit-editor").boundingBox();
+  check(opened.height <= paragraph.height * 1.1 + 2, `the editor's lines are spaced as the paragraph's (${Math.round(opened.height)} px for ${Math.round(paragraph.height)} px)`);
   await page.keyboard.press("Control+a");
   await page.keyboard.type("This paragraph was rewritten in Doxxta.");
   await page.keyboard.press("Control+Enter");

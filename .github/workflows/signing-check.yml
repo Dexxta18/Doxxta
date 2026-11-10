@@ -1,0 +1,58 @@
+# Checks the Android signing key in the repository's secrets (README → Phone apps) without showing
+# it: which of the four secrets the workflows see, whether the key opens with its passwords, and its
+# certificate's fingerprint. Run it from the Actions tab; the results are notes on the run's page.
+name: Signing key check
+
+on: workflow_dispatch
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the signing key
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          # The names put under Variables instead of Secrets.
+          AS_VARIABLES: >-
+            ${{ vars.ANDROID_KEYSTORE_BASE64 != '' && 'ANDROID_KEYSTORE_BASE64' || '' }}
+            ${{ vars.ANDROID_KEYSTORE_PASSWORD != '' && 'ANDROID_KEYSTORE_PASSWORD' || '' }}
+            ${{ vars.ANDROID_KEY_ALIAS != '' && 'ANDROID_KEY_ALIAS' || '' }}
+            ${{ vars.ANDROID_KEY_PASSWORD != '' && 'ANDROID_KEY_PASSWORD' || '' }}
+        run: |
+          problems=0
+          problem() { echo "::error title=$1::$2"; problems=$((problems + 1)); }
+          seen=()
+          missing=()
+          for pair in ANDROID_KEYSTORE_BASE64:KEYSTORE ANDROID_KEYSTORE_PASSWORD:STORE_PASSWORD ANDROID_KEY_ALIAS:ALIAS ANDROID_KEY_PASSWORD:KEY_PASSWORD; do
+            var=${pair#*:}
+            value=${!var}
+            if [ -n "$value" ]; then seen+=("${pair%%:*} (${#value} characters)"); else missing+=("${pair%%:*}"); fi
+          done
+          echo "::notice title=Secrets the workflows see::${seen[*]:-none}"
+          variables=$(echo $AS_VARIABLES)
+          [ -n "$variables" ] && problem "Under Variables, not Secrets" "$variables: a variable's value can be read by anyone with access to the repository's settings. Delete it there and add it under Secrets."
+          [ ${#missing[@]} -gt 0 ] && problem "Missing secrets" "${missing[*]}: add each under Settings → Secrets and variables → Actions → Secrets → New repository secret, with exactly that name (not under Codespaces, Dependabot or an environment)."
+          if [ -n "$KEYSTORE" ]; then
+            key="$RUNNER_TEMP/key.jks"
+            if ! echo "$KEYSTORE" | base64 -d > "$key" 2> /dev/null || [ "$(stat -c %s "$key")" -lt 1000 ]; then
+              problem "ANDROID_KEYSTORE_BASE64" "This isn't the whole key: copy all of the long block of text from doxxta-android-signing.txt."
+            elif [ -n "$STORE_PASSWORD" ]; then
+              if ! keytool -list -keystore "$key" -storepass "$STORE_PASSWORD" > /dev/null 2>&1; then
+                problem "ANDROID_KEYSTORE_PASSWORD" "This password doesn't open the key."
+              elif [ -n "$ALIAS" ] && ! keytool -list -keystore "$key" -storepass "$STORE_PASSWORD" -alias "$ALIAS" > /dev/null 2>&1; then
+                problem "ANDROID_KEY_ALIAS" "The key file has no key by this name."
+              elif [ -n "$ALIAS" ]; then
+                fingerprint=$(keytool -list -v -keystore "$key" -storepass "$STORE_PASSWORD" -alias "$ALIAS" | grep -m 1 'SHA256:' | sed 's/.*SHA256: //')
+                echo "::notice title=The key's certificate::SHA-256 $fingerprint"
+                if [ -n "$KEY_PASSWORD" ] && ! openssl pkcs12 -in "$key" -nocerts -nodes -passin env:KEY_PASSWORD > /dev/null 2>&1; then
+                  problem "ANDROID_KEY_PASSWORD" "This password doesn't unlock the key."
+                fi
+              fi
+            fi
+            rm -f "$key"
+          fi
+          if [ "$problems" -eq 0 ]; then echo "::notice title=Signing key::All four secrets are set, and the key opens with them."; fi
+          exit $((problems > 0))

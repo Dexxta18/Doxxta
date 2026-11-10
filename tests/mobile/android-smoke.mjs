@@ -27,10 +27,12 @@ const [device] = await android.devices();
 if (!device) throw new Error("No Android device or emulator found (adb devices).");
 console.log(`Android app on ${device.model()}`);
 let page;
+// GitHub keeps 10 notes of a kind a step: the screenshots get 9, the results the last.
+let screenshotNotes = 0;
 const shot = async (name) => {
   const png = await device.screenshot({ path: join(shots, `${name}.png`) });
   // A small copy in the run's notes, for where the run's downloads can't be reached.
-  if (process.env.SCREENSHOT_NOTES && page) note("notice", `Screenshot ${name}`, await thumbnail(png).catch((e) => String(e)));
+  if (process.env.SCREENSHOT_NOTES && page && screenshotNotes++ < 9) note("notice", `Screenshot ${name}`, await thumbnail(png).catch((e) => String(e)));
 };
 /** A small JPEG of a screenshot (a data: URL that fits in a note), drawn by the app's web view. */
 const thumbnail = (png) =>

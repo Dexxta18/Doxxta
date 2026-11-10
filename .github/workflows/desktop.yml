@@ -84,6 +84,20 @@ jobs:
           if [ -f android/app/build/outputs/bundle/release/app-release.aab ]; then
             cp android/app/build/outputs/bundle/release/app-release.aab "out/Doxxta-$version.aab"
           fi
+      # Which key signed them, in the run's notes: its certificate's SHA-256, to compare with your key's
+      # (keytool -list -v -keystore doxxta-release.jks).
+      - name: Signing certificate
+        continue-on-error: true
+        run: |
+          fingerprint() { tr -d ':' | tr 'A-F' 'a-f'; }
+          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -n 1)
+          for f in out/*.apk; do
+            echo "::notice title=$(basename "$f") is signed by::$("$apksigner" verify --print-certs "$f" | grep -m 1 'SHA-256 digest' | sed 's/.*digest: //' | fingerprint)"
+          done
+          for f in out/*.aab; do
+            [ -f "$f" ] || continue
+            echo "::notice title=$(basename "$f") is signed by::$(keytool -printcert -jarfile "$f" | grep -m 1 'SHA256:' | sed 's/.*SHA256: //' | fingerprint)"
+          done
       - uses: actions/upload-artifact@v7
         with:
           name: doxxta-android

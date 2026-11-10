@@ -36,7 +36,12 @@ interface ToolEntry {
   icon: React.ReactNode;
   command: string;
   color: string;
+  /** The mode it opens, when its command isn't that mode's ("mode.…"). */
+  mode?: string;
 }
+
+/** Whether a tool is the one in use: its mode is the document's. */
+const isActive = (t: ToolEntry, mode: string | undefined) => !!mode && (t.mode ?? (t.command.startsWith("mode.") ? t.command.slice(5) : null)) === mode;
 
 const GROUPS: { title: string; tools: ToolEntry[] }[] = [
   {
@@ -47,6 +52,7 @@ const GROUPS: { title: string; tools: ToolEntry[] }[] = [
       { label: "Edit PDF", icon: <FilePen size={17} />, command: "mode.edit", color: "#e5484d" },
       { label: "Organize pages", icon: <LayoutGrid size={17} />, command: "mode.organize", color: "#12a594" },
       { label: "Export PDF", icon: <FileDown size={17} />, command: "tool.export", color: "#2f5bea" },
+      { label: "Protect with password", icon: <Lock size={17} />, command: "tool.protect", color: "#6e56cf", mode: "protect" },
     ],
   },
   {
@@ -80,7 +86,6 @@ const GROUPS: { title: string; tools: ToolEntry[] }[] = [
   {
     title: "Protect & optimize",
     tools: [
-      { label: "Protect", icon: <Lock size={17} />, command: "mode.protect", color: "#6e56cf" },
       { label: "Redact", icon: <EyeOff size={17} />, command: "mode.redact", color: "#343a46" },
       { label: "Remove hidden info", icon: <ShieldCheck size={17} />, command: "tool.sanitize", color: "#6e56cf" },
       { label: "Compress PDF", icon: <Minimize2 size={17} />, command: "tool.compress", color: "#30a46c" },
@@ -107,7 +112,7 @@ export function ToolsList({ onPick }: { onPick?: () => void }) {
           <div className="tools-group-title">{g.title}</div>
           {g.tools.map((t) => {
             const c = getCommand(t.command);
-            const active = t.command.startsWith("mode.") && mode === t.command.slice(5);
+            const active = isActive(t, mode);
             return (
               <button
                 key={t.command}
@@ -150,7 +155,7 @@ export function ToolsPanel() {
           {open && <div className="tools-group-title">{g.title}</div>}
           {g.tools.map((t) => {
             const c = getCommand(t.command);
-            const active = t.command.startsWith("mode.") && mode === t.command.slice(5);
+            const active = isActive(t, mode);
             return (
               <button
                 key={t.command}

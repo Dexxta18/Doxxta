@@ -547,8 +547,8 @@ interface ToolAction {
   icon: ReactNode;
   tip?: string;
   run: () => void;
-  /** The tool's main action: drawn as a button of its own, and the last to go in "More". */
-  main?: boolean;
+  /** The tool's main action: drawn as a button of its own (red when it can't be undone), and the last to go in "More". */
+  main?: "primary" | "danger";
 }
 
 const ACTIONS: Partial<Record<Mode, ToolAction[]>> = {
@@ -567,11 +567,11 @@ const ACTIONS: Partial<Record<Mode, ToolAction[]>> = {
   forms: [{ label: "All fields", icon: <Layers size={16} />, run: () => useSettings.getState().set({ rightPanel: "fields" }) }],
   redact: [
     { label: "Remove hidden info", icon: <ShieldCheck size={16} />, run: () => runCommand("tool.sanitize") },
-    { label: "Apply redactions", icon: <EyeOff size={15} />, run: () => openDialog("apply-redactions"), main: true },
+    { label: "Apply redactions", icon: <EyeOff size={15} />, run: () => openDialog("apply-redactions"), main: "danger" },
   ],
   measure: [{ label: "Scale & units", icon: <Settings2 size={16} />, run: () => openDialog("measure-scale") }],
   protect: [
-    { label: "Encrypt with password", icon: <Lock size={16} />, run: () => runCommand("tool.protect") },
+    { label: "Add password", icon: <Lock size={16} />, run: () => runCommand("tool.protect"), main: "primary" },
     { label: "Remove security", icon: <LockOpen size={16} />, run: () => runCommand("tool.removeSecurity") },
     { label: "Redact", icon: <EyeOff size={16} />, run: () => runCommand("mode.redact") },
     { label: "Remove hidden info", icon: <ShieldCheck size={16} />, run: () => runCommand("tool.sanitize") },
@@ -637,7 +637,7 @@ function ToolActions({ actions, start }: { actions: ToolAction[]; start: boolean
     return () => ro.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
-  const look = (a: ToolAction) => (a.main ? "btn btn-sm btn-danger" : "toolbar-text-btn");
+  const look = (a: ToolAction) => (a.main ? `btn btn-sm btn-${a.main}` : "toolbar-text-btn");
   const more = actions.filter((a) => !shown.has(a.label));
   return (
     <div ref={box} className={`toolbar-actions${start ? " is-start" : ""}`} style={keep ? { minWidth: keep } : undefined}>
@@ -649,7 +649,7 @@ function ToolActions({ actions, start }: { actions: ToolAction[]; start: boolean
           </button>
         ))}
       {more.length > 0 && (
-        <MenuButton items={more.map((a) => ({ label: a.label, icon: a.icon, hint: a.tip, danger: a.main, onSelect: a.run }))} placement="bottom-end">
+        <MenuButton items={more.map((a) => ({ label: a.label, icon: a.icon, hint: a.tip, danger: a.main === "danger", onSelect: a.run }))} placement="bottom-end">
           {({ ref, onClick, open }) => <IconButton ref={ref} icon={<MoreHorizontal size={17} />} label="More" active={open} onClick={onClick} />}
         </MenuButton>
       )}
@@ -719,7 +719,13 @@ export function ContextToolbar({ docId }: { docId: string }) {
   const canRedo = useApp((s) => s.docs[docId]?.canRedo);
   const undoLabel = useApp((s) => s.docs[docId]?.undoLabel);
   const redoLabel = useApp((s) => s.docs[docId]?.redoLabel);
+  // A document with a password (or one to be added when it's saved) has its password changed, not added.
+  const locked = useApp((s) => {
+    const security = s.docs[docId]?.security;
+    return !!security && (security.pending ? security.pending.kind === "encrypt" : security.encrypted);
+  });
   useApp((s) => s.tool);
+  const actions = (ACTIONS[mode] ?? []).map((a) => (locked && a.label === "Add password" ? { ...a, label: "Edit password" } : a));
   return (
     <div className={`context-toolbar mode-${mode}`} role="toolbar" aria-label={`${MODE_TITLES[mode] || "View"} tools`}>
       {mode !== "view" && (
@@ -730,9 +736,9 @@ export function ContextToolbar({ docId }: { docId: string }) {
           </button>
         </span>
       )}
-      {mode !== "organize" && (
+      {/* On phones a finger scrolls the page: no Hand tool, and in Protect, with nothing to pick, the room goes to its actions. */}
+      {mode !== "organize" && !(phone && mode === "protect") && (
         <>
-          {/* On phones a finger scrolls the page: no Hand tool. */}
           <ToolButtons tools={phone ? [SELECT] : [SELECT, HAND]} />
           <Sep />
         </>
@@ -740,7 +746,7 @@ export function ContextToolbar({ docId }: { docId: string }) {
       <ToolsRow key={`tools-${mode}`}>
         <ModeTools mode={mode} />
       </ToolsRow>
-      <ToolActions key={`actions-${mode}`} actions={ACTIONS[mode] ?? []} start={mode === "protect"} />
+      <ToolActions key={`actions-${mode}-${locked}`} actions={actions} start={mode === "protect"} />
       <IconButton icon={<Undo2 size={17} />} label={undoLabel ? `Undo ${undoLabel}` : "Undo"} shortcut="Mod+Z" disabled={!canUndo} onClick={() => runCommand("edit.undo")} />
       <IconButton icon={<Redo2 size={17} />} label={redoLabel ? `Redo ${redoLabel}` : "Redo"} shortcut="Mod+Shift+Z" disabled={!canRedo} onClick={() => runCommand("edit.redo")} />
       {mode === "view" && !phone && (

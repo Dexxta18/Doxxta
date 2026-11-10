@@ -191,6 +191,32 @@ window.__doxxtaSelftest = true;
     const again = await until(() => $(".doxxta-textedit-editor"), 15_000);
     check(again?.innerText === "GRAND HALL,", `the edit is written as the page's text (edited again: ${JSON.stringify(again?.innerText)})`);
     await shot("ios-picture-edited");
+
+    // Protect with password: among the first tools; its dialog sets the password the file is saved with.
+    $('.text-format-bar [aria-label="Done"]')?.click();
+    await wait(1000);
+    button("Tools").click();
+    await wait(800);
+    const protect = $$(".phone-sheet .tools-item").find((b) => b.textContent.includes("Protect with password"));
+    check(!!protect, "Protect with password is in the tools");
+    protect?.click();
+    const asked = await until(() => $(".dialog-title")?.textContent.includes("Protect with password"), 10_000);
+    check(!!asked, "it asks for the password");
+    if (asked) {
+      // As typed: React reads an input's value from its input event.
+      const type = (input, value) => {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(input, value);
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      };
+      const [first, second] = $$(".dialog input[type=password]");
+      type(first, "Garden-2027");
+      type(second, "Garden-2027");
+      await wait(300);
+      $(".dialog-footer .btn-primary")?.click();
+      const set = await until(() => $$(".context-toolbar button").some((b) => b.textContent.includes("Edit password")), 10_000);
+      check(!!set, "the password is set for saving (Protect's toolbar offers to edit it)");
+      await shot("ios-protected");
+    }
     check(errors.length === 0, `no script errors${errors.length ? `: ${errors.join(" | ")}` : ""}`);
   } catch (e) {
     failed++;

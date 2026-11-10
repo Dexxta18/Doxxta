@@ -230,6 +230,26 @@ try {
   const again = await page.waitForSelector(".doxxta-textedit-editor", { timeout: 30_000 }).then(() => page.locator(".doxxta-textedit-editor").innerText(), () => "");
   check(again === "GRAND HALL,", `the edit is written as the page's text (edited again: ${JSON.stringify(again)})`);
   await shot("picture-edited");
+
+  // Protect with password: among the first tools; its dialog sets the password the file is saved with.
+  if (await page.locator('.text-format-bar [aria-label="Done"]').count()) await tap(page.locator('.text-format-bar [aria-label="Done"]'));
+  await page.waitForTimeout(1000);
+  await tap(page.locator(".phone-bar-btn", { hasText: "Tools" }));
+  await page.waitForTimeout(800);
+  const protect = page.locator(".phone-sheet .tools-item", { hasText: "Protect with password" });
+  check((await protect.count()) === 1, "Protect with password is in the tools");
+  await tap(protect);
+  const asked = await page.waitForSelector(".dialog-title:has-text('Protect with password')", { timeout: 10_000 }).then(() => true, () => false);
+  check(asked, "it asks for the password");
+  if (asked) {
+    const passwords = page.locator(".dialog input[type=password]");
+    await passwords.nth(0).fill("Garden-2027");
+    await passwords.nth(1).fill("Garden-2027");
+    await tap(page.locator(".dialog-footer .btn-primary"));
+    const set = await page.waitForSelector('.context-toolbar button:has-text("Edit password")', { timeout: 10_000 }).then(() => true, () => false);
+    check(set, "the password is set for saving (Protect's toolbar offers to edit it)");
+    await shot("protected");
+  }
   check(errors.length === 0, `no script errors${errors.length ? `: ${errors.join(" | ")}` : ""}`);
 } catch (e) {
   failed++;

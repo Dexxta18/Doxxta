@@ -14,6 +14,7 @@ import {
   Hand,
   Info,
   Link2,
+  Lock,
   Maximize,
   MousePointer2,
   Printer,
@@ -267,7 +268,19 @@ const commands: Command[] = [
   { id: "tool.pageNumbers", perm: "modify", label: "Add page numbers", needsDoc: true, run: () => openDialog("page-numbers", { docId: activeId() }) },
   { id: "tool.crop", perm: "modify", label: "Crop pages", icon: ic(Crop), needsDoc: true, run: () => enterTool("edit", "crop") },
   { id: "tool.link", perm: "modify", label: "Add or edit links", icon: ic(Link2), needsDoc: true, run: () => enterTool("edit", "link") },
-  { id: "tool.protect", perm: "owner", label: "Protect with password", needsDoc: true, run: () => openDialog("protect", { docId: activeId() }) },
+  {
+    id: "tool.protect",
+    perm: "owner",
+    label: "Protect with password",
+    icon: ic(Lock),
+    needsDoc: true,
+    run: () => {
+      const id = activeId();
+      // In Protect, where the password can later be changed or removed.
+      if (id && getActiveDoc()?.mode !== "protect") setMode(id, "protect");
+      openDialog("protect", { docId: id });
+    },
+  },
   { id: "tool.removeSecurity", label: "Remove security", needsDoc: true, run: () => openDialog("remove-security", { docId: activeId() }) },
   { id: "tool.sanitize", perm: "modify", label: "Remove hidden information", needsDoc: true, run: () => openDialog("sanitize", { docId: activeId() }) },
   { id: "tool.flatten", perm: "modify", label: "Flatten comments & forms", needsDoc: true, run: () => openDialog("flatten", { docId: activeId() }) },

@@ -67,6 +67,8 @@ export function PhoneBar({ docId }: { docId: string }) {
           panel("layers", "Layers"),
           panel("fields", "Form fields"),
           { type: "separator" },
+          cmd("tool.protect"),
+          { type: "separator" },
           { label: "Fit width", onSelect: () => v()?.setScale("page-width") },
           { label: "Fit page", onSelect: () => v()?.setScale("page-fit") },
           cmd("view.rotateCw"),

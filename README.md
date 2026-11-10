@@ -115,7 +115,7 @@ The **Installers** workflow builds the Android app (`./gradlew assembleRelease`,
 - Import/export form data as XFDF, FDF, JSON or CSV; clear form
 
 **Protect**
-- Password protection with 256-bit AES (also AES-128 and legacy RC4), open and permissions passwords, printing/editing/copying restrictions
+- Password protection with 256-bit AES (also AES-128 and legacy RC4), open and permissions passwords, printing/editing/copying restrictions. **Protect with password** is among the first tools (and in the File menu, and on phones in More); the password is added when the document is saved
 - Remove security; re-saving a protected file keeps its protection
 - Redaction: mark text or areas, search and redact text or patterns (emails, phone numbers, card numbers, SSNs, dates…). Applying redaction removes the underlying text, image pixels and vector graphics
 - Remove hidden information (metadata, attachments, scripts, hidden layers, thumbnails); flatten comments and forms
@@ -179,7 +179,7 @@ The browser tests drive the app in headless Chromium with Playwright, then read 
 
 ```bash
 npx playwright install chromium   # once
-npm run test:e2e                  # 10 suites against the dev server (131 checks)
+npm run test:e2e                  # 10 suites against the dev server (138 checks)
 npm run test:e2e -- security      # one suite: organize, forms, editing, pictures, export, signing, security, redaction, openurl, phone
 npm run test:smoke                # builds, then tests the production build through the UI (incl. OCR)
 ```

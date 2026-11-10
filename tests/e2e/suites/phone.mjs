@@ -1,8 +1,10 @@
 // The phone layout (iPhone-sized, touch): bottom bar, sheets, pinch zoom, finger drawing, dialogs.
+import { dropFile } from "../harness.mjs";
+
 export const title = "Phone layout";
 export const device = "iPhone 15";
 
-export default async function run({ page, check, st, open, shot }) {
+export default async function run({ page, check, st, open, shot, build, readPdf }) {
   const active = () => st(() => { const s = window.__doxxta.useApp.getState(); return s.docs[s.activeId]; });
   // Without what Safari (the iPhone app's browser) lacks: reading a stream with `for await`, as pdf.js
   // reads a page's text, and AbortSignal.any (Safari before 17.4).
@@ -122,4 +124,32 @@ export default async function run({ page, check, st, open, shot }) {
   await page.tap('.text-format-bar [aria-label="Done"]');
   const own = await page.waitForSelector(".doxxta-text-block:not(.is-seen)", { timeout: 30000 }).then(() => true, () => false);
   check(own, "the edited line is then the page's own text");
+
+  // Passwords: a protected PDF asks for its own, and any PDF can be given one from the first tools.
+  await dropFile(page, "encrypted.pdf");
+  const asked = await page.waitForSelector(".dialog input[type=password]", { timeout: 15000 }).then(() => true, () => false);
+  check(asked, "opening a protected PDF asks for its password");
+  await page.fill(".dialog input[type=password]", "secret");
+  await page.locator(".dialog-footer .btn-primary").tap();
+  const unlocked = await page
+    .waitForFunction(() => { const s = window.__doxxta.useApp.getState(); const d = s.docs[s.activeId]; return d?.name === "encrypted.pdf" && d.status === "ready"; }, null, { timeout: 15000 })
+    .then(() => true, () => false);
+  check(unlocked, "with its password, it opens");
+  await open("sample.pdf");
+  await page.tap(".phone-bar-btn:has-text('Tools')");
+  const protect = page.locator(".phone-sheet .tools-item", { hasText: "Protect with password" });
+  const spot = await protect.boundingBox();
+  check(!!spot && spot.y + spot.height <= screen.height, "Protect with password is among the first tools (no scrolling)");
+  await protect.tap();
+  await page.waitForSelector(".dialog-title:has-text('Protect with password')");
+  const form = await page.locator(".dialog").boundingBox();
+  check(form.x >= 0 && form.x + form.width <= screen.width, `its dialog fits the screen (${Math.round(form.width)} px wide)`);
+  const passwords = page.locator(".dialog input[type=password]");
+  await passwords.nth(0).fill("Garden-2027");
+  await passwords.nth(1).fill("Garden-2027");
+  await page.locator(".dialog-footer .btn-primary").tap();
+  check(await page.locator(".context-toolbar .toolbar-actions > button", { hasText: "Edit password" }).isVisible(), "Protect's toolbar shows its password button (not under More)");
+  await shot("protected");
+  const bytes = await build();
+  check((await readPdf(bytes)).needsPassword && (await readPdf(bytes, "Garden-2027")).pages === 6, "the saved PDF needs the password to open");
 }
